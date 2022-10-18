@@ -4,130 +4,55 @@ from discord import app_commands
 from discord import ui
 from extensions.autocomplete import region_autocomplete
 
+services = ['Bcons', 'Pcons & Pipes', 'Scons', 'Oil & Petrol', 'Heavy Oil', 'Enriched Oil', 'Cams & Pams', 'Sams & Hams', 'Nams', 'Light Assembly',
+            'Light Assembly (Motor Pool)', 'Light Assembly (Rocket Factory)', 'Light Assembly (Field Station)', 'Light Assembly (Tank Factory)', 'Light Assembly (Weapons Platform)', 'Modification Center', 'Ammo Factory', 'Ammo Factory (Rocket)', 'Ammo Factory (Large Shell)', 'Large Assembly', 'Large Assembly (Train)', 'Large Assembly (Heavy Tank)']
 
-class ServicesView(discord.ui.View):
+
+class Button(discord.ui.Button):
+
+    def __init__(self, label):
+        super().__init__(label=label)
+
+    async def callback(self, interaction: discord.Interaction):
+        if self.style == discord.ButtonStyle.secondary:
+            self.style = discord.ButtonStyle.primary
+        else:
+            self.style = discord.ButtonStyle.secondary
+        await interaction.response.edit_message(view=self.view)
+
+
+class ServicesSelectView(discord.ui.View):
     async def on_timeout(self) -> None:
         for item in self.children:
             item.disabled = True
         await self.message.edit(view=self)
 
-    async def switch_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if button.style == discord.ButtonStyle.secondary:
-            button.style = discord.ButtonStyle.primary
-        else:
-            button.style = discord.ButtonStyle.secondary
-        await interaction.response.edit_message(view=self)
+    async def select_test(self, interaction: discord.Interaction):
+        await interaction.response.send_message(interaction.data)
 
-    async def invert_all_buttons(self, button: discord.ui.Button):
-        if button.style == discord.ButtonStyle.secondary:
-            button.style = discord.ButtonStyle.primary
-        else:
-            button.style = discord.ButtonStyle.secondary
-        return button
 
-    @discord.ui.button(label='Bcons')
-    async def bcons(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
+class ServicesView(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+        self.static_buttons = ['Invert Selection', 'Finish']
 
-    @discord.ui.button(label='Pcons & Pipes')
-    async def pcons_pipes(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Scons')
-    async def scons(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Oil & Petrol')
-    async def Oil(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Heavy Oil')
-    async def heavy_oil(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Enriched Oil')
-    async def enricked_oil(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Cams & Pams')
-    async def cams_pams(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Sams & Hams')
-    async def sams_hams(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Nams')
-    async def nams(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Light Assembly')
-    async def ls(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Light Assembly (Motor Pool)')
-    async def ls_mp(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Light Assembly (Rocket Factory)')
-    async def ls_rf(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Light Assembly (Field Station)')
-    async def ls_fs(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Light Assembly (Tank Factory)')
-    async def ls_tf(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Light Assembly (Weapons Platform)')
-    async def ls_wp(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Modification Center')
-    async def mc(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Ammo Factory')
-    async def af(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Ammo Factory (Rocket)')
-    async def af_rocket(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Ammo Factory (Large Shell)')
-    async def af_shell(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Large Assembly')
-    async def la(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Large Assembly (Train)')
-    async def la_train(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Large Assembly (Heavy Tank)')
-    async def la_ht(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.switch_button(interaction, button)
-
-    @discord.ui.button(label='Cancel', row=4, style=discord.ButtonStyle.danger)
-    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def on_timeout(self) -> None:
         for item in self.children:
             item.disabled = True
-        await interaction.response.edit_message(view=self)
+        await self.message.edit(view=self)
 
-    @discord.ui.button(label='Invert Selection', row=4, style=discord.ButtonStyle.blurple)
+    @discord.ui.button(label='Invert Selection', style=discord.ButtonStyle.primary, row=4)
     async def invert(self, interaction: discord.Interaction, button: discord.ui.Button):
         for item in self.children:
-            if item.label in ['Finish', 'Invert Selection', 'Cancel']:
+            if item.label in self.static_buttons:
                 continue
-            await self.invert_all_buttons(item)
+            elif item.style == discord.ButtonStyle.secondary:
+                item.style = discord.ButtonStyle.primary
+            else:
+                item.style = discord.ButtonStyle.secondary
         await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(label='Finish', row=4, style=discord.ButtonStyle.success)
+    @discord.ui.button(label='Finish', style=discord.ButtonStyle.success, row=4)
     async def finish(self, interaction: discord.Interaction, button: discord.ui.Button):
         pass
 
@@ -161,11 +86,51 @@ class Modify(commands.Cog):
                     value=region)
         e.add_field(name='Coordinates', value=coordinates)
         e.add_field(name='Maintainer', value=maintainer)
-        # e.add_field(name='Services',value=services)
         e.add_field(name='Author', value=interaction.user.mention)
 
         view = ServicesView()
-        await interaction.response.send_message('Add additional details below', embed=e, view=view, ephemeral=True)
+        for service in services:
+            button = Button(label=service)
+            view.add_item(button)
+        children = view.children
+        for button in view.static_buttons:
+            for ui_button in children:
+                if ui_button.label == button:
+                    # print(ui_button.label)
+                    view.remove_item(ui_button)
+                    ui_button.row = 4
+                    view.add_item(ui_button)
+                    # print(children)
+
+        await interaction.response.send_message('Select services below', embed=e, view=view, ephemeral=True)
+
+        view.message = await interaction.original_response()
+
+    @ app_commands.command()
+    @ app_commands.autocomplete(region=region_autocomplete)
+    @ app_commands.rename(facilityname='facility-name', region='region-hex', coordinates='coordinates', maintainer='maintainer', notes='notes')
+    async def createselect(self, interaction: discord.Interaction, facilityname: str, region: str, coordinates: str, maintainer: str, notes: str):
+        e = discord.Embed(
+            title=facilityname, description=notes, color=0x54A24A)
+        e.add_field(name='Hex/Region',
+                    value=region)
+        e.add_field(name='Coordinates', value=coordinates)
+        e.add_field(name='Maintainer', value=maintainer)
+        e.add_field(name='Author', value=interaction.user.mention)
+
+        view = ServicesSelectView()
+        select_options = []
+        for service in services:
+            select_options.append(discord.SelectOption(label=service))
+
+        select = discord.ui.Select(
+            options=select_options,
+            max_values=len(select_options))
+        select.callback = view.select_test
+        view.add_item(select)
+        print(view.children)
+
+        await interaction.response.send_message('Select services below', embed=e, view=view, ephemeral=True)
 
         view.message = await interaction.original_response()
 

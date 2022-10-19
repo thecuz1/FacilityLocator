@@ -18,7 +18,7 @@ class ServicesSelectView(discord.ui.View):
             item.disabled = True
         await self.message.edit(view=self)
 
-    @discord.ui.select(options=options, max_values=len(services))
+    @discord.ui.select(options=options, max_values=len(services), placeholder='Select services')
     async def select_menu(self, interaction: discord.Interaction, select_menu: discord.ui.Select):
         await interaction.response.defer()
 
@@ -45,7 +45,7 @@ class Modify(commands.Cog):
 
         view = ServicesSelectView()
 
-        await interaction.response.send_message('Select services below', embed=e, view=view, ephemeral=True)
+        await interaction.response.send_message(embed=e, view=view, ephemeral=True)
         view.message = await interaction.original_response()
 
 

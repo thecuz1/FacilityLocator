@@ -6,6 +6,9 @@ from discord.ext import commands
 handler = logging.FileHandler(
     filename='discord.log', encoding='utf-8', mode='w')
 
+extensions = ['extensions.modify', 'extensions.query',
+              'extensions.misc', 'extensions.sqlite']
+
 
 class Bot(commands.Bot):
     async def on_ready(self):
@@ -14,10 +17,8 @@ class Bot(commands.Bot):
         print('---------')
 
     async def setup_hook(self):
-        await self.load_extension('extensions.modify')
-        await self.load_extension('extensions.query')
-        await self.load_extension('extensions.misc')
-        await self.load_extension('extensions.sqlite')
+        for extension in extensions:
+            await self.load_extension(extension)
 
 
 intents = discord.Intents.default()

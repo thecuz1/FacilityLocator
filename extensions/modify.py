@@ -8,14 +8,22 @@ services = ['Bcons', 'Pcons & Pipes', 'Scons', 'Oil & Petrol', 'Heavy Oil', 'Enr
             'Light Assembly (Motor Pool)', 'Light Assembly (Rocket Factory)', 'Light Assembly (Field Station)', 'Light Assembly (Tank Factory)', 'Light Assembly (Weapons Platform)', 'Modification Center', 'Ammo Factory', 'Ammo Factory (Rocket)', 'Ammo Factory (Large Shell)', 'Large Assembly', 'Large Assembly (Train)', 'Large Assembly (Heavy Tank)']
 
 
+class ServicesSelectMenu(discord.ui.Select):
+    def __init__(self):
+        options = []
+        for service in services:
+            options.append(discord.SelectOption(label=service))
+        super().__init__(max_values=len(options), options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+
+
 class ServicesSelectView(discord.ui.View):
     async def on_timeout(self) -> None:
         for item in self.children:
             item.disabled = True
         await self.message.edit(view=self)
-
-    async def select_test(self, interaction: discord.Interaction):
-        await interaction.response.send_message(interaction.data)
 
     @discord.ui.button(label='Finish', style=discord.ButtonStyle.success, row=4)
     async def finish(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -54,18 +62,10 @@ class Modify(commands.Cog):
         e.add_field(name='Author', value=interaction.user.mention)
 
         view = ServicesSelectView()
-        select_options = []
-        for service in services:
-            select_options.append(discord.SelectOption(label=service))
-
-        select = discord.ui.Select(
-            options=select_options,
-            max_values=len(select_options))
-        select.callback = view.select_test
+        select = ServicesSelectMenu()
         view.add_item(select)
 
         await interaction.response.send_message('Select services below', embed=e, view=view, ephemeral=True)
-
         view.message = await interaction.original_response()
 
 

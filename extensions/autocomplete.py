@@ -1,9 +1,8 @@
 import discord
-from discord.ext import commands
 from discord import app_commands
 
-regions = ['DeadLands', 'Ash Fields', 'Westgate',
-                        'Kalokai', 'Red River', 'Achrithia', 'Terminus', 'The Fingers', 'Origin', 'Great March', 'The HeartLands', 'Shackled Chasm', 'Umbral Wildwood', 'Allods Bright', 'The Drowned Vale', 'Tempest Island', 'Fishermans Row', 'Loch Mór', 'Endless Shore', 'Godcrofts', 'Farranac Coast', 'The Oarbreaker Isles', 'Marban Hollow', 'Weathered Expanse', 'Morgens Crossing', 'The Linn of Mercy', 'Stonecradle', 'Nevish Line', 'Callahans Passage', 'Viper Pit', 'Clanshead Valley', 'The Moors', 'Callums Cape', 'Reaching Trail', 'Howl County', 'Speaking Woods', 'Basin Sionnach']
+regions = ['DeadLands', 'Ash Fields', 'Westgate', 'Kalokai', 'Red River', 'Achrithia', 'Terminus', 'The Fingers', 'Origin', 'Great March', 'The HeartLands', 'Shackled Chasm', 'Umbral Wildwood', 'Allods Bright', 'The Drowned Vale', 'Tempest Island', 'Fishermans Row', 'Loch Mór', 'Endless Shore', 'Godcrofts',
+           'Farranac Coast', 'The Oarbreaker Isles', 'Marban Hollow', 'Weathered Expanse', 'Morgens Crossing', 'The Linn of Mercy', 'Stonecradle', 'Nevish Line', 'Callahans Passage', 'Viper Pit', 'Clanshead Valley', 'The Moors', 'Callums Cape', 'Reaching Trail', 'Howl County', 'Speaking Woods', 'Basin Sionnach']
 
 
 async def region_autocomplete(

@@ -1,30 +1,32 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from discord import ui
 from extensions.autocomplete import region_autocomplete
-
-services = ['Bcons', 'Pcons & Pipes', 'Scons', 'Oil & Petrol', 'Heavy Oil', 'Enriched Oil', 'Cams & Pams', 'Sams & Hams', 'Nams', 'Light Assembly',
-            'Light Assembly (Motor Pool)', 'Light Assembly (Rocket Factory)', 'Light Assembly (Field Station)', 'Light Assembly (Tank Factory)', 'Light Assembly (Weapons Platform)', 'Modification Center', 'Ammo Factory', 'Ammo Factory (Rocket)', 'Ammo Factory (Large Shell)', 'Large Assembly', 'Large Assembly (Train)', 'Large Assembly (Heavy Tank)']
+from extensions.enums import Service
 
 
 class ServicesSelectView(discord.ui.View):
     options = []
-    for service in services:
-        options.append(discord.SelectOption(label=service))
+    for service in Service:
+        options.append(discord.SelectOption(
+            label=service.value[1], value=service.name))
 
     async def on_timeout(self) -> None:
         for item in self.children:
             item.disabled = True
         await self.message.edit(view=self)
 
-    @discord.ui.select(options=options, max_values=len(services), placeholder='Select services')
+    @discord.ui.select(options=options, max_values=len(Service), placeholder='Select services')
     async def select_menu(self, interaction: discord.Interaction, select_menu: discord.ui.Select):
         await interaction.response.defer()
 
-    @discord.ui.button(label='Finish', style=discord.ButtonStyle.success, row=4)
+    @discord.ui.button(label='Finish', style=discord.ButtonStyle.success)
     async def finish(self, interaction: discord.Interaction, button: discord.ui.Button):
-        pass
+        flag_number = 0
+        for selected_service in self.children[0].values:
+            service = Service[selected_service]
+            flag_number += service.value[0]
+        await interaction.response.send_message(flag_number)
 
 
 class Modify(commands.Cog):

@@ -20,13 +20,19 @@ class ServicesSelectView(discord.ui.View):
     async def select_menu(self, interaction: discord.Interaction, select_menu: discord.ui.Select):
         await interaction.response.defer()
 
-    @discord.ui.button(label='Finish', style=discord.ButtonStyle.success)
+    @discord.ui.button(label='Finish', style=discord.ButtonStyle.primary)
     async def finish(self, interaction: discord.Interaction, button: discord.ui.Button):
+        selected_services = self.children[0].values
+        if not len(selected_services) > 0:
+            return await interaction.response.send_message('⚠️ Please select at least one service', ephemeral=True)
+
         flag_number = 0
-        for selected_service in self.children[0].values:
-            service = Service[selected_service]
+        for service in selected_services:
+            service = Service[service]
             flag_number += service.value[0]
-        await interaction.response.send_message(flag_number)
+
+        self.stop()
+        await interaction.response.send_message(':white_check_mark: Successfuly created facility', ephemeral=True)
 
 
 class Modify(commands.Cog):

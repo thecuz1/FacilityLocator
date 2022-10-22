@@ -1,13 +1,13 @@
-import discord
 import os
 import logging
+import discord
 from discord.ext import commands
+from utils.sqlite import DataBase
 
 handler = logging.FileHandler(
     filename='discord.log', encoding='utf-8', mode='w')
 
-extensions = ['extensions.modify', 'extensions.query',
-              'extensions.misc', 'extensions.sqlite']
+extensions = ['cogs.modify', 'cogs.query', 'cogs.misc']
 
 
 class Bot(commands.Bot):
@@ -19,6 +19,7 @@ class Bot(commands.Bot):
     async def setup_hook(self):
         for extension in extensions:
             await self.load_extension(extension)
+        self.db = DataBase(self, 'data.sqlite')
 
 
 intents = discord.Intents.default()

@@ -1,8 +1,8 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from extensions.autocomplete import region_autocomplete
-from extensions.enums import Service
+from utils.autocomplete import region_autocomplete
+from utils.enums import Service
 
 
 class ServicesSelectView(discord.ui.View):

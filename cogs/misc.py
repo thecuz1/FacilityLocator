@@ -40,12 +40,6 @@ class Misc(commands.Cog):
     async def synctree(self, ctx):
         await ctx.send(await self.bot.tree.sync())
 
-    @commands.hybrid_command()
-    @commands.is_owner()
-    async def test(self, ctx):
-        cur = await self.bot.db.connect()
-        await ctx.send(await cur.execute("CREATE TABLE facilities(facilityname, region, coordinates, maintainer, services, notes)"))
-
 
 async def setup(bot: commands.bot) -> None:
     await bot.add_cog(Misc(bot))

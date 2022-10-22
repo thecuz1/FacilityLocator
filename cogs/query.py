@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import Paginator
-from extensions.autocomplete import region_autocomplete
+from utils.autocomplete import region_autocomplete
 
 
 class Query(commands.Cog):

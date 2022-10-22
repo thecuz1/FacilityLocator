@@ -41,13 +41,12 @@ class Modify(commands.Cog):
 
     @app_commands.command()
     @app_commands.autocomplete(region=region_autocomplete)
-    @app_commands.rename(facilityname='facility-name', region='region-hex', coordinates='coordinates', maintainer='maintainer', notes='notes')
-    async def create(self, interaction: discord.Interaction, facilityname: str, region: str, coordinates: str, maintainer: str, notes: str):
-        e = discord.Embed(
-            title=facilityname, description=notes, color=0x54A24A)
-        e.add_field(name='Hex/Region',
-                    value=region)
-        e.add_field(name='Coordinates', value=coordinates)
+    @app_commands.rename(facilityname='facility-name', region='region-coordinates', maintainer='maintainer', notes='notes')
+    async def create(self, interaction: discord.Interaction, facilityname: str, region: str, maintainer: str, notes: str):
+        e = discord.Embed(title=facilityname,
+                          description=notes,
+                          color=0x54A24A)
+        e.add_field(name='Hex/Region-Coordinates', value=region)
         e.add_field(name='Maintainer', value=maintainer)
         e.add_field(name='Author', value=interaction.user.mention)
 

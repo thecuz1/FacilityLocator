@@ -32,15 +32,10 @@ class Query(commands.Cog):
             for name, member in Service.__members__.items():
                 if member.value[0] & services_number:
                     formatted_services += f'[0;32m{member.value[1]}\n'
-                else:
-                    formatted_services += f'[0;31m{member.value[1]}\n'
             formatted_services += '```'
-            se = discord.Embed(description=formatted_services)
-            embeds.append((e, se))
-        first_embeds = embeds[0]
-        await interaction.response.send_message(embeds=[first_embeds[0], first_embeds[1]])
-        # await Paginator.Simple().start(interaction, pages=embeds)
-        # await interaction.response.send_message(embed=e)
+            e.add_field(name='Services', value=formatted_services)
+            embeds.append(e)
+        await Paginator.Simple().start(interaction, pages=embeds)
 
 
 async def setup(bot: commands.bot) -> None:

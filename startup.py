@@ -22,8 +22,7 @@ class Bot(commands.Bot):
         self.db = DataBase(self, 'data.sqlite')
 
 
-intents = discord.Intents.default()
-intents.message_content = True
+intents = discord.Intents.all()
 
 bot = Bot('>', intents=intents)
 bot.run(os.environ.get('FACILITYLOCATOR_API_TOKEN'), log_handler=handler)

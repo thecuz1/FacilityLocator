@@ -11,22 +11,20 @@ class Query(commands.Cog):
 
     @app_commands.command()
     @app_commands.autocomplete(region=region_autocomplete)
-    async def fl(self, interaction: discord.Interaction, region: str):
-        facilitylist = await self.bot.db.getFacility(region)
+    async def locate(self, interaction: discord.Interaction, region: str):
+        facilitylist = await self.bot.db.get_facility(region)
         if not facilitylist:
             return await interaction.response.send_message(':x: No facilities in requested region')
         embeds = []
         for facility in facilitylist:
-            facilityname, region, coordinates, maintainer, services, notes, userid = facility
-            e = discord.Embed(
-                title=facilityname, description=notes, color=0x54A24A)
-            e.add_field(name='Hex/Region',
-                        value=region)
-            e.add_field(name='Coordinates', value=coordinates)
+            id, facilityname, region, maintainer, services, notes, author = facility
+            e = discord.Embed(title=facilityname,
+                              description=notes,
+                              color=0x54A24A)
+            e.add_field(name='Region-Coordinates', value=region)
             e.add_field(name='Maintainer', value=maintainer)
-            e.add_field(name='Services',
-                        value=services)
-            e.add_field(name='Author', value=interaction.user.mention)
+            e.add_field(name='Author', value=self.bot.get_user(author))
+            e.set_footer(text=f'Internal id: {id}')
             embeds.append(e)
         await Paginator.Simple().start(interaction, pages=embeds)
         # await interaction.response.send_message(embed=e)

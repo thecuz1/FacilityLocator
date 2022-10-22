@@ -30,9 +30,9 @@ class ServicesSelectView(discord.ui.View):
         for service in selected_services:
             service = Service[service]
             flag_number += service.value[0]
-
+        self.flag_number = flag_number
+        self.last_interaction = interaction
         self.stop()
-        await interaction.response.send_message(':white_check_mark: Successfuly created facility', ephemeral=True)
 
 
 class Modify(commands.Cog):
@@ -43,17 +43,24 @@ class Modify(commands.Cog):
     @app_commands.autocomplete(region=region_autocomplete)
     @app_commands.rename(facilityname='facility-name', region='region-coordinates', maintainer='maintainer', notes='notes')
     async def create(self, interaction: discord.Interaction, facilityname: str, region: str, maintainer: str, notes: str):
+        author = interaction.user
         e = discord.Embed(title=facilityname,
                           description=notes,
                           color=0x54A24A)
-        e.add_field(name='Hex/Region-Coordinates', value=region)
+        e.add_field(name='Region-Coordinates', value=region)
         e.add_field(name='Maintainer', value=maintainer)
-        e.add_field(name='Author', value=interaction.user.mention)
+        e.add_field(name='Author', value=author.mention)
 
         view = ServicesSelectView()
 
         await interaction.response.send_message(embed=e, view=view, ephemeral=True)
         view.message = await interaction.original_response()
+
+        if await view.wait():
+            return
+        await self.bot.db.add_facility(
+            facilityname, region, maintainer, view.flag_number, notes, author.id)
+        await view.last_interaction.response.send_message(':white_check_mark: Successfully added facility', ephemeral=True)
 
 
 async def setup(bot: commands.bot) -> None:

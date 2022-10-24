@@ -9,7 +9,7 @@ class DataBase:
     async def add_facility(self, *args):
         async with aiosqlite.connect(self.db_name) as db:
             cur = await db.cursor()
-            await cur.execute("INSERT INTO facilities (facilityname, region, maintainer, services, notes, author) VALUES(?, ?, ?, ?, ?, ?)", args)
+            await cur.execute("INSERT INTO facilities (facilityname, region, maintainer, services, description, author) VALUES(?, ?, ?, ?, ?, ?)", args)
             await db.commit()
 
     async def get_facility(self, region):

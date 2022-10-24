@@ -8,20 +8,20 @@ from utils.enums import Service
 class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Information'):
     facility_name = discord.ui.TextInput(label='Facility Name')
     maintainer = discord.ui.TextInput(label='Maintainer')
-    notes = discord.ui.TextInput(label='Notes',
-                                 style=discord.TextStyle.paragraph,
-                                 required=False)
+    description = discord.ui.TextInput(label='Description',
+                                       style=discord.TextStyle.paragraph,
+                                       required=False)
 
-    def __init__(self, facility_name, maintainer, notes):
+    def __init__(self, facility_name, maintainer, description):
         super().__init__()
         self.facility_name.default = facility_name
         self.maintainer.default = maintainer
-        self.notes.default = notes
+        self.description.default = description
 
     async def on_submit(self, interaction: discord.Interaction):
         self.submitted = (str(self.facility_name),
                           str(self.maintainer),
-                          str(self.notes))
+                          str(self.description))
         self.last_interaction = interaction
         self.stop()
 
@@ -46,13 +46,13 @@ class ServicesSelectView(discord.ui.View):
         information = FacilityInformationModal(
             facility_name=self.facility_name,
             maintainer=self.maintainer,
-            notes=self.notes)
+            description=self.description)
         await interaction.response.send_modal(information)
         if await information.wait():
             return
-        self.facility_name, self.maintainer, self.notes = information.submitted
+        self.facility_name, self.maintainer, self.description = information.submitted
         embed = interaction.message.embeds[0]
-        embed.description = self.notes
+        embed.description = self.description
         embed.title = self.facility_name
         embed.set_field_at(1, name='Maintainer', value=self.maintainer)
         await information.last_interaction.response.edit_message(embed=embed)
@@ -90,7 +90,7 @@ class Modify(commands.Cog):
         view = ServicesSelectView()
         view.facility_name = facility_name
         view.maintainer = maintainer
-        view.notes = ''
+        view.description = ''
 
         await interaction.response.send_message(embed=e, view=view, ephemeral=True)
         view.message = await interaction.original_response()
@@ -99,9 +99,9 @@ class Modify(commands.Cog):
             return
         facility_name = view.facility_name
         maintainer = view.maintainer
-        notes = view.notes
+        description = view.description
         await self.bot.db.add_facility(
-            facility_name, region, maintainer, view.flag_number, notes, author.id)
+            facility_name, region, maintainer, view.flag_number, description, author.id)
         await view.last_interaction.response.send_message(':white_check_mark: Successfully added facility', ephemeral=True)
 
 

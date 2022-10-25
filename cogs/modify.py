@@ -27,10 +27,8 @@ class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Informatio
 
 
 class ServicesSelectView(discord.ui.View):
-    options = []
-    for service in Service:
-        options.append(discord.SelectOption(
-            label=service.value[1], value=service.name))
+    options = [discord.SelectOption(label=member.value[1], value=name)
+               for name, member in Service.__members__.items()]
 
     async def on_timeout(self) -> None:
         for item in self.children:
@@ -38,8 +36,16 @@ class ServicesSelectView(discord.ui.View):
         await self.message.edit(view=self)
 
     @discord.ui.select(options=options, max_values=len(Service), placeholder='Select services')
-    async def select_menu(self, interaction: discord.Interaction, select_menu: discord.ui.Select):
-        await interaction.response.defer()
+    async def services_menu(self, interaction: discord.Interaction, select_menu: discord.ui.Select):
+        new_options = self.options
+        for option in new_options:
+            for selected_option in select_menu.values:
+                if selected_option == option.value:
+                    option.default = True
+                    break
+                option.default = False
+        select_menu.options = new_options
+        await interaction.response.edit_message(view=self)
 
     @discord.ui.button(label='Add Description/Edit')
     async def edit(self, interaction: discord.Interaction, button: discord.ui.Button):

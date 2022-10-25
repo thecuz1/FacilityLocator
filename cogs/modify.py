@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 from utils.autocomplete import region_autocomplete
 from utils.enums import Service
+from copy import deepcopy
 
 
 class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Information'):
@@ -35,9 +36,9 @@ class ServicesSelectView(discord.ui.View):
             item.disabled = True
         await self.message.edit(view=self)
 
-    @discord.ui.select(options=options, max_values=len(Service), placeholder='Select services')
+    @discord.ui.select(options=options, max_values=len(options), placeholder='Select services')
     async def services_menu(self, interaction: discord.Interaction, select_menu: discord.ui.Select):
-        new_options = self.options
+        new_options = deepcopy(self.options)
         for option in new_options:
             for selected_option in select_menu.values:
                 if selected_option == option.value:
@@ -75,6 +76,9 @@ class ServicesSelectView(discord.ui.View):
             flag_number += service.value[0]
         self.flag_number = flag_number
         self.last_interaction = interaction
+        for item in self.children:
+            item.disabled = True
+        await interaction.response.edit_message(view=self)
         self.stop()
 
 
@@ -108,7 +112,7 @@ class Modify(commands.Cog):
         description = view.description
         await self.bot.db.add_facility(
             facility_name, region, maintainer, view.flag_number, description, author.id)
-        await view.last_interaction.response.send_message(':white_check_mark: Successfully added facility', ephemeral=True)
+        await view.last_interaction.followup.send(':white_check_mark: Successfully added facility', ephemeral=True)
 
 
 async def setup(bot: commands.bot) -> None:

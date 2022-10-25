@@ -11,6 +11,7 @@ class Query(commands.Cog):
         self.bot = bot
 
     @app_commands.command()
+    @app_commands.guild_only()
     @app_commands.autocomplete(region=region_autocomplete)
     async def locate(self, interaction: discord.Interaction, region: str):
         facilitylist = await self.bot.db.get_facility(region)

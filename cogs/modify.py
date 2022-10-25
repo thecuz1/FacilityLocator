@@ -1,9 +1,9 @@
+from copy import deepcopy
 import discord
 from discord.ext import commands
 from discord import app_commands
 from utils.autocomplete import region_autocomplete
 from utils.enums import Service
-from copy import deepcopy
 
 
 class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Information'):
@@ -40,11 +40,8 @@ class ServicesSelectView(discord.ui.View):
     async def services_menu(self, interaction: discord.Interaction, select_menu: discord.ui.Select):
         new_options = deepcopy(self.options)
         for option in new_options:
-            for selected_option in select_menu.values:
-                if selected_option == option.value:
-                    option.default = True
-                    break
-                option.default = False
+            if option.value in select_menu.values:
+                option.default = True
         select_menu.options = new_options
         await interaction.response.edit_message(view=self)
 
@@ -87,6 +84,7 @@ class Modify(commands.Cog):
         self.bot = bot
 
     @app_commands.command()
+    @app_commands.guild_only()
     @app_commands.autocomplete(region=region_autocomplete)
     @app_commands.rename(facility_name='facility-name', region='region-coordinates', maintainer='maintainer')
     async def create(self, interaction: discord.Interaction, facility_name: str, region: str, maintainer: str):
@@ -110,9 +108,13 @@ class Modify(commands.Cog):
         facility_name = view.facility_name
         maintainer = view.maintainer
         description = view.description
-        await self.bot.db.add_facility(
-            facility_name, region, maintainer, view.flag_number, description, author.id)
-        await view.last_interaction.followup.send(':white_check_mark: Successfully added facility', ephemeral=True)
+        try:
+            await self.bot.db.add_facility(facility_name, region, maintainer, view.flag_number, description, author.id)
+        except Exception as e:
+            await view.last_interaction.followup.send(':x: Failed to add facility', ephemeral=True)
+            raise e
+        else:
+            await view.last_interaction.followup.send(':white_check_mark: Successfully added facility', ephemeral=True)
 
 
 async def setup(bot: commands.bot) -> None:

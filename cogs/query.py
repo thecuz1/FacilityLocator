@@ -31,10 +31,10 @@ class Query(commands.Cog):
             embed.add_field(name=region_embed_name, value=facility_location)
             embed.add_field(name='Maintainer', value=maintainer)
             embed.add_field(name='Author', value=f'<@{author}>')
-            embed.set_footer(text=f'Internal ID: {facility_id}')
+            embed.set_footer(text=f'ID: {facility_id}')
 
             formatted_services = '```ansi\n\u001b[0;32m'
-            for name, member in Service.__members__.items():
+            for member in Service:
                 if member.value[0] & services_number:
                     formatted_services += f'{member.value[1]}\n'
             formatted_services += '```'

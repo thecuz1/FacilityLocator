@@ -42,6 +42,4 @@ class LocationTransformer(app_commands.Transformer):
         choice_list = [app_commands.Choice(name=member.value, value=name)
                        for name, member in Region.__members__.items()
                        if current.lower() in member.value.lower()]
-        if len(choice_list) > 25:
-            choice_list = choice_list[0:25]
-        return choice_list
+        return choice_list[:25]

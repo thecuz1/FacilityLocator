@@ -1,9 +1,34 @@
 from copy import deepcopy
+import re
 import discord
 from discord.ext import commands
 from discord import app_commands
 from utils.enums import Service, Region
 from utils.facility import Facility, LocationTransformer, FacilityLocation
+
+
+class RemoveFacilitiesView(discord.ui.View):
+    async def on_timeout(self) -> None:
+        for item in self.children:
+            item.disabled = True
+        await self.message.edit(view=self)
+    
+    @discord.ui.button(label='Confirm', style=discord.ButtonStyle.primary)
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        for item in self.children:
+            item.disabled = True
+        await interaction.response.edit_message(view=self)
+        self.followup = interaction.followup
+        self.stop()
+
+
+class IdTransformer(app_commands.Transformer):
+    async def transform(self, interaction: discord.Interaction, value: str):
+        delimiters = ' ', '.', ','
+        regex_pattern = '|'.join(map(re.escape, delimiters))
+        res = re.split(regex_pattern, value)
+        id_list = tuple(filter(None, res))
+        return id_list
 
 
 class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Information'):
@@ -119,6 +144,40 @@ class Modify(commands.Cog):
             raise e
         else:
             await view.followup.send(':white_check_mark: Successfully added facility', ephemeral=True)
+
+    @app_commands.command()
+    @app_commands.guild_only()
+    async def remove(self, interaction: discord.Interaction, ids: app_commands.Transform[set, IdTransformer]):
+        facilities = await self.bot.db.get_facility_ids(ids)
+        if not facilities:
+            return await interaction.response.send_message(':x: No facilities found', ephemeral=True)
+        if len(facilities) < len(ids):
+            message = f':warning: Only found {len(facilities)}/{len(ids)} facilities```\n'
+        else:
+            message = ':white_check_mark: Found all facilties```\n'
+        for facilty in facilities:
+            previous_message = message
+            message += f'{facilty[0]:3} - {facilty[1]}\n'
+            if len(message) > 4000:
+                message = previous_message
+                message += 'Truncated entries...'
+                break
+        message += '```Confirm removal of listed facilities'
+
+        view = RemoveFacilitiesView()
+        await interaction.response.send_message(message, view=view, ephemeral=True)
+        view.message = await interaction.original_response()
+
+        if await view.wait():
+            return
+        ids = [(facility[0],) for facility in facilities]
+        try:
+            await self.bot.db.remove_facilities(ids)
+        except Exception as e:
+            await view.followup.send(':x: Failed to remove facilityies', ephemeral=True)
+            raise e
+        else:
+            await view.followup.send(':white_check_mark: Successfuly removed facilities', ephemeral=True)
 
 
 async def setup(bot: commands.bot) -> None:

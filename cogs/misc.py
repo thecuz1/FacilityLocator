@@ -38,7 +38,9 @@ class Misc(commands.Cog):
     @commands.hybrid_command()
     @commands.is_owner()
     async def synctree(self, ctx):
-        await ctx.send(await self.bot.tree.sync())
+        synced_commands = await self.bot.tree.sync()
+        command_names = [command.name for command in synced_commands]
+        await ctx.send(f':white_check_mark: Synced {len(synced_commands)} commands```{command_names}```')
 
 
 async def setup(bot: commands.bot) -> None:

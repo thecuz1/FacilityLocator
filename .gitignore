@@ -2,4 +2,4 @@
 __pycache__
 *.sqlite
 *.vscode
-venv
+.venv

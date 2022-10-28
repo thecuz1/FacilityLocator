@@ -1,4 +1,5 @@
 import aiosqlite
+from utils.facility import Facility
 
 
 class DataBase:
@@ -6,38 +7,36 @@ class DataBase:
         self.bot = bot
         self.db_name = db_name
 
-    async def add_facility(self, *args):
+    async def add_facility(self, facility: Facility):
         async with aiosqlite.connect(self.db_name) as db:
+            values = (facility.name, facility.region, facility.coordinates, facility.maintainer, facility.services, facility.description, facility.author_id)
             cur = await db.cursor()
-            await cur.execute("INSERT INTO facilities (name, region, coordinates, maintainer, services, description, author) VALUES(?, ?, ?, ?, ?, ?, ?)", args)
+            await cur.execute("INSERT INTO facilities (name, region, coordinates, maintainer, services, description, author) VALUES(?, ?, ?, ?, ?, ?, ?)", values)
             await db.commit()
 
     async def get_facility(self, region):
         async with aiosqlite.connect(self.db_name) as db:
             res = await db.execute("SELECT * FROM facilities WHERE region == ?", (region,))
-            return await res.fetchall()
+            fetched_result = await res.fetchall()
+            if not fetched_result:
+                return None
+            return [Facility(name, region, coordinates, maintainer, author_id, facility_id, services, description)
+                    for facility_id, name, region, coordinates, maintainer, services, description, author_id in fetched_result]
 
-    async def get_facility_ids(self, ids, author_id = None):
+    async def get_facility_ids(self, ids):
         async with aiosqlite.connect(self.db_name) as db:
             facility_list = []
-            if author_id is not None:
-                for lookup_id in ids:
-                    res = await db.execute("SELECT * FROM facilities WHERE id == ? AND author == ?", (lookup_id, author_id))
-                    fetched_res = await res.fetchall()
-                    if not fetched_res:
-                        continue
-                    facility_list.append(fetched_res)
-            else:
-                for lookup_id in ids:
-                    res = await db.execute("SELECT * FROM facilities WHERE id == ?", (lookup_id,))
-                    fetched_res = await res.fetchall()
-                    if not fetched_res:
-                        continue
-                    facility_list.append(fetched_res)
+            for lookup_id in ids:
+                res = await db.execute("SELECT * FROM facilities WHERE id == ?", (lookup_id,))
+                fetched_result = await res.fetchall()
+                if not fetched_result:
+                    continue
+                facility_id, name, region, coordinates, maintainer, services, description, author_id = fetched_result[0]
+                facility = Facility(name, region, coordinates, maintainer, author_id, facility_id, services, description)
+                facility_list.append(facility)
             if not facility_list:
                 return False
-            facility_list = [item[0] for item in facility_list]
-            return facility_list
+            return list(facility_list)
 
     async def remove_facilities(self, ids):
         async with aiosqlite.connect(self.db_name) as db:

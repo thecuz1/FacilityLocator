@@ -1,9 +1,10 @@
 from copy import deepcopy
+import enum
 import re
 import discord
 from discord.ext import commands
 from discord import app_commands
-from utils.enums import Service, Region
+from utils.enums import Service
 from utils.facility import Facility, LocationTransformer, FacilityLocation
 
 
@@ -124,7 +125,7 @@ class Modify(commands.Cog):
             return
 
         try:
-            await self.bot.db.add_facility(facility.name, facility.region, facility.coordinates, facility.maintainer, facility.services, facility.description, facility.author_id)
+            await self.bot.db.add_facility(facility)
         except Exception as e:
             await view.followup.send(':x: Failed to add facility', ephemeral=True)
             raise e
@@ -162,25 +163,44 @@ class Modify(commands.Cog):
 
     @app_commands.command()
     @app_commands.guild_only()
-    async def remove(self, interaction: discord.Interaction, ids: app_commands.Transform[set, IdTransformer]):
+    async def remove(self, interaction: discord.Interaction, ids: app_commands.Transform[tuple, IdTransformer]):
         author_id = interaction.user.id
-        if author_id == self.bot.owner_id:
-            author_id = None
-        facilities = await self.bot.db.get_facility_ids(ids, author_id)
+        facilities = await self.bot.db.get_facility_ids(ids)
         if not facilities:
             return await interaction.response.send_message(':x: No facilities found / No permission', ephemeral=True)
+
+        message = ''
+        print(len(facilities))
+        print(len(ids))
         if len(facilities) < len(ids):
-            message = f':warning: Only found {len(facilities)}/{len(ids)} facilities (Only facilities that you can delete are shown)```\n'
+            message += f':warning: Only found {len(facilities)}/{len(ids)} facilities\n'
+
+        removed_facilities = [facilities.pop(index)
+                              for index, facilty in enumerate(facilities)
+                              if not facilty.author_id == author_id]
+
+        if removed_facilities:
+            message += ':x: No permission to delete following facilties\n```'
+            for facilty in removed_facilities:
+                previous_message = message
+                message += f'{facilty.facility_id:3} - {facilty.name}\n'
+                if len(message) > 1900:
+                    message = previous_message
+                    message += 'Truncated entries...'
+                    break
+            message += '```'
+        if facilities:
+            message += ':white_check_mark: Permission to delete following facilties```\n'
+            for facilty in facilities:
+                previous_message = message
+                message += f'{facilty.facility_id:3} - {facilty.name}\n'
+                if len(message) > 1900:
+                    message = previous_message
+                    message += 'Truncated entries...'
+                    break
+            message += '```Confirm removal of listed facilities'
         else:
-            message = ':white_check_mark: Found all facilties```\n'
-        for facilty in facilities:
-            previous_message = message
-            message += f'{facilty[0]:3} - {facilty[1]}\n'
-            if len(message) > 1900:
-                message = previous_message
-                message += 'Truncated entries...'
-                break
-        message += '```Confirm removal of listed facilities'
+            return await interaction.response.send_message(message, ephemeral=True)
 
         view = RemoveFacilitiesView()
         await interaction.response.send_message(message, view=view, ephemeral=True)
@@ -189,7 +209,7 @@ class Modify(commands.Cog):
         if await view.wait():
             return
 
-        ids = [(facility[0],) for facility in facilities]
+        ids = [(facility.facility_id,) for facility in facilities]
         try:
             await self.bot.db.remove_facilities(ids)
         except Exception as e:

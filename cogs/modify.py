@@ -148,17 +148,20 @@ class Modify(commands.Cog):
     @app_commands.command()
     @app_commands.guild_only()
     async def remove(self, interaction: discord.Interaction, ids: app_commands.Transform[set, IdTransformer]):
-        facilities = await self.bot.db.get_facility_ids(ids)
+        author_id = interaction.user.id
+        if author_id == self.bot.owner_id:
+            author_id = None
+        facilities = await self.bot.db.get_facility_ids(ids, author_id)
         if not facilities:
-            return await interaction.response.send_message(':x: No facilities found', ephemeral=True)
+            return await interaction.response.send_message(':x: No facilities found / No permission', ephemeral=True)
         if len(facilities) < len(ids):
-            message = f':warning: Only found {len(facilities)}/{len(ids)} facilities```\n'
+            message = f':warning: Only found {len(facilities)}/{len(ids)} facilities (Only facilities that you can delete are shown)```\n'
         else:
             message = ':white_check_mark: Found all facilties```\n'
         for facilty in facilities:
             previous_message = message
             message += f'{facilty[0]:3} - {facilty[1]}\n'
-            if len(message) > 4000:
+            if len(message) > 1900:
                 message = previous_message
                 message += 'Truncated entries...'
                 break
@@ -174,7 +177,7 @@ class Modify(commands.Cog):
         try:
             await self.bot.db.remove_facilities(ids)
         except Exception as e:
-            await view.followup.send(':x: Failed to remove facilityies', ephemeral=True)
+            await view.followup.send(':x: Failed to remove facilities', ephemeral=True)
             raise e
         else:
             await view.followup.send(':white_check_mark: Successfuly removed facilities', ephemeral=True)

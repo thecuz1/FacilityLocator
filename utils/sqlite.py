@@ -17,15 +17,23 @@ class DataBase:
             res = await db.execute("SELECT * FROM facilities WHERE region == ?", (region,))
             return await res.fetchall()
 
-    async def get_facility_ids(self, ids):
+    async def get_facility_ids(self, ids, author_id = None):
         async with aiosqlite.connect(self.db_name) as db:
             facility_list = []
-            for lookup_id in ids:
-                res = await db.execute("SELECT * FROM facilities WHERE id == ?", (lookup_id,))
-                fetched_res = await res.fetchall()
-                if not fetched_res:
-                    continue
-                facility_list.append(fetched_res)
+            if author_id is not None:
+                for lookup_id in ids:
+                    res = await db.execute("SELECT * FROM facilities WHERE id == ? AND author == ?", (lookup_id, author_id))
+                    fetched_res = await res.fetchall()
+                    if not fetched_res:
+                        continue
+                    facility_list.append(fetched_res)
+            else:
+                for lookup_id in ids:
+                    res = await db.execute("SELECT * FROM facilities WHERE id == ?", (lookup_id,))
+                    fetched_res = await res.fetchall()
+                    if not fetched_res:
+                        continue
+                    facility_list.append(fetched_res)
             if not facility_list:
                 return False
             facility_list = [item[0] for item in facility_list]

@@ -70,7 +70,14 @@ class ServicesSelectView(discord.ui.View):
             if option.value in select_menu.values:
                 option.default = True
         select_menu.options = new_options
-        await interaction.response.edit_message(view=self)
+
+        self.facility.services = 0
+        for service in select_menu.values:
+            service = Service[service]
+            self.facility.services += service.value[0]
+
+        embed = self.facility.embed()
+        await interaction.response.edit_message(embed=embed, view=self)
 
     @discord.ui.button(label='Add Description/Edit')
     async def edit(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -79,23 +86,14 @@ class ServicesSelectView(discord.ui.View):
 
         if await information.wait():
             return
-        embed = interaction.message.embeds[0]
-        embed.description = self.facility.description
-        embed.title = self.facility.name
-        embed.set_field_at(1,
-                           name='Maintainer',
-                           value=self.facility.maintainer)
+
+        embed = self.facility.embed()
         await information.last_interaction.response.edit_message(embed=embed)
 
     @discord.ui.button(label='Finish', style=discord.ButtonStyle.primary)
     async def finish(self, interaction: discord.Interaction, button: discord.ui.Button):
-        selected_services = self.children[0].values
-        if not len(selected_services) > 0:
+        if self.facility.services <= 0:
             return await interaction.response.send_message('⚠️ Please select at least one service', ephemeral=True)
-
-        for service in selected_services:
-            service = Service[service]
-            self.facility.services += service.value[0]
 
         for item in self.children:
             item.disabled = True
@@ -112,38 +110,55 @@ class Modify(commands.Cog):
     @app_commands.guild_only()
     @app_commands.rename(name='facility-name', location='region-coordinates', maintainer='maintainer')
     async def create(self, interaction: discord.Interaction, name: str, location: app_commands.Transform[FacilityLocation, LocationTransformer], maintainer: str):
-        author = interaction.user
-        facility_location = f'{Region[location.region].value}'
-        region_embed_name = 'Region'
-        if location.coordinates:
-            facility_location += f'-{location.coordinates}'
-            region_embed_name += '-Coordinates'
-        embed = discord.Embed(title=name,
-                              color=0x54A24A)
-        embed.add_field(name=region_embed_name,
-                        value=facility_location)
-        embed.add_field(name='Maintainer', value=maintainer)
-        embed.add_field(name='Author', value=author.mention)
+        author_id = interaction.user.id
+        facility = Facility(name, location.region, location.coordinates, maintainer, author_id)
 
         view = ServicesSelectView()
-        view.facility = Facility(name, location, maintainer)
+        view.facility = facility
+        embed = facility.embed()
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
         view.message = await interaction.original_response()
 
         if await view.wait():
             return
-        facility = view.facility
-        (region, coordinates) = facility.location
-        if coordinates is None:
-            coordinates = ''
+
         try:
-            await self.bot.db.add_facility(facility.name, region, coordinates, facility.maintainer, facility.services, facility.description, author.id)
+            await self.bot.db.add_facility(facility.name, facility.region, facility.coordinates, facility.maintainer, facility.services, facility.description, facility.author_id)
         except Exception as e:
             await view.followup.send(':x: Failed to add facility', ephemeral=True)
             raise e
         else:
             await view.followup.send(':white_check_mark: Successfully added facility', ephemeral=True)
+
+    @app_commands.command()
+    @app_commands.guild_only()
+    async def modify(self, interaction: discord.Interaction, id: int):
+        facility = await self.bot.db.get_facility_ids((id,))
+        if not facility:
+            return await interaction.response.send_message(':x: No facility found / No permission', ephemeral=True)
+        facility_id, name, region, coordinates, maintainer, services_number, description, author = facility[0]
+
+        facility = Facility(name, region, coordinates, maintainer, author, facility_id, services_number, description)
+
+        view = ServicesSelectView()
+        view.facility = facility
+        embed = facility.embed()
+
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        view.message = await interaction.original_response()
+
+        if await view.wait():
+            return
+
+        try:
+            pass
+            # await self.bot.db.add_facility(facility.name, region, coordinates, facility.maintainer, facility.services, facility.description, author.id)
+        except Exception as e:
+            await view.followup.send(':x: Failed to modify facility', ephemeral=True)
+            raise e
+        else:
+            await view.followup.send(':white_check_mark: Successfully modified facility', ephemeral=True)
 
     @app_commands.command()
     @app_commands.guild_only()
@@ -173,6 +188,7 @@ class Modify(commands.Cog):
 
         if await view.wait():
             return
+
         ids = [(facility[0],) for facility in facilities]
         try:
             await self.bot.db.remove_facilities(ids)

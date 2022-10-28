@@ -167,43 +167,45 @@ class Modify(commands.Cog):
         author_id = interaction.user.id
         facilities = await self.bot.db.get_facility_ids(ids)
         if not facilities:
-            return await interaction.response.send_message(':x: No facilities found / No permission', ephemeral=True)
+            return await interaction.response.send_message(':x: No facilities found', ephemeral=True)
 
-        message = ''
-        print(len(facilities))
-        print(len(ids))
+        embed = discord.Embed()
         if len(facilities) < len(ids):
-            message += f':warning: Only found {len(facilities)}/{len(ids)} facilities\n'
+            embed.description = f':warning: Only found {len(facilities)}/{len(ids)} facilities\n'
 
         removed_facilities = [facilities.pop(index)
                               for index, facilty in enumerate(facilities)
                               if not facilty.author_id == author_id]
 
         if removed_facilities:
-            message += ':x: No permission to delete following facilties\n```'
+            message = '```\n'
             for facilty in removed_facilities:
                 previous_message = message
                 message += f'{facilty.facility_id:3} - {facilty.name}\n'
-                if len(message) > 1900:
+                if len(message) > 1000:
                     message = previous_message
                     message += 'Truncated entries...'
                     break
             message += '```'
+            embed.add_field(name=':x: No permission to delete following facilties',
+                            value=message)
         if facilities:
-            message += ':white_check_mark: Permission to delete following facilties```\n'
+            message = '```\n'
             for facilty in facilities:
                 previous_message = message
                 message += f'{facilty.facility_id:3} - {facilty.name}\n'
-                if len(message) > 1900:
+                if len(message) > 1000:
                     message = previous_message
                     message += 'Truncated entries...'
                     break
-            message += '```Confirm removal of listed facilities'
+            message += '```'
+            embed.add_field(name=':white_check_mark: Permission to delete following facilties',
+                            value=message)
         else:
-            return await interaction.response.send_message(message, ephemeral=True)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
 
         view = RemoveFacilitiesView()
-        await interaction.response.send_message(message, view=view, ephemeral=True)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
         view.message = await interaction.original_response()
 
         if await view.wait():

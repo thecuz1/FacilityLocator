@@ -59,6 +59,10 @@ class ServicesSelectView(discord.ui.View):
     options = [discord.SelectOption(label=member.value[1], value=name)
                for name, member in Service.__members__.items()]
 
+    def __init__(self, facility):
+        super().__init__()
+        self.facility = facility
+
     async def on_timeout(self) -> None:
         for item in self.children:
             item.disabled = True
@@ -114,8 +118,7 @@ class Modify(commands.Cog):
         author_id = interaction.user.id
         facility = Facility(name, location.region, location.coordinates, maintainer, author_id)
 
-        view = ServicesSelectView()
-        view.facility = facility
+        view = ServicesSelectView(facility)
         embed = facility.embed()
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -137,13 +140,14 @@ class Modify(commands.Cog):
     async def modify(self, interaction: discord.Interaction, id: int):
         facility = await self.bot.db.get_facility_ids((id,))
         if not facility:
-            return await interaction.response.send_message(':x: No facility found / No permission', ephemeral=True)
-        facility_id, name, region, coordinates, maintainer, services_number, description, author = facility[0]
+            return await interaction.response.send_message(':x: No facility found', ephemeral=True)
 
-        facility = Facility(name, region, coordinates, maintainer, author, facility_id, services_number, description)
+        facility = facility[0]
 
-        view = ServicesSelectView()
-        view.facility = facility
+        if facility.author_id != interaction.user.id:
+            return await interaction.response.send_message(':warning: No permission to modify facility ', ephemeral=True)
+
+        view = ServicesSelectView(facility)
         embed = facility.embed()
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -153,8 +157,7 @@ class Modify(commands.Cog):
             return
 
         try:
-            pass
-            # await self.bot.db.add_facility(facility.name, region, coordinates, facility.maintainer, facility.services, facility.description, author.id)
+            await self.bot.db.update_facility(facility)
         except Exception as e:
             await view.followup.send(':x: Failed to modify facility', ephemeral=True)
             raise e

@@ -36,9 +36,15 @@ class DataBase:
                 facility_list.append(facility)
             if not facility_list:
                 return False
-            return list(facility_list)
+            return facility_list
 
     async def remove_facilities(self, ids):
         async with aiosqlite.connect(self.db_name) as db:
             await db.executemany("DELETE FROM facilities WHERE id == ?", ids)
+            await db.commit()
+    
+    async def update_facility(self, facility):
+        async with aiosqlite.connect(self.db_name) as db:
+            values = (facility.name, facility.region, facility.coordinates, facility.maintainer, facility.services, facility.description, facility.author_id, facility.facility_id)
+            await db.execute("UPDATE facilities SET name = ?, region = ?, coordinates = ?, maintainer = ?, services = ?, description = ?, author = ? WHERE id == ?", values)
             await db.commit()

@@ -14,11 +14,11 @@ class RemoveFacilitiesView(discord.ui.View):
 
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.primary)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        self.followup = interaction.followup
+        self.stop()
         for item in self.children:
             item.disabled = True
         await interaction.response.edit_message(view=self)
-        self.followup = interaction.followup
-        self.stop()
 
 
 class IdTransformer(app_commands.Transformer):
@@ -49,8 +49,8 @@ class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Informatio
         self.facility.maintainer = str(self.maintainer)
         self.facility.description = str(self.description)
 
-        self.last_interaction = interaction
-        self.stop()
+        embed = self.facility.embed()
+        await interaction.response.edit_message(embed=embed)
 
 
 class SelectMenu(discord.ui.Select):
@@ -86,12 +86,6 @@ class ServicesSelectView(discord.ui.View):
         information = FacilityInformationModal(self.facility)
         await interaction.response.send_modal(information)
 
-        if await information.wait():
-            return
-
-        embed = self.facility.embed()
-        await information.last_interaction.response.edit_message(embed=embed)
-
     @discord.ui.button(label='Finish', style=discord.ButtonStyle.primary, row=1)
     async def finish(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if self.facility.services <= 0:
@@ -100,11 +94,11 @@ class ServicesSelectView(discord.ui.View):
         if self.facility.changed() is False:
             return await interaction.response.send_message(':warning: No changes', ephemeral=True)
 
+        self.followup = interaction.followup
+        self.stop()
         for item in self.children:
             item.disabled = True
         await interaction.response.edit_message(view=self)
-        self.followup = interaction.followup
-        self.stop()
 
 
 class Modify(commands.Cog):

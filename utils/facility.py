@@ -73,3 +73,7 @@ class Facility:
             embed.add_field(name='Services', value=formatted_services)
 
         return embed
+
+    def select_options(self) -> list[discord.SelectOption]:
+        return [discord.SelectOption(label=service.value[1], value=name, default=bool(service.value[0] & self.services))
+                for name, service in Service.__members__.items()]

@@ -1,5 +1,3 @@
-from copy import deepcopy
-import enum
 import re
 import discord
 from discord.ext import commands
@@ -13,9 +11,9 @@ class RemoveFacilitiesView(discord.ui.View):
         for item in self.children:
             item.disabled = True
         await self.message.edit(view=self)
-    
+
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.primary)
-    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         for item in self.children:
             item.disabled = True
         await interaction.response.edit_message(view=self)
@@ -24,12 +22,11 @@ class RemoveFacilitiesView(discord.ui.View):
 
 
 class IdTransformer(app_commands.Transformer):
-    async def transform(self, interaction: discord.Interaction, value: str):
+    async def transform(self, interaction: discord.Interaction, value: str) -> tuple:
         delimiters = ' ', '.', ','
         regex_pattern = '|'.join(map(re.escape, delimiters))
         res = re.split(regex_pattern, value)
-        id_list = tuple(filter(None, res))
-        return id_list
+        return tuple(filter(None, res))
 
 
 class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Information'):
@@ -39,14 +36,14 @@ class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Informatio
                                        style=discord.TextStyle.paragraph,
                                        required=False)
 
-    def __init__(self, facility):
+    def __init__(self, facility) -> None:
         super().__init__()
         self.facility = facility
         self.name.default = facility.name
         self.maintainer.default = facility.maintainer
         self.description.default = facility.description
 
-    async def on_submit(self, interaction: discord.Interaction):
+    async def on_submit(self, interaction: discord.Interaction) -> None:
         self.facility.name = str(self.name)
         self.facility.maintainer = str(self.maintainer)
         self.facility.description = str(self.description)
@@ -55,12 +52,27 @@ class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Informatio
         self.stop()
 
 
-class ServicesSelectView(discord.ui.View):
-    options = [discord.SelectOption(label=member.value[1], value=name)
-               for name, member in Service.__members__.items()]
+class SelectMenu(discord.ui.Select):
+    def __init__(self, facility: Facility) -> None:
+        options = facility.select_options()
+        super().__init__(options=options, max_values=len(options), row=0)
+        self.facility = facility
 
-    def __init__(self, facility):
+    async def callback(self, interaction: discord.Interaction) -> None:
+        self.facility.services = 0
+        for service in self.values:
+            service = Service[service]
+            self.facility.services += service.value[0]
+
+        self.options = self.facility.select_options()
+        embed = self.facility.embed()
+        await interaction.response.edit_message(embed=embed, view=self.view)
+
+
+class ServicesSelectView(discord.ui.View):
+    def __init__(self, facility) -> None:
         super().__init__()
+        self.add_item(SelectMenu(facility))
         self.facility = facility
 
     async def on_timeout(self) -> None:
@@ -68,24 +80,8 @@ class ServicesSelectView(discord.ui.View):
             item.disabled = True
         await self.message.edit(view=self)
 
-    @discord.ui.select(options=options, max_values=len(options), placeholder='Select services')
-    async def services_menu(self, interaction: discord.Interaction, select_menu: discord.ui.Select):
-        new_options = deepcopy(self.options)
-        for option in new_options:
-            if option.value in select_menu.values:
-                option.default = True
-        select_menu.options = new_options
-
-        self.facility.services = 0
-        for service in select_menu.values:
-            service = Service[service]
-            self.facility.services += service.value[0]
-
-        embed = self.facility.embed()
-        await interaction.response.edit_message(embed=embed, view=self)
-
-    @discord.ui.button(label='Add Description/Edit')
-    async def edit(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(label='Add Description/Edit', row=1)
+    async def edit(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         information = FacilityInformationModal(self.facility)
         await interaction.response.send_modal(information)
 
@@ -95,8 +91,8 @@ class ServicesSelectView(discord.ui.View):
         embed = self.facility.embed()
         await information.last_interaction.response.edit_message(embed=embed)
 
-    @discord.ui.button(label='Finish', style=discord.ButtonStyle.primary)
-    async def finish(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(label='Finish', style=discord.ButtonStyle.primary, row=1)
+    async def finish(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if self.facility.services <= 0:
             return await interaction.response.send_message('⚠️ Please select at least one service', ephemeral=True)
 
@@ -178,7 +174,7 @@ class Modify(commands.Cog):
 
         removed_facilities = [facilities.pop(index)
                               for index, facilty in enumerate(facilities)
-                              if not facilty.author_id == author_id]
+                              if facilty.author_id != author_id]
 
         if removed_facilities:
             message = '```\n'

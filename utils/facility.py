@@ -46,6 +46,10 @@ class Facility:
         self.facility_id = facility_id
         self.services = services
         self.description = description
+        self.initial_hash = hash((self.__class__, self.name, self.region, self.coordinates, self.maintainer, self.author_id, self.facility_id, self.services, self.description))
+
+    def changed(self) -> bool:
+        return self.initial_hash != hash((self.__class__, self.name, self.region, self.coordinates, self.maintainer, self.author_id, self.facility_id, self.services, self.description))
 
     def embed(self) -> discord.Embed:
         facility_location = self.region_name
@@ -71,7 +75,6 @@ class Facility:
                     formatted_services += f'{service.value[1]}\n'
             formatted_services += '```'
             embed.add_field(name='Services', value=formatted_services)
-
         return embed
 
     def select_options(self) -> list[discord.SelectOption]:

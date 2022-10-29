@@ -30,18 +30,19 @@ class IdTransformer(app_commands.Transformer):
 
 
 class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Information'):
-    name = discord.ui.TextInput(label='Facility Name')
-    maintainer = discord.ui.TextInput(label='Maintainer')
-    description = discord.ui.TextInput(label='Description',
-                                       style=discord.TextStyle.paragraph,
-                                       required=False)
-
     def __init__(self, facility) -> None:
         super().__init__()
+        self.name = discord.ui.TextInput(label='Facility Name',
+                                         default=facility.name)
+        self.maintainer = discord.ui.TextInput(label='Maintainer',
+                                               default=facility.maintainer)
+        self.description = discord.ui.TextInput(label='Description',
+                                                style=discord.TextStyle.paragraph,
+                                                required=False,
+                                                default=facility.description)
+        for item in [self.name, self.maintainer, self.description]:
+            self.add_item(item)
         self.facility = facility
-        self.name.default = facility.name
-        self.maintainer.default = facility.maintainer
-        self.description.default = facility.description
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         self.facility.name = str(self.name)
@@ -94,7 +95,10 @@ class ServicesSelectView(discord.ui.View):
     @discord.ui.button(label='Finish', style=discord.ButtonStyle.primary, row=1)
     async def finish(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if self.facility.services <= 0:
-            return await interaction.response.send_message('⚠️ Please select at least one service', ephemeral=True)
+            return await interaction.response.send_message(':warning: Please select at least one service', ephemeral=True)
+
+        if self.facility.changed() is False:
+            return await interaction.response.send_message(':warning: No changes', ephemeral=True)
 
         for item in self.children:
             item.disabled = True

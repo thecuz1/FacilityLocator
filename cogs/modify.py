@@ -169,9 +169,9 @@ class Modify(commands.Cog):
                               for index, facilty in enumerate(facilities)
                               if facilty.author_id != author_id]
 
-        if removed_facilities:
+        def format_facility(facility: list[Facility]) -> str:
             message = '```\n'
-            for facilty in removed_facilities:
+            for facilty in facility:
                 previous_message = message
                 message += f'{facilty.facility_id:3} - {facilty.name}\n'
                 if len(message) > 1000:
@@ -179,18 +179,14 @@ class Modify(commands.Cog):
                     message += 'Truncated entries...'
                     break
             message += '```'
+            return message
+
+        if removed_facilities:
+            message = format_facility(removed_facilities)
             embed.add_field(name=':x: No permission to delete following facilties',
                             value=message)
         if facilities:
-            message = '```\n'
-            for facilty in facilities:
-                previous_message = message
-                message += f'{facilty.facility_id:3} - {facilty.name}\n'
-                if len(message) > 1000:
-                    message = previous_message
-                    message += 'Truncated entries...'
-                    break
-            message += '```'
+            message = format_facility(facilities)
             embed.add_field(name=':white_check_mark: Permission to delete following facilties',
                             value=message)
         else:

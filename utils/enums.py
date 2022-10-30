@@ -2,28 +2,28 @@ from enum import Enum
 
 
 class Service(Enum):
-    BCONS = (1 << 0, 'Bcons')
-    PCONS_PIPES = (1 << 1, 'Pcons & Pipes')
-    SCONS = (1 << 2, 'Scons')
-    OIL_PETROL = (1 << 3, 'Oil & Petrol')
-    HEAVY_OIL = (1 << 4, 'Heavy Oil')
-    ENRICHED_OIL = (1 << 5, 'Enriched Oil')
-    CAMS_PAMS = (1 << 6, 'Cams & Pams')
-    SAMS_HAMS = (1 << 7, 'Sams & Hams')
-    NAMS = (1 << 8, 'Nams')
-    LIGHT_ASSEMBLY = (1 << 9, 'Light Assembly')
-    LIGHT_ASSEMBLY_MP = (1 << 10, 'Light Assembly (Motor Pool)')
-    LIGHT_ASSEMBLY_RF = (1 << 11, 'Light Assembly (Rocket Factory)')
-    LIGHT_ASSEMBLY_FS = (1 << 12, 'Light Assembly (Field Station)')
-    LIGHT_ASSEMBLY_TF = (1 << 13, 'Light Assembly (Tank Factory)')
-    LIGHT_ASSEMBLY_WP = (1 << 14, 'Light Assembly (Weapons Platform)')
-    MODIFICATION_CENTER = (1 << 15, 'Modification Center')
-    AMMO_FACTORY = (1 << 16, 'Ammo Factory')
-    AMMO_FACTORY_RT = (1 << 17, 'Ammo Factory (Rocket)')
-    AMMO_FACTORY_LS = (1 << 18, 'Ammo Factory (Large Shell)')
-    LARGE_ASSEMBLY = (1 << 19, 'Large Assembly')
-    LARGE_ASSEMBLY_T = (1 << 20, 'Large Assembly (Train)')
-    LARGE_ASSEMBLY_HT = (1 << 21, 'Large Assembly (Heavy Tank)')
+    BCONS = 'Bcons'
+    PCONS_PIPES = 'Pcons & Pipes'
+    SCONS = 'Scons'
+    OIL_PETROL = 'Oil & Petrol'
+    HEAVY_OIL = 'Heavy Oil'
+    ENRICHED_OIL = 'Enriched Oil'
+    CAMS_PAMS = 'Cams & Pams'
+    SAMS_HAMS = 'Sams & Hams'
+    NAMS = 'Nams'
+    LIGHT_ASSEMBLY = 'Light Assembly'
+    LIGHT_ASSEMBLY_MP = 'Light Assembly (Motor Pool)'
+    LIGHT_ASSEMBLY_RF = 'Light Assembly (Rocket Factory)'
+    LIGHT_ASSEMBLY_FS = 'Light Assembly (Field Station)'
+    LIGHT_ASSEMBLY_TF = 'Light Assembly (Tank Factory)'
+    LIGHT_ASSEMBLY_WP = 'Light Assembly (Weapons Platform)'
+    MODIFICATION_CENTER = 'Modification Center'
+    AMMO_FACTORY = 'Ammo Factory'
+    AMMO_FACTORY_RT = 'Ammo Factory (Rocket)'
+    AMMO_FACTORY_LS = 'Ammo Factory (Large Shell)'
+    LARGE_ASSEMBLY = 'Large Assembly'
+    LARGE_ASSEMBLY_T = 'Large Assembly (Train)'
+    LARGE_ASSEMBLY_HT = 'Large Assembly (Heavy Tank)'
 
 
 class Region(Enum):

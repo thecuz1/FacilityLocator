@@ -2,7 +2,6 @@ import re
 import discord
 from discord.ext import commands
 from discord import app_commands
-from utils.enums import Service
 from utils.facility import Facility, LocationTransformer, FacilityLocation
 
 
@@ -60,11 +59,7 @@ class SelectMenu(discord.ui.Select):
         self.facility = facility
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        self.facility.services = 0
-        for service in self.values:
-            service = Service[service]
-            self.facility.services += service.value[0]
-
+        self.facility.set_services(self.values)
         self.options = self.facility.select_options()
         embed = self.facility.embed()
         await interaction.response.edit_message(embed=embed, view=self.view)

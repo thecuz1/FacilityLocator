@@ -70,13 +70,19 @@ class Facility:
 
         if self.services > 0:
             formatted_services = '```ansi\n\u001b[0;32m'
-            for service in Service:
-                if service.value[0] & self.services:
-                    formatted_services += f'{service.value[1]}\n'
+            for index, service in enumerate(Service):
+                if (1 << index) & self.services:
+                    formatted_services += f'{service.value}\n'
             formatted_services += '```'
             embed.add_field(name='Services', value=formatted_services)
         return embed
 
     def select_options(self) -> list[discord.SelectOption]:
-        return [discord.SelectOption(label=service.value[1], value=name, default=bool(service.value[0] & self.services))
-                for name, service in Service.__members__.items()]
+        return [discord.SelectOption(label=service[1].value, value=service[0], default=bool((1 << index) & self.services))
+                for index, service in enumerate(Service.__members__.items())]
+
+    def set_services(self, services: list[str]) -> None:
+        self.services = 0
+        for index, service in enumerate(Service):
+            if service.name in services:
+                self.services += (1 << index)

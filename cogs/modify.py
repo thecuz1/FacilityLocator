@@ -53,22 +53,23 @@ class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Informatio
 
 
 class SelectMenu(discord.ui.Select):
-    def __init__(self, facility: Facility) -> None:
-        options = facility.select_options()
-        super().__init__(options=options, max_values=len(options), row=0)
+    def __init__(self, row: int, placeholder: str, facility: Facility, options: list[discord.SelectOption], vehicle_select: bool) -> None:
+        super().__init__(row=row, placeholder=placeholder, options=options, min_values=0, max_values=len(options))
+        self.vehicle_select = vehicle_select
         self.facility = facility
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        self.facility.set_services(self.values)
-        self.options = self.facility.select_options()
+        self.facility.set_services(self.values, self.vehicle_select)
+        self.options = self.facility.select_options(self.vehicle_select)
         embed = self.facility.embed()
         await interaction.response.edit_message(embed=embed, view=self.view)
 
 
 class ServicesSelectView(discord.ui.View):
-    def __init__(self, facility) -> None:
+    def __init__(self, facility: Facility) -> None:
         super().__init__()
-        self.add_item(SelectMenu(facility))
+        self.add_item(SelectMenu(0, 'Select item services...', facility, facility.select_options(False), False))
+        self.add_item(SelectMenu(1, 'Select vehicle services...', facility, facility.select_options(True), True))
         self.facility = facility
 
     async def on_timeout(self) -> None:
@@ -76,12 +77,12 @@ class ServicesSelectView(discord.ui.View):
             item.disabled = True
         await self.message.edit(view=self)
 
-    @discord.ui.button(label='Add Description/Edit', row=1)
+    @discord.ui.button(label='Add Description/Edit', row=2)
     async def edit(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         information = FacilityInformationModal(self.facility)
         await interaction.response.send_modal(information)
 
-    @discord.ui.button(label='Finish', style=discord.ButtonStyle.primary, row=1)
+    @discord.ui.button(label='Finish', style=discord.ButtonStyle.primary, row=2)
     async def finish(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if self.facility.services <= 0:
             return await interaction.response.send_message(':warning: Please select at least one service', ephemeral=True)

@@ -1,8 +1,9 @@
+from enum import Enum
 from typing import NamedTuple
 import re
 import discord
 from discord import app_commands
-from utils.enums import Region, Service
+from utils.enums import Region, Service, VehicleService
 
 
 class FacilityLocation(NamedTuple):
@@ -36,7 +37,7 @@ class LocationTransformer(app_commands.Transformer):
 
 
 class Facility:
-    def __init__(self, name, region, coordinates, maintainer, author_id, facility_id = 0, services = 0, description = '') -> None:
+    def __init__(self, name, region, coordinates, maintainer, author_id, facility_id = 0, services = 0, vehicle_services = 0, description = '') -> None:
         self.name = name
         self.region = region
         self.region_name = Region[region].value
@@ -45,11 +46,12 @@ class Facility:
         self.author_id = author_id
         self.facility_id = facility_id
         self.services = services
+        self.vehicle_services = vehicle_services
         self.description = description
-        self.initial_hash = hash((self.__class__, self.name, self.region, self.coordinates, self.maintainer, self.author_id, self.facility_id, self.services, self.description))
+        self.initial_hash = hash((self.__class__, name, region, coordinates, maintainer, author_id, facility_id, services, vehicle_services, description))
 
     def changed(self) -> bool:
-        return self.initial_hash != hash((self.__class__, self.name, self.region, self.coordinates, self.maintainer, self.author_id, self.facility_id, self.services, self.description))
+        return self.initial_hash != hash((self.__class__, self.name, self.region, self.coordinates, self.maintainer, self.author_id, self.facility_id, self.services, self.vehicle_services, self.description))
 
     def embed(self) -> discord.Embed:
         facility_location = self.region_name
@@ -68,21 +70,37 @@ class Facility:
         if self.facility_id:
             embed.set_footer(text=f'ID: {self.facility_id}')
 
-        if self.services > 0:
+        def format_services(service_enum: Enum, services_number: int) -> str:
             formatted_services = '```ansi\n\u001b[0;32m'
-            for index, service in enumerate(Service):
-                if (1 << index) & self.services:
+            for index, service in enumerate(service_enum):
+                if (1 << index) & services_number:
                     formatted_services += f'{service.value}\n'
             formatted_services += '```'
+            return formatted_services
+        if self.services > 0:
+            formatted_services = format_services(Service, self.services)
             embed.add_field(name='Services', value=formatted_services)
+
+        if self.vehicle_services > 0:
+            formatted_services = format_services(VehicleService, self.vehicle_services)
+            embed.add_field(name='Vehicle Services', value=formatted_services)
         return embed
 
-    def select_options(self) -> list[discord.SelectOption]:
+    def select_options(self, vehicle: bool = False) -> list[discord.SelectOption]:
+        if vehicle:
+            return [discord.SelectOption(label=service[1].value, value=service[0], default=bool((1 << index) & self.vehicle_services))
+                    for index, service in enumerate(VehicleService.__members__.items())]
         return [discord.SelectOption(label=service[1].value, value=service[0], default=bool((1 << index) & self.services))
                 for index, service in enumerate(Service.__members__.items())]
 
-    def set_services(self, services: list[str]) -> None:
-        self.services = 0
-        for index, service in enumerate(Service):
-            if service.name in services:
-                self.services += (1 << index)
+    def set_services(self, services: list[str], vehicle: bool = False) -> None:
+        if vehicle:
+            self.vehicle_services = 0
+            for index, service in enumerate(VehicleService):
+                if service.name in services:
+                    self.vehicle_services += (1 << index)
+        else:
+            self.services = 0
+            for index, service in enumerate(Service):
+                if service.name in services:
+                    self.services += (1 << index)

@@ -106,7 +106,7 @@ class Modify(commands.Cog):
     @app_commands.rename(name='facility-name', location='region-coordinates', maintainer='maintainer')
     async def create(self, interaction: discord.Interaction, name: str, location: app_commands.Transform[FacilityLocation, LocationTransformer], maintainer: str):
         author_id = interaction.user.id
-        facility = Facility(name, location.region, location.coordinates, maintainer, author_id)
+        facility = Facility(name=name, region=location.region, coordinates=location.coordinates, maintainer=maintainer, author=author_id)
 
         view = ServicesSelectView(facility)
         embed = facility.embed()

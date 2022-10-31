@@ -37,21 +37,21 @@ class LocationTransformer(app_commands.Transformer):
 
 
 class Facility:
-    def __init__(self, name, region, coordinates, maintainer, author_id, facility_id = 0, services = 0, vehicle_services = 0, description = '') -> None:
+    def __init__(self, *, id_: int = 0, name: str, description: str = '', region: str, coordinates: str = '', maintainer: str, author: int, services = 0, vehicle_services = 0) -> None:
+        self.facility_id = id_
         self.name = name
+        self.description = description
         self.region = region
         self.region_name = Region[region].value
         self.coordinates = coordinates
         self.maintainer = maintainer
-        self.author_id = author_id
-        self.facility_id = facility_id
+        self.author_id = author
         self.services = services
         self.vehicle_services = vehicle_services
-        self.description = description
-        self.initial_hash = hash((self.__class__, name, region, coordinates, maintainer, author_id, facility_id, services, vehicle_services, description))
+        self.initial_hash = hash((self.__class__, id_, name, description, region, coordinates, maintainer, author, services, vehicle_services))
 
     def changed(self) -> bool:
-        return self.initial_hash != hash((self.__class__, self.name, self.region, self.coordinates, self.maintainer, self.author_id, self.facility_id, self.services, self.vehicle_services, self.description))
+        return self.initial_hash != hash((self.__class__, self.facility_id, self.name, self.description, self.region, self.coordinates, self.maintainer, self.author_id, self.services, self.vehicle_services))
 
     def embed(self) -> discord.Embed:
         facility_location = self.region_name

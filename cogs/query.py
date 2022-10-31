@@ -1,5 +1,4 @@
-from typing import Optional
-import discord
+from discord import Interaction
 from discord.ext import commands
 from discord import app_commands
 import Paginator
@@ -18,14 +17,17 @@ class Query(commands.Cog):
                                    for index, service in enumerate(Service)],
                           vehicle_service=[app_commands.Choice(name=service.value, value=(1 << index))
                                            for index, service in enumerate(VehicleService)])
-    async def locate(self, interaction: discord.Interaction, location: app_commands.Transform[FacilityLocation, LocationTransformer], service: Optional[int] = 0, vehicle_service: Optional[int] = 0):
-        facility_list = await self.bot.db.get_facility(location.region, service, vehicle_service)
+    async def locate(self, interaction: Interaction, location: app_commands.Transform[FacilityLocation, LocationTransformer] = None, service: int = None, vehicle_service: int = None):
+        try:
+            facility_list = await self.bot.db.get_facility(location.region, service, vehicle_service)
+        except AttributeError:
+            facility_list = await self.bot.db.get_facility(service=service, vehicle_service=vehicle_service)
         if not facility_list:
-            return await interaction.response.send_message(':x: No facilities in requested region', ephemeral=True)
+            return await interaction.response.send_message(':x: No facilities found', ephemeral=True)
         embeds = [facility.embed()
                   for facility in facility_list]
         await Paginator.Simple().start(interaction, pages=embeds)
 
 
-async def setup(bot: commands.bot) -> None:
+async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Query(bot))

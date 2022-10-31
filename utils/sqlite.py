@@ -15,18 +15,38 @@ class DataBase:
             await cur.execute("INSERT INTO facilities (name, description, region, coordinates, maintainer, author, services, vehicle_services) VALUES(?, ?, ?, ?, ?, ?, ?, ?)", values)
             await db.commit()
 
-    async def get_facility(self, region, service = 0, vehicle_service = 0) -> Union[list[Facility], None]:
+    async def get_facility(self, region = None, service = None, vehicle_service = None) -> Union[list[Facility], None]:
         async with aiosqlite.connect(self.db_name) as db:
             db.row_factory = aiosqlite.Row
-            if service == 0 & vehicle_service == 0:
-                res = await db.execute("SELECT * FROM facilities WHERE region == ?", (region,))
-            elif vehicle_service != 0 & service != 0:
-                res = await db.execute("SELECT * FROM facilities WHERE region == ? AND vehicle_services & ? AND services & ?", (region, vehicle_service, service))
-            elif service != 0:
-                res = await db.execute("SELECT * FROM facilities WHERE region == ? AND services & ?", (region, service))
-            elif vehicle_service != 0:
-                res = await db.execute("SELECT * FROM facilities WHERE region == ? AND vehicle_services & ?", (region, vehicle_service))
+            sql = "SELECT * FROM facilities"
+            variabls = []
+            first = True
 
+            if region or service or vehicle_service:
+                sql += "  WHERE "
+            if region is not None:
+                if first:
+                    sql += "region == ?"
+                    first = False
+                else:
+                    sql += "AND region == ?"
+                variabls.append(region)
+            if service is not None:
+                if first:
+                    sql += "services & ?"
+                    first = False
+                else:
+                    sql += "AND services & ?"
+                variabls.append(service)
+            if vehicle_service is not None:
+                if first:
+                    sql += "vehicle_services & ?"
+                    first = False
+                else:
+                    sql += "AND vehicle_services & ?"
+                variabls.append(vehicle_service)
+
+            res = await db.execute(sql, tuple(variabls))
             fetched_result = await res.fetchall()
             if not fetched_result:
                 return None

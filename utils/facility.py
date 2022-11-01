@@ -1,9 +1,10 @@
 from enum import Enum
 from typing import NamedTuple
 import re
+from rapidfuzz.process import extract
 import discord
 from discord import app_commands
-from utils.enums import Region, Service, VehicleService
+from utils import Region, Service, VehicleService
 
 
 class FacilityLocation(NamedTuple):
@@ -21,7 +22,7 @@ class LocationTransformer(app_commands.Transformer):
 
         region = None
         for name, member in Region.__members__.items():
-            if name in value or member.value in value:
+            if name in value or member.value[0] in value:
                 region = name
                 break
         if region is None:
@@ -30,10 +31,10 @@ class LocationTransformer(app_commands.Transformer):
         return FacilityLocation(region, coordinates)
 
     async def autocomplete(self, interaction: discord.Interaction, current):
-        choice_list = [app_commands.Choice(name=member.value, value=name)
-                       for name, member in Region.__members__.items()
-                       if current.lower() in member.value.lower()]
-        return choice_list[:25]
+        res = extract(current, {i.name: i.value[0] for i in Region}, limit=25)
+        choice_list = [app_commands.Choice(name=choice[0], value=Region[choice[2]].name)
+                       for choice in res]
+        return choice_list
 
 
 class Facility:
@@ -42,7 +43,7 @@ class Facility:
         self.name = name
         self.description = description
         self.region = region
-        self.region_name = Region[region].value
+        self.region_name = Region[region].value[0]
         self.coordinates = coordinates
         self.maintainer = maintainer
         self.author_id = author

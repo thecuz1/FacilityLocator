@@ -2,8 +2,7 @@ from discord import Interaction
 from discord.ext import commands
 from discord import app_commands
 import Paginator
-from utils.enums import Service, VehicleService
-from utils.facility import LocationTransformer, FacilityLocation
+from utils import Service, VehicleService, LocationTransformer, FacilityLocation
 
 
 class Query(commands.Cog):

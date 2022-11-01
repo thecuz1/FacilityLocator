@@ -1,8 +1,20 @@
 import re
+from rapidfuzz.process import extract
 import discord
 from discord.ext import commands
 from discord import app_commands
-from utils.facility import Facility, LocationTransformer, FacilityLocation
+from utils import Facility, LocationTransformer, FacilityLocation, Region
+
+
+async def label_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[app_commands.Choice[str]]:
+    region_list = [i.value[1] for i in Region]
+    res = extract(current, [i for sub in region_list for i in sub], limit=25)
+    choice_list = [app_commands.Choice(name=choice[0], value=choice[0])
+        for choice in res]
+    return choice_list
 
 
 class RemoveFacilitiesView(discord.ui.View):
@@ -103,10 +115,11 @@ class Modify(commands.Cog):
 
     @app_commands.command()
     @app_commands.guild_only()
-    @app_commands.rename(name='facility-name', location='region-coordinates', maintainer='maintainer')
-    async def create(self, interaction: discord.Interaction, name: str, location: app_commands.Transform[FacilityLocation, LocationTransformer], maintainer: str):
+    @app_commands.autocomplete(location=label_autocomplete)
+    @app_commands.rename(name='facility-name', gps='region-coordinates', maintainer='maintainer')
+    async def create(self, interaction: discord.Interaction, name: str, gps: app_commands.Transform[FacilityLocation, LocationTransformer], location: str, maintainer: str):
         author_id = interaction.user.id
-        facility = Facility(name=name, region=location.region, coordinates=location.coordinates, maintainer=maintainer, author=author_id)
+        facility = Facility(name=name, region=gps.region, coordinates=gps.coordinates, maintainer=maintainer, author=author_id)
 
         view = ServicesSelectView(facility)
         embed = facility.embed()

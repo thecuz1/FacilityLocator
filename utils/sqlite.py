@@ -1,6 +1,6 @@
 from typing import Union
 import aiosqlite
-from utils.facility import Facility
+from utils import Facility
 
 
 class DataBase:

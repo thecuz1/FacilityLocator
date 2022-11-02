@@ -3,3 +3,4 @@ __pycache__
 *.sqlite
 *.vscode
 .venv
+.env

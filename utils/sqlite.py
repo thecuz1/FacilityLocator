@@ -10,9 +10,9 @@ class DataBase:
 
     async def add_facility(self, facility: Facility) -> None:
         async with aiosqlite.connect(self.db_name) as db:
-            values = (facility.name, facility.description, facility.region, facility.coordinates, facility.maintainer, facility.author_id, facility.services, facility.vehicle_services)
+            values = (facility.name, facility.description, facility.region, facility.coordinates, facility.maintainer, facility.author, facility.item_services, facility.vehicle_services)
             cur = await db.cursor()
-            await cur.execute("INSERT INTO facilities (name, description, region, coordinates, maintainer, author, services, vehicle_services) VALUES(?, ?, ?, ?, ?, ?, ?, ?)", values)
+            await cur.execute("INSERT INTO facilities (name, description, region, coordinates, maintainer, author, item_services, vehicle_services) VALUES(?, ?, ?, ?, ?, ?, ?, ?)", values)
             await db.commit()
 
     async def get_facility(self, region = None, service = None, vehicle_service = None) -> Union[list[Facility], None]:

@@ -3,29 +3,29 @@ from rapidfuzz.process import extract
 import discord
 from discord.ext import commands
 from discord import app_commands
-from utils import Facility, LocationTransformer, FacilityLocation, Region, Location
+from utils import Facility, LocationTransformer, FacilityLocation, Location
+from data import REGIONS
 
 
 async def label_autocomplete(
     interaction: discord.Interaction,
     current: str,
-) -> list[app_commands.Choice[str]]:
-    for name, member in Region.__members__.items():
+) -> list[app_commands.Choice]:
+    for region in REGIONS:
         try:
-            if name in interaction.namespace['region-coordinates'] or member.value[0] in interaction.namespace['region-coordinates']:
-                region_name = name
+            if region in interaction.namespace['region-coordinates']:
+                region_name = region
                 break
         except KeyError:
-            pass
-    location_list = [Location(region.name, region.value[0], marker) for region in Region for marker in region.value[1]]
+            break
+    location_list = [Location(region, marker) for region, markers in REGIONS.items() for marker in markers]
     try:
-        location_list = [x for x in location_list if region_name == x.region]
+        location_list = [location for location in location_list if region_name == location.region]
     except NameError:
         pass
-    res = extract(current, {x: x.marker for x in location_list}, limit=25)
-    choice_list = [app_commands.Choice(name=choice[0], value=choice[0])
-                   for choice in res]
-    return choice_list
+    res = extract(current, {location: location.marker for location in location_list}, limit=25)
+    return [app_commands.Choice(name=choice[0], value=choice[0])
+            for choice in res]
 
 
 class RemoveFacilitiesView(discord.ui.View):
@@ -76,7 +76,8 @@ class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Informatio
 
 
 class SelectMenu(discord.ui.Select):
-    def __init__(self, row: int, placeholder: str, facility: Facility, options: list[discord.SelectOption], vehicle_select: bool) -> None:
+    def __init__(self, row: int, placeholder: str, facility: Facility, vehicle_select: bool) -> None:
+        options = facility.select_options(vehicle_select)
         super().__init__(row=row, placeholder=placeholder, options=options, min_values=0, max_values=len(options))
         self.vehicle_select = vehicle_select
         self.facility = facility
@@ -91,8 +92,8 @@ class SelectMenu(discord.ui.Select):
 class ServicesSelectView(discord.ui.View):
     def __init__(self, facility: Facility) -> None:
         super().__init__()
-        self.add_item(SelectMenu(0, 'Select item services...', facility, facility.select_options(False), False))
-        self.add_item(SelectMenu(1, 'Select vehicle services...', facility, facility.select_options(True), True))
+        self.add_item(SelectMenu(0, 'Select item services...', facility, False))
+        self.add_item(SelectMenu(1, 'Select vehicle services...', facility, True))
         self.facility = facility
 
     async def on_timeout(self) -> None:
@@ -107,7 +108,7 @@ class ServicesSelectView(discord.ui.View):
 
     @discord.ui.button(label='Finish', style=discord.ButtonStyle.primary, row=2)
     async def finish(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        if self.facility.services <= 0:
+        if self.facility.item_services <= 0 and self.facility.vehicle_services <= 0:
             return await interaction.response.send_message(':warning: Please select at least one service', ephemeral=True)
 
         if self.facility.changed() is False:
@@ -129,8 +130,7 @@ class Modify(commands.Cog):
     @app_commands.autocomplete(location=label_autocomplete)
     @app_commands.rename(name='facility-name', gps='region-coordinates', maintainer='maintainer')
     async def create(self, interaction: discord.Interaction, name: str, gps: app_commands.Transform[FacilityLocation, LocationTransformer], location: str, maintainer: str):
-        author_id = interaction.user.id
-        facility = Facility(name=name, region=gps.region, coordinates=gps.coordinates, maintainer=maintainer, author=author_id)
+        facility = Facility(name=name, region=gps.region, coordinates=gps.coordinates, maintainer=maintainer, author=interaction.user.id)
 
         view = ServicesSelectView(facility)
         embed = facility.embed()
@@ -151,14 +151,16 @@ class Modify(commands.Cog):
 
     @app_commands.command()
     @app_commands.guild_only()
-    async def modify(self, interaction: discord.Interaction, id: int):
-        facility = await self.bot.db.get_facility_ids((id,))
-        if not facility:
+    @app_commands.rename(id_='id')
+    async def modify(self, interaction: discord.Interaction, id_: int):
+        facility = await self.bot.db.get_facility_ids((id_,))
+
+        try:
+            facility = facility[0]
+        except TypeError:
             return await interaction.response.send_message(':x: No facility found', ephemeral=True)
 
-        facility = facility[0]
-
-        if facility.author_id != interaction.user.id:
+        if facility.author != interaction.user.id:
             return await interaction.response.send_message(':warning: No permission to modify facility ', ephemeral=True)
 
         view = ServicesSelectView(facility)
@@ -181,7 +183,7 @@ class Modify(commands.Cog):
     @app_commands.command()
     @app_commands.guild_only()
     async def remove(self, interaction: discord.Interaction, ids: app_commands.Transform[tuple, IdTransformer]):
-        author_id = interaction.user.id
+        author = interaction.user.id
         facilities = await self.bot.db.get_facility_ids(ids)
         if not facilities:
             return await interaction.response.send_message(':x: No facilities found', ephemeral=True)
@@ -191,14 +193,14 @@ class Modify(commands.Cog):
             embed.description = f':warning: Only found {len(facilities)}/{len(ids)} facilities\n'
 
         removed_facilities = [facilities.pop(index)
-                              for index, facilty in enumerate(facilities)
-                              if facilty.author_id != author_id]
+                              for index, facilty in enumerate(facilities[:])
+                              if facilty.author != author]
 
         def format_facility(facility: list[Facility]) -> str:
             message = '```\n'
             for facilty in facility:
                 previous_message = message
-                message += f'{facilty.facility_id:3} - {facilty.name}\n'
+                message += f'{facilty.id_:3} - {facilty.name}\n'
                 if len(message) > 1000:
                     message = previous_message
                     message += 'Truncated entries...'
@@ -224,7 +226,7 @@ class Modify(commands.Cog):
         if await view.wait():
             return
 
-        ids = [(facility.facility_id,) for facility in facilities]
+        ids = [(facility.id_,) for facility in facilities]
         try:
             await self.bot.db.remove_facilities(ids)
         except Exception as e:

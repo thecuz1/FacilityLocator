@@ -3,17 +3,28 @@ from rapidfuzz.process import extract
 import discord
 from discord.ext import commands
 from discord import app_commands
-from utils import Facility, LocationTransformer, FacilityLocation, Region
+from utils import Facility, LocationTransformer, FacilityLocation, Region, Location
 
 
 async def label_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[app_commands.Choice[str]]:
-    region_list = [i.value[1] for i in Region]
-    res = extract(current, [i for sub in region_list for i in sub], limit=25)
+    for name, member in Region.__members__.items():
+        try:
+            if name in interaction.namespace['region-coordinates'] or member.value[0] in interaction.namespace['region-coordinates']:
+                region_name = name
+                break
+        except KeyError:
+            pass
+    location_list = [Location(region.name, region.value[0], marker) for region in Region for marker in region.value[1]]
+    try:
+        location_list = [x for x in location_list if region_name == x.region]
+    except NameError:
+        pass
+    res = extract(current, {x: x.marker for x in location_list}, limit=25)
     choice_list = [app_commands.Choice(name=choice[0], value=choice[0])
-        for choice in res]
+                   for choice in res]
     return choice_list
 
 

@@ -129,8 +129,33 @@ class Modify(commands.Cog):
     @app_commands.guild_only()
     @app_commands.autocomplete(location=label_autocomplete)
     @app_commands.rename(name='facility-name', gps='region-coordinates', maintainer='maintainer')
-    async def create(self, interaction: discord.Interaction, name: str, gps: app_commands.Transform[FacilityLocation, LocationTransformer], location: str, maintainer: str):
-        facility = Facility(name=name, region=gps.region, coordinates=gps.coordinates, maintainer=maintainer, author=interaction.user.id)
+    async def create(self, interaction: discord.Interaction, name: str, gps: app_commands.Transform[FacilityLocation, LocationTransformer], location: str, maintainer: str, coordinates: str = None):
+        """Creates a public facility
+
+        Args:
+            name (str): Name of facility
+            gps (app_commands.Transform[FacilityLocation, LocationTransformer]): Region with optional coordinates
+            location (str): Nearest townhall/relic or location
+            maintainer (str): Who maintains the facility
+            coordinates (str): Optional coordinates (incase it doesn't work in the region field)
+        """
+        resolved_marker = None
+        for marker_tuple in REGIONS.values():
+            for marker in marker_tuple:
+                if location.lower() in marker.lower():
+                    resolved_marker = marker
+                    break
+        
+        if gps.coordinates == '':
+            final_coordinates = coordinates
+        else:
+            final_coordinates = gps.coordinates
+
+        try:
+            final_coordinates = final_coordinates.upper()
+        except AttributeError:
+            pass
+        facility = Facility(name=name, region=gps.region, coordinates=final_coordinates, maintainer=maintainer, author=interaction.user.id, marker=resolved_marker)
 
         view = ServicesSelectView(facility)
         embed = facility.embed()
@@ -153,6 +178,11 @@ class Modify(commands.Cog):
     @app_commands.guild_only()
     @app_commands.rename(id_='id')
     async def modify(self, interaction: discord.Interaction, id_: int):
+        """Modify faciliy information
+
+        Args:
+            id_ (int): ID of facility
+        """
         facility = await self.bot.db.get_facility_ids((id_,))
 
         try:
@@ -183,6 +213,11 @@ class Modify(commands.Cog):
     @app_commands.command()
     @app_commands.guild_only()
     async def remove(self, interaction: discord.Interaction, ids: app_commands.Transform[tuple, IdTransformer]):
+        """Remove facility
+
+        Args:
+            ids (app_commands.Transform[tuple, IdTransformer]): List of facility ID's to remove
+        """
         author = interaction.user.id
         facilities = await self.bot.db.get_facility_ids(ids)
         if not facilities:
@@ -210,11 +245,11 @@ class Modify(commands.Cog):
 
         if removed_facilities:
             message = format_facility(removed_facilities)
-            embed.add_field(name=':x: No permission to delete following facilties',
+            embed.add_field(name=':x: No permission to delete facilties:',
                             value=message)
         if facilities:
             message = format_facility(facilities)
-            embed.add_field(name=':white_check_mark: Permission to delete following facilties',
+            embed.add_field(name=':white_check_mark: Permission to delete facilties:',
                             value=message)
         else:
             return await interaction.response.send_message(embed=embed, ephemeral=True)

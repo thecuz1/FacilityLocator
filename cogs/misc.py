@@ -1,4 +1,6 @@
+from typing import Optional, Literal
 from discord.ext import commands
+import discord
 
 
 class Misc(commands.Cog):
@@ -35,12 +37,39 @@ class Misc(commands.Cog):
         else:
             await ctx.send(':white_check_mark: Successfully unloaded')
 
-    @commands.hybrid_command()
+    @commands.command()
+    @commands.guild_only()
     @commands.is_owner()
-    async def synctree(self, ctx):
-        synced_commands = await self.bot.tree.sync()
-        command_names = [command.name for command in synced_commands]
-        await ctx.send(f':white_check_mark: Synced {len(synced_commands)} commands```{command_names}```')
+    async def sync(
+      self, ctx: commands.Context, guilds: commands.Greedy[discord.Object], spec: Optional[Literal["~", "*", "^"]] = None) -> None:
+        if not guilds:
+            if spec == "~":
+                synced = await ctx.bot.tree.sync(guild=ctx.guild)
+            elif spec == "*":
+                ctx.bot.tree.copy_global_to(guild=ctx.guild)
+                synced = await ctx.bot.tree.sync(guild=ctx.guild)
+            elif spec == "^":
+                ctx.bot.tree.clear_commands(guild=ctx.guild)
+                await ctx.bot.tree.sync(guild=ctx.guild)
+                synced = []
+            else:
+                synced = await ctx.bot.tree.sync()
+
+            await ctx.send(
+                f":white_check_mark: Synced {len(synced)} commands {'globally' if spec is None else 'to the current guild.'}"
+            )
+            return
+
+        ret = 0
+        for guild in guilds:
+            try:
+                await ctx.bot.tree.sync(guild=guild)
+            except discord.HTTPException:
+                pass
+            else:
+                ret += 1
+
+        await ctx.send(f":white_check_mark: Synced the tree to {ret}/{len(guilds)}.")
 
 
 async def setup(bot: commands.bot) -> None:

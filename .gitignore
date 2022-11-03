@@ -1,6 +1,6 @@
 *.log
 __pycache__
-*.sqlite
+*.sqlite*
 *.vscode
 .venv
 .env

@@ -18,6 +18,13 @@ class Query(commands.Cog):
                           vehicle_service=[app_commands.Choice(name=service, value=(1 << index))
                                            for index, service in enumerate(VEHICLE_SERVICES)])
     async def locate(self, interaction: Interaction, location: app_commands.Transform[FacilityLocation, LocationTransformer] = None, item_service: int = None, vehicle_service: int = None) -> None:
+        """Find a facility with optional search parameters
+
+        Args:
+            location (app_commands.Transform[FacilityLocation, LocationTransformer], optional): Region to search in
+            item_service (int, optional): Item service to look for
+            vehicle_service (int, optional): Vehicle service to look for
+        """
         try:
             facility_list = await self.bot.db.get_facility(location.region, item_service, vehicle_service)
         except AttributeError:

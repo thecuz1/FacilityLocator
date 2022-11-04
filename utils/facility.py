@@ -17,7 +17,7 @@ class LocationTransformer(app_commands.Transformer):
             coordinates = re.search(
                 r'([A-R]\d{1,2}k\d)', value, flags=re.IGNORECASE).group(1)
         except AttributeError:
-            coordinates = ''
+            coordinates = None
 
         for region in REGIONS:
             if region in value:
@@ -145,10 +145,7 @@ class Facility:
 
     def __generate_service_number(self, selected_services: list[str], available_services: tuple) -> int | None:
         service_var = 0
-        for index, service in enumerate(available_services):
-            try:
-                if service in selected_services:
-                    service_var += (1 << index)
-            except TypeError:
-                break
+        for index, available_service in enumerate(available_services):
+            if available_service in selected_services:
+                service_var += (1 << index)
         return None if service_var == 0 else service_var

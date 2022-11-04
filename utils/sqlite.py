@@ -75,6 +75,6 @@ class DataBase:
     
     async def update_facility(self, facility) -> None:
         async with aiosqlite.connect(self.db_name) as db:
-            values = (facility.name, facility.description, facility.region, facility.coordinates, facility.marker, facility.maintainer, facility.author_id, facility.services, facility.vehicle_services, facility.facility_id)
-            await db.execute("UPDATE facilities SET name = ?, description = ?, region = ?, coordinates = ?, marker = ?, maintainer = ?, author = ?, services = ?, vehicle_services = ? WHERE id_ == ?", values)
+            values = (facility.name, facility.description, facility.region, facility.coordinates, facility.marker, facility.maintainer, facility.author, facility.item_services, facility.vehicle_services, facility.id_)
+            await db.execute("UPDATE facilities SET name = ?, description = ?, region = ?, coordinates = ?, marker = ?, maintainer = ?, author = ?, item_services = ?, vehicle_services = ? WHERE id_ == ?", values)
             await db.commit()

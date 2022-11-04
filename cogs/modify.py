@@ -111,7 +111,7 @@ class ServicesSelectView(discord.ui.View):
 
     @discord.ui.button(label='Finish', style=discord.ButtonStyle.primary, row=2)
     async def finish(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        if self.facility.item_services <= 0 and self.facility.vehicle_services <= 0:
+        if self.facility.item_services is None and self.facility.vehicle_services is None:
             return await interaction.response.send_message(':warning: Please select at least one service', ephemeral=True)
 
         if self.facility.changed() is False:
@@ -148,7 +148,10 @@ class Modify(commands.Cog):
                 if location.lower() in marker.lower():
                     resolved_marker = marker
                     break
-        
+
+        if resolved_marker is None:
+            return await interaction.response.send_message(':x: No marker found', ephemeral=True)
+
         if gps.coordinates == '':
             final_coordinates = coordinates
         else:

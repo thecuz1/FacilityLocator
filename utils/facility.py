@@ -1,4 +1,4 @@
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 import re
 from rapidfuzz.process import extract
 import discord
@@ -39,18 +39,21 @@ class LocationTransformer(app_commands.Transformer):
 class Facility:
     """Represents a facility
     """
-    def __init__(self, *, id_: int = 0, name: str, description: str = '', region: str, coordinates: str = '', marker: str = '', maintainer: str, author: int, item_services: int = 0, vehicle_services: int = 0) -> None:
-        self.id_ = id_
-        self.name = name
-        self.description = description
-        self.region = region
-        self.coordinates = coordinates
-        self.marker = marker
-        self.maintainer = maintainer
-        self.author = author
-        self.item_services = item_services
-        self.vehicle_services = vehicle_services
-        self.initial_hash = hash((self.__class__, id_, name, description, region, coordinates, marker, maintainer, author, item_services, vehicle_services))
+    def __init__(self, *, name: str, region: str, marker: str, maintainer: str, author: int, **options) -> None:
+        self.id_: Optional[int] = options.pop('id_', None)
+        self.name: str = name
+        self.description: Optional[str] = options.pop('description', None)
+        self.region: str = region
+        self.coordinates: Optional[str] = options.pop('coordinates', None)
+        self.marker: str = marker
+        self.maintainer: str = maintainer
+        self.author: int = author
+        self.item_services: Optional[int] = options.pop('item_services', None)
+        self.vehicle_services: Optional[int] = options.pop('vehicle_services', None)
+        self.initial_hash: int = self.__current_hash()
+
+    def __current_hash(self) -> int:
+        return hash((self.__class__, self.id_, self.name, self.description, self.region, self.coordinates, self.marker, self.maintainer, self.author, self.item_services, self.vehicle_services))
 
     def changed(self) -> bool:
         """Determine whether the facility has changed from initial instance
@@ -58,7 +61,7 @@ class Facility:
         Returns:
             bool: If facility has changed
         """
-        return self.initial_hash != hash((self.__class__, self.id_, self.name, self.description, self.region, self.coordinates, self.marker, self.maintainer, self.author, self.item_services, self.vehicle_services))
+        return self.initial_hash != self.__current_hash()
 
     def embed(self) -> discord.Embed:
         """Generates a embed for viewing the facility
@@ -66,9 +69,7 @@ class Facility:
         Returns:
             discord.Embed: Embed filled in with current state of facility
         """
-        facility_location = f'> Region: `{self.region}`\n'
-        if self.marker:
-            facility_location += f'> Marker: `{self.marker}`\n'
+        facility_location = f'> Region: `{self.region}`\n> Marker: `{self.marker}`\n'
         if self.coordinates:
             facility_location += f'> Coordinates: `{self.coordinates}`\n'
 
@@ -111,9 +112,13 @@ class Facility:
             return self.__generate_options(self.vehicle_services, VEHICLE_SERVICES)
         return self.__generate_options(self.item_services, ITEM_SERVICES)
 
-    def __generate_options(self, selected_services: int, available_services: tuple):
-        return [discord.SelectOption(label=service, value=service, default=bool((1 << index) & selected_services))
-                for index, service in enumerate(available_services)]
+    def __generate_options(self, selected_services: int | None, available_services: tuple):
+        try:
+            return [discord.SelectOption(label=service, value=service, default=bool((1 << index) & selected_services))
+                    for index, service in enumerate(available_services)]
+        except TypeError:
+            return [discord.SelectOption(label=service, value=service)
+                    for service in available_services]
 
     def set_services(self, services: list[str], vehicle: bool = False) -> None:
         """Set services of facility
@@ -127,9 +132,12 @@ class Facility:
         else:
             self.item_services = self.__generate_service_number(services, ITEM_SERVICES)
 
-    def __generate_service_number(self, selected_services: list[str], available_services: tuple) -> int:
+    def __generate_service_number(self, selected_services: list[str], available_services: tuple) -> int | None:
         service_var = 0
         for index, service in enumerate(available_services):
-            if service in selected_services:
-                service_var += (1 << index)
-        return service_var
+            try:
+                if service in selected_services:
+                    service_var += (1 << index)
+            except TypeError:
+                break
+        return None if service_var == 0 else service_var

@@ -29,7 +29,6 @@ class LocationTransformer(app_commands.Transformer):
             await interaction.response.send_message(':x: No region found', ephemeral=True)
             raise ValueError('Incorrect region passed')
 
-
     async def autocomplete(self, interaction: discord.Interaction, current) -> list[app_commands.Choice]:
         res = extract(current, list(REGIONS), limit=25)
         return [app_commands.Choice(name=choice[0], value=choice[0])
@@ -38,6 +37,18 @@ class LocationTransformer(app_commands.Transformer):
 
 class Facility:
     """Represents a facility
+
+    Args:
+        id_ (int, optional): ID
+        name (str): Name
+        description (str, optional): Description
+        region (str): Region
+        coordinates (str, optional): Coordinates within region
+        marker (str): Location in region
+        maintainer (str): Maintainer
+        author (int): Author ID
+        item_services (int, optional): Item services
+        vehicle_services (int, optional): Vehicle services
     """
     def __init__(self, *, name: str, region: str, marker: str, maintainer: str, author: int, **options) -> None:
         self.id_: Optional[int] = options.pop('id_', None)
@@ -100,7 +111,7 @@ class Facility:
         return embed
 
     def select_options(self, vehicle: bool = False) -> list[discord.SelectOption]:
-        """Generates select options with default set for the currently selected services
+        """Generates select options with defaults set for the currently selected services
 
         Args:
             vehicle (bool, optional): Generate vehicle select options. Defaults to False.

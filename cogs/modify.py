@@ -3,7 +3,7 @@ from rapidfuzz.process import extract
 import discord
 from discord.ext import commands
 from discord import app_commands
-from utils import Facility, LocationTransformer, FacilityLocation, Location
+from utils import Facility, LocationTransformer, FacilityLocation
 from data import REGIONS
 
 
@@ -13,17 +13,17 @@ async def label_autocomplete(
 ) -> list[app_commands.Choice]:
     for region in REGIONS:
         try:
-            if region in interaction.namespace['region-coordinates']:
-                region_name = region
+            if region in interaction.namespace['region']:
+                selected_region = region
                 break
         except KeyError:
             break
-    location_list = [Location(region, marker) for region, markers in REGIONS.items() for marker in markers]
     try:
-        location_list = [location for location in location_list if region_name == location.region]
+        location_list = [marker for region, markers in REGIONS.items() for marker in markers if selected_region == region]
     except NameError:
-        pass
-    res = extract(current, {location: location.marker for location in location_list}, limit=25)
+        location_list = [marker for markers in REGIONS.values() for marker in markers]
+
+    res = extract(current, location_list, limit=25)
     return [app_commands.Choice(name=choice[0], value=choice[0])
             for choice in res]
 
@@ -55,7 +55,7 @@ class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Informatio
     def __init__(self, facility) -> None:
         super().__init__()
         self.name = discord.ui.TextInput(label='Facility Name',
-                                         default=facility.name, 
+                                         default=facility.name,
                                          max_length=100)
         self.maintainer = discord.ui.TextInput(label='Maintainer',
                                                default=facility.maintainer,
@@ -65,7 +65,7 @@ class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Informatio
                                                 required=False,
                                                 default=facility.description,
                                                 max_length=1024)
-        for item in [self.name, self.maintainer, self.description]:
+        for item in (self.name, self.maintainer, self.description):
             self.add_item(item)
         self.facility = facility
 
@@ -131,7 +131,7 @@ class Modify(commands.Cog):
     @app_commands.command()
     @app_commands.guild_only()
     @app_commands.autocomplete(location=label_autocomplete)
-    @app_commands.rename(name='facility-name', gps='region-coordinates', maintainer='maintainer')
+    @app_commands.rename(name='facility-name', gps='region', maintainer='maintainer')
     async def create(self, interaction: discord.Interaction, name: app_commands.Range[str, 1, 100], gps: app_commands.Transform[FacilityLocation, LocationTransformer], location: str, maintainer: app_commands.Range[str, 1, 200], coordinates: str = None):
         """Creates a public facility
 

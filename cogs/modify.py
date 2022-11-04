@@ -55,13 +55,16 @@ class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Informatio
     def __init__(self, facility) -> None:
         super().__init__()
         self.name = discord.ui.TextInput(label='Facility Name',
-                                         default=facility.name)
+                                         default=facility.name, 
+                                         max_length=100)
         self.maintainer = discord.ui.TextInput(label='Maintainer',
-                                               default=facility.maintainer)
+                                               default=facility.maintainer,
+                                               max_length=200)
         self.description = discord.ui.TextInput(label='Description',
                                                 style=discord.TextStyle.paragraph,
                                                 required=False,
-                                                default=facility.description)
+                                                default=facility.description,
+                                                max_length=1024)
         for item in [self.name, self.maintainer, self.description]:
             self.add_item(item)
         self.facility = facility
@@ -129,7 +132,7 @@ class Modify(commands.Cog):
     @app_commands.guild_only()
     @app_commands.autocomplete(location=label_autocomplete)
     @app_commands.rename(name='facility-name', gps='region-coordinates', maintainer='maintainer')
-    async def create(self, interaction: discord.Interaction, name: str, gps: app_commands.Transform[FacilityLocation, LocationTransformer], location: str, maintainer: str, coordinates: str = None):
+    async def create(self, interaction: discord.Interaction, name: app_commands.Range[str, 1, 100], gps: app_commands.Transform[FacilityLocation, LocationTransformer], location: str, maintainer: app_commands.Range[str, 1, 200], coordinates: str = None):
         """Creates a public facility
 
         Args:

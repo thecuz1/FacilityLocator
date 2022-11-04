@@ -66,11 +66,11 @@ class Facility:
         Returns:
             discord.Embed: Embed filled in with current state of facility
         """
-        facility_location = f'> Region: {self.region}\n'
+        facility_location = f'> Region: `{self.region}`\n'
         if self.marker:
-            facility_location += f'> Marker: {self.marker}\n'
+            facility_location += f'> Marker: `{self.marker}`\n'
         if self.coordinates:
-            facility_location += f'> Coordinates: {self.coordinates}\n'
+            facility_location += f'> Coordinates: `{self.coordinates}`\n'
 
         embed = discord.Embed(title=self.name,
                               description=self.description,
@@ -105,7 +105,7 @@ class Facility:
             vehicle (bool, optional): Generate vehicle select options. Defaults to False.
 
         Returns:
-            list[discord.SelectOption]: List of select options with default set based on current services
+            list[discord.SelectOption]: List of select options with defaults set based on current services
         """
         if vehicle:
             return self.__generate_options(self.vehicle_services, VEHICLE_SERVICES)
@@ -123,11 +123,11 @@ class Facility:
             vehicle (bool, optional): If services are vehicle. Defaults to False.
         """
         if vehicle:
-            self.vehicle_services = self.__set_services(services, VEHICLE_SERVICES)
+            self.vehicle_services = self.__generate_service_number(services, VEHICLE_SERVICES)
         else:
-            self.item_services = self.__set_services(services, ITEM_SERVICES)
+            self.item_services = self.__generate_service_number(services, ITEM_SERVICES)
 
-    def __set_services(self, selected_services: list[str], available_services: tuple) -> int:
+    def __generate_service_number(self, selected_services: list[str], available_services: tuple) -> int:
         service_var = 0
         for index, service in enumerate(available_services):
             if service in selected_services:

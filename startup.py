@@ -27,4 +27,5 @@ class Bot(commands.Bot):
 intents = discord.Intents.all()
 
 bot = Bot('>', intents=intents)
+bot.remove_command('help')
 bot.run(os.environ.get('FACILITYLOCATOR_API_TOKEN'), log_handler=handler)

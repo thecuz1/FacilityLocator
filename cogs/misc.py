@@ -7,7 +7,8 @@ class Misc(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.hybrid_command()
+    @commands.command()
+    @commands.guild_only()
     @commands.is_owner()
     async def reload(self, ctx, extension):
         try:
@@ -17,7 +18,8 @@ class Misc(commands.Cog):
         else:
             await ctx.send(':white_check_mark: Successfully reloaded')
 
-    @commands.hybrid_command()
+    @commands.command()
+    @commands.guild_only()
     @commands.is_owner()
     async def load(self, ctx, extension):
         try:
@@ -27,7 +29,8 @@ class Misc(commands.Cog):
         else:
             await ctx.send(':white_check_mark: Successfully loaded')
 
-    @commands.hybrid_command()
+    @commands.command()
+    @commands.guild_only()
     @commands.is_owner()
     async def unload(self, ctx, extension):
         try:

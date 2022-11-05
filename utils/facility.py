@@ -1,6 +1,5 @@
 from typing import NamedTuple, Optional
 import re
-from datetime import datetime
 from rapidfuzz.process import extract
 import discord
 from discord import app_commands
@@ -159,3 +158,18 @@ class Facility:
             if available_service in selected_services:
                 service_var += (1 << index)
         return None if service_var == 0 else service_var
+
+    def can_modify(self, interaction: discord.Interaction) -> bool:
+        """Returns true if the passed interaction has the ability to modify the facility
+
+        Args:
+            interaction (discord.Interaction): The interaction to check
+
+        Returns:
+            bool: Whether the facility can be modified
+        """
+        if self.author == interaction.user.id:
+            return True
+        if interaction.guild_id == self.guild_id and interaction.permissions.manage_guild:
+            return True
+        return False

@@ -31,18 +31,19 @@ class Bot(commands.Bot):
         if not os.path.exists(db_name):
             async with aiosqlite.connect(db_name) as db:
                 await db.execute('''
-                        CREATE TABLE "facilities" (
-                    	"id_"	INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
-                    	"name"	TEXT,
-                    	"description"	TEXT,
-                    	"region"	TEXT,
-                    	"coordinates"	TEXT,
-                    	"marker"	INTEGER,
-                    	"maintainer"	TEXT,
-                    	"author"	INTEGER,
-                    	"item_services"	INTEGER,
-                    	"vehicle_services"	INTEGER,
-                    	"creation_time"	INTEGER
+                      CREATE TABLE "facilities" (
+                        "id_"	INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+                        "name"	TEXT,
+                        "description"	TEXT,
+                        "region"	TEXT,
+                        "coordinates"	TEXT,
+                        "marker"	INTEGER,
+                        "maintainer"	TEXT,
+                        "author"	INTEGER,
+                        "item_services"	INTEGER,
+                        "vehicle_services"	INTEGER,
+                        "creation_time"	INTEGER,
+                        "guild_id"	INTEGER
                     );''')
                 await db.commit()
                 print(f'Created {db_name}')

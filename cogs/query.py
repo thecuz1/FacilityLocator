@@ -32,7 +32,7 @@ class Query(commands.Cog):
         if not facility_list:
             return await interaction.response.send_message(':x: No facilities found', ephemeral=True)
         embeds = [facility.embed()
-                  for facility in facility_list]
+                  for facility in facility_list if facility.guild_id == interaction.guild_id]
         await Paginator.Simple().start(interaction, pages=embeds)
 
     @app_commands.command()
@@ -47,7 +47,7 @@ class Query(commands.Cog):
         if not facilities:
             return await interaction.response.send_message(':x: No facilities found', ephemeral=True)
         embeds = [facility.embed()
-                  for facility in facilities]
+                  for facility in facilities if facility.guild_id == interaction.guild_id]
         await Paginator.Simple().start(interaction, pages=embeds)
 
 

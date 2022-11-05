@@ -194,22 +194,23 @@ class Modify(commands.Cog):
 
     @app_commands.command()
     @app_commands.guild_only()
-    async def modify(self, interaction: discord.Interaction, id: int):
+    @app_commands.rename(id_='id')
+    async def modify(self, interaction: discord.Interaction, id_: int):
         """Modify faciliy information
 
         Args:
             id_ (int): ID of facility
         """
-        facility = await self.bot.db.get_facility_ids((id,))
+        facility = await self.bot.db.get_facility_ids((id_,))
 
         try:
-            facility = facility[0]
+            facility: Facility = facility[0]
         except TypeError:
             return await interaction.response.send_message(':x: No facility found', ephemeral=True)
 
         if self.bot.owner_id != interaction.user.id:
-            if facility.author != interaction.user.id:
-                return await interaction.response.send_message(':warning: No permission to modify facility ', ephemeral=True)
+            if facility.can_modify(interaction) is False:
+                return await interaction.response.send_message(':x: No permission to modify facility', ephemeral=True)
 
         view = ServicesSelectView(facility, original_author=interaction.user)
         embed = facility.embed()
@@ -236,7 +237,7 @@ class Modify(commands.Cog):
         Args:
             ids (app_commands.Transform[tuple, IdTransformer]): List of facility ID's to remove
         """
-        author = interaction.user.id
+        author = interaction.user
         facilities = await self.bot.db.get_facility_ids(ids)
         if not facilities:
             return await interaction.response.send_message(':x: No facilities found', ephemeral=True)
@@ -246,10 +247,10 @@ class Modify(commands.Cog):
             embed.description = f':warning: Only found {len(facilities)}/{len(ids)} facilities\n'
 
         removed_facilities = None
-        if self.bot.owner_id != author:
+        if self.bot.owner_id != author.id:
             removed_facilities = [facilities.pop(index)
-                                  for index, facilty in enumerate(facilities[:])
-                                  if facilty.author != author]
+                                  for index, facility in enumerate(facilities[:])
+                                  if facility.can_modify(interaction) is False]
 
         def format_facility(facility: list[Facility]) -> str:
             message = '```\n'
@@ -274,7 +275,7 @@ class Modify(commands.Cog):
         else:
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        view = RemoveFacilitiesView(original_author=interaction.user)
+        view = RemoveFacilitiesView(original_author=author)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
         view.message = await interaction.original_response()
 

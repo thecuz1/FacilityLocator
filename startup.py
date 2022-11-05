@@ -12,7 +12,7 @@ load_dotenv('.env')
 handler = logging.FileHandler(
     filename='discord.log', encoding='utf-8', mode='w')
 
-extensions = ['cogs.modify', 'cogs.query', 'cogs.misc', 'cogs.error_handler']
+EXTENSIONS = ('cogs.modify', 'cogs.query', 'cogs.misc', 'cogs.error_handler')
 
 
 class Bot(commands.Bot):
@@ -24,7 +24,7 @@ class Bot(commands.Bot):
 
     async def setup_hook(self):
         self.owner_id = 195009659793440768
-        for extension in extensions:
+        for extension in EXTENSIONS:
             await self.load_extension(extension)
 
         db_name = 'data.sqlite'
@@ -51,6 +51,5 @@ class Bot(commands.Bot):
 
 intents = discord.Intents.all()
 
-bot = Bot(os.environ.get('BOT_PREFIX'), intents=intents)
-bot.remove_command('help')
+bot = Bot(os.environ.get('BOT_PREFIX'), intents=intents, help_command=None)
 bot.run(os.environ.get('FACILITYLOCATOR_API_TOKEN'), log_handler=handler)

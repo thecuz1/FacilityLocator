@@ -50,8 +50,10 @@ class Facility:
         author (int): Author ID
         item_services (int, optional): Item services
         vehicle_services (int, optional): Vehicle services
+        creation_time (float, optional): Creation of time facility
+        guild_id (int): Guild facility was created in
     """
-    def __init__(self, *, name: str, region: str, marker: str, maintainer: str, author: int, **options) -> None:
+    def __init__(self, *, name: str, region: str, marker: str, maintainer: str, author: int, guild_id: int, **options) -> None:
         self.id_: Optional[int] = options.pop('id_', None)
         self.name: str = name
         self.description: Optional[str] = options.pop('description', None)
@@ -63,6 +65,7 @@ class Facility:
         self.item_services: Optional[int] = options.pop('item_services', None)
         self.vehicle_services: Optional[int] = options.pop('vehicle_services', None)
         self.creation_time: Optional[float] = options.pop('creation_time', None)
+        self.guild_id: int = guild_id
         self.initial_hash: int = self.__current_hash()
 
     def __current_hash(self) -> int:
@@ -86,15 +89,17 @@ class Facility:
         if self.coordinates:
             facility_location += f'> Coordinates: `{self.coordinates}`\n'
 
+        creation_info = f'> Author: <@{self.author}>\n> Guild ID: `{self.guild_id}`\n'
+        if self.creation_time:
+            creation_info += f'> Created: <t:{int(self.creation_time)}:R>'
+
+
         embed = discord.Embed(title=self.name,
                               description=self.description,
                               color=0x54A24A)
-        embed.add_field(name='Location', value=facility_location)
-        embed.add_field(name='Maintainer', value=self.maintainer)
-        embed.add_field(name='Author', value=f'<@{self.author}>')
-
-        if self.creation_time:
-            embed.timestamp = datetime.fromtimestamp(self.creation_time)
+        embed.add_field(name='Location:', value=facility_location)
+        embed.add_field(name='Maintainer:', value=self.maintainer)
+        embed.add_field(name='Creation Info:', value=creation_info)
 
         if self.id_:
             embed.set_footer(text=f'ID: {self.id_}')
@@ -108,11 +113,11 @@ class Facility:
             return formatted_services
         if self.item_services:
             formatted_services = format_services(ITEM_SERVICES, self.item_services)
-            embed.add_field(name='Item Services', value=formatted_services)
+            embed.add_field(name='Item Services:', value=formatted_services)
 
         if self.vehicle_services:
             formatted_services = format_services(VEHICLE_SERVICES, self.vehicle_services)
-            embed.add_field(name='Vehicle Services', value=formatted_services)
+            embed.add_field(name='Vehicle Services:', value=formatted_services)
         return embed
 
     def select_options(self, vehicle: bool = False) -> list[discord.SelectOption]:

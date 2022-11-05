@@ -173,7 +173,7 @@ class Modify(commands.Cog):
             final_coordinates = final_coordinates.upper()
         except AttributeError:
             pass
-        facility = Facility(name=name, region=gps.region, coordinates=final_coordinates, maintainer=maintainer, author=interaction.user.id, marker=resolved_marker)
+        facility = Facility(name=name, region=gps.region, coordinates=final_coordinates, maintainer=maintainer, author=interaction.user.id, marker=resolved_marker, guild_id=interaction.guild_id)
 
         view = ServicesSelectView(facility, original_author=interaction.user)
         embed = facility.embed()

@@ -28,13 +28,13 @@ ITEM_SERVICES: tuple = (
 
 VEHICLE_SERVICES: tuple = (
     'Modification Center',
-    'Light Assembly',
-    'Light Assembly (Motor Pool)',
-    'Light Assembly (Rocket Factory)',
-    'Light Assembly (Field Station)',
-    'Light Assembly (Tank Factory)',
-    'Light Assembly (Weapons Platform)',
-    'Large Assembly',
-    'Large Assembly (Train)',
-    'Large Assembly (Heavy Tank)',
+    'Light Assembly (Base)',
+    'Motor Pool',
+    'Rocket Factory',
+    'Field Station',
+    'Tank Factory',
+    'Weapons Platform',
+    'Large Assembly (Base)',
+    'Train',
+    'Heavy Tank',
 )

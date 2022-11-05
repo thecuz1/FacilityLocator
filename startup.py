@@ -1,9 +1,13 @@
 import os
 import logging
 import sys
+from dotenv import load_dotenv
+import aiosqlite
 import discord
 from discord.ext import commands
 from utils.sqlite import DataBase
+
+load_dotenv('.env')
 
 handler = logging.FileHandler(
     filename='discord.log', encoding='utf-8', mode='w')
@@ -19,13 +23,34 @@ class Bot(commands.Bot):
         print('---------')
 
     async def setup_hook(self):
+        self.owner_id = 195009659793440768
         for extension in extensions:
             await self.load_extension(extension)
-        self.db = DataBase(self, 'data.sqlite')
+
+        db_name = 'data.sqlite'
+        if not os.path.exists(db_name):
+            async with aiosqlite.connect(db_name) as db:
+                await db.execute('''
+                        CREATE TABLE "facilities" (
+                    	"id_"	INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+                    	"name"	TEXT,
+                    	"description"	TEXT,
+                    	"region"	TEXT,
+                    	"coordinates"	TEXT,
+                    	"marker"	INTEGER,
+                    	"maintainer"	TEXT,
+                    	"author"	INTEGER,
+                    	"item_services"	INTEGER,
+                    	"vehicle_services"	INTEGER,
+                    	"creation_time"	INTEGER
+                    );''')
+                await db.commit()
+                print(f'Created {db_name}')
+        self.db = DataBase(self, db_name)
 
 
 intents = discord.Intents.all()
 
-bot = Bot('>', intents=intents)
+bot = Bot(os.environ.get('BOT_PREFIX'), intents=intents)
 bot.remove_command('help')
 bot.run(os.environ.get('FACILITYLOCATOR_API_TOKEN'), log_handler=handler)

@@ -1,5 +1,6 @@
 from typing import NamedTuple, Optional
 import re
+from datetime import datetime
 from rapidfuzz.process import extract
 import discord
 from discord import app_commands
@@ -61,6 +62,7 @@ class Facility:
         self.author: int = author
         self.item_services: Optional[int] = options.pop('item_services', None)
         self.vehicle_services: Optional[int] = options.pop('vehicle_services', None)
+        self.creation_time: Optional[float] = options.pop('creation_time', None)
         self.initial_hash: int = self.__current_hash()
 
     def __current_hash(self) -> int:
@@ -90,6 +92,9 @@ class Facility:
         embed.add_field(name='Location', value=facility_location)
         embed.add_field(name='Maintainer', value=self.maintainer)
         embed.add_field(name='Author', value=f'<@{self.author}>')
+
+        if self.creation_time:
+            embed.timestamp = datetime.fromtimestamp(self.creation_time)
 
         if self.id_:
             embed.set_footer(text=f'ID: {self.id_}')

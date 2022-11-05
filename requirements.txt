@@ -2,3 +2,4 @@ discord.py
 aiosqlite
 discord.py-pagination
 rapidfuzz
+python-dotenv

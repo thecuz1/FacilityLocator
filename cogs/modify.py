@@ -1,9 +1,9 @@
-import re
+from datetime import datetime
 from rapidfuzz.process import extract
 import discord
 from discord.ext import commands
 from discord import app_commands
-from utils import Facility, LocationTransformer, FacilityLocation
+from utils import Facility, LocationTransformer, FacilityLocation, IdTransformer
 from data import REGIONS
 
 
@@ -41,14 +41,6 @@ class RemoveFacilitiesView(discord.ui.View):
         for item in self.children:
             item.disabled = True
         await interaction.response.edit_message(view=self)
-
-
-class IdTransformer(app_commands.Transformer):
-    async def transform(self, interaction: discord.Interaction, value: str) -> tuple:
-        delimiters = ' ', '.', ','
-        regex_pattern = '|'.join(map(re.escape, delimiters))
-        res = re.split(regex_pattern, value)
-        return tuple(filter(None, res))
 
 
 class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Information'):
@@ -117,6 +109,8 @@ class ServicesSelectView(discord.ui.View):
         if self.facility.changed() is False:
             return await interaction.response.send_message(':warning: No changes', ephemeral=True)
 
+        dt = datetime.now()
+        self.facility.creation_time = datetime.timestamp(dt)
         self.followup = interaction.followup
         self.stop()
         for item in self.children:
@@ -152,7 +146,7 @@ class Modify(commands.Cog):
         if resolved_marker is None:
             return await interaction.response.send_message(':x: No marker found', ephemeral=True)
 
-        if gps.coordinates == '':
+        if gps.coordinates is None:
             final_coordinates = coordinates
         else:
             final_coordinates = gps.coordinates
@@ -182,22 +176,22 @@ class Modify(commands.Cog):
 
     @app_commands.command()
     @app_commands.guild_only()
-    @app_commands.rename(id_='id')
-    async def modify(self, interaction: discord.Interaction, id_: int):
+    async def modify(self, interaction: discord.Interaction, id: int):
         """Modify faciliy information
 
         Args:
             id_ (int): ID of facility
         """
-        facility = await self.bot.db.get_facility_ids((id_,))
+        facility = await self.bot.db.get_facility_ids((id,))
 
         try:
             facility = facility[0]
         except TypeError:
             return await interaction.response.send_message(':x: No facility found', ephemeral=True)
 
-        if facility.author != interaction.user.id:
-            return await interaction.response.send_message(':warning: No permission to modify facility ', ephemeral=True)
+        if self.bot.owner_id != interaction.user.id:
+            if facility.author != interaction.user.id:
+                return await interaction.response.send_message(':warning: No permission to modify facility ', ephemeral=True)
 
         view = ServicesSelectView(facility)
         embed = facility.embed()
@@ -233,9 +227,11 @@ class Modify(commands.Cog):
         if len(facilities) < len(ids):
             embed.description = f':warning: Only found {len(facilities)}/{len(ids)} facilities\n'
 
-        removed_facilities = [facilities.pop(index)
-                              for index, facilty in enumerate(facilities[:])
-                              if facilty.author != author]
+        removed_facilities = None
+        if self.bot.owner_id != author:
+            removed_facilities = [facilities.pop(index)
+                                  for index, facilty in enumerate(facilities[:])
+                                  if facilty.author != author]
 
         def format_facility(facility: list[Facility]) -> str:
             message = '```\n'

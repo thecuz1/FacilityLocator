@@ -2,7 +2,7 @@ from discord import Interaction
 from discord.ext import commands
 from discord import app_commands
 import Paginator
-from utils import LocationTransformer, FacilityLocation
+from utils import LocationTransformer, FacilityLocation, IdTransformer
 from data import VEHICLE_SERVICES, ITEM_SERVICES
 
 
@@ -33,6 +33,21 @@ class Query(commands.Cog):
             return await interaction.response.send_message(':x: No facilities found', ephemeral=True)
         embeds = [facility.embed()
                   for facility in facility_list]
+        await Paginator.Simple().start(interaction, pages=embeds)
+
+    @app_commands.command()
+    @app_commands.guild_only()
+    async def view(self, interaction: Interaction, ids: app_commands.Transform[tuple, IdTransformer]):
+        """View facilities based on their ID's
+
+        Args:
+            ids (app_commands.Transform[tuple, IdTransformer]): List of ID's to look for
+        """
+        facilities = await self.bot.db.get_facility_ids(ids)
+        if not facilities:
+            return await interaction.response.send_message(':x: No facilities found', ephemeral=True)
+        embeds = [facility.embed()
+                  for facility in facilities]
         await Paginator.Simple().start(interaction, pages=embeds)
 
 

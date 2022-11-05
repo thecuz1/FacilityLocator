@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 from rapidfuzz.process import extract
 import discord
 from discord.ext import commands
@@ -29,10 +30,20 @@ async def label_autocomplete(
 
 
 class RemoveFacilitiesView(discord.ui.View):
+    def __init__(self, *, timeout: Optional[float] = 180, original_author: discord.User | discord.Member) -> None:
+        super().__init__(timeout=timeout)
+        self.original_author = original_author
+
     async def on_timeout(self) -> None:
         for item in self.children:
             item.disabled = True
-        await self.message.edit(view=self)
+        try:
+            await self.message.edit(view=self)
+        except discord.errors.NotFound:
+            pass
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return interaction.user.id == self.original_author.id
 
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.primary)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
@@ -85,16 +96,23 @@ class SelectMenu(discord.ui.Select):
 
 
 class ServicesSelectView(discord.ui.View):
-    def __init__(self, facility: Facility) -> None:
+    def __init__(self, facility: Facility, original_author: discord.User | discord.Member) -> None:
         super().__init__()
         self.add_item(SelectMenu(0, 'Select item services...', facility, False))
         self.add_item(SelectMenu(1, 'Select vehicle services...', facility, True))
         self.facility = facility
+        self.original_author = original_author
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return interaction.user.id == self.original_author.id
 
     async def on_timeout(self) -> None:
         for item in self.children:
             item.disabled = True
-        await self.message.edit(view=self)
+        try:
+            await self.message.edit(view=self)
+        except discord.errors.NotFound:
+            pass
 
     @discord.ui.button(label='Add Description/Edit', row=2)
     async def edit(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
@@ -157,7 +175,7 @@ class Modify(commands.Cog):
             pass
         facility = Facility(name=name, region=gps.region, coordinates=final_coordinates, maintainer=maintainer, author=interaction.user.id, marker=resolved_marker)
 
-        view = ServicesSelectView(facility)
+        view = ServicesSelectView(facility, original_author=interaction.user)
         embed = facility.embed()
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -193,7 +211,7 @@ class Modify(commands.Cog):
             if facility.author != interaction.user.id:
                 return await interaction.response.send_message(':warning: No permission to modify facility ', ephemeral=True)
 
-        view = ServicesSelectView(facility)
+        view = ServicesSelectView(facility, original_author=interaction.user)
         embed = facility.embed()
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -256,7 +274,7 @@ class Modify(commands.Cog):
         else:
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        view = RemoveFacilitiesView()
+        view = RemoveFacilitiesView(original_author=interaction.user)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
         view.message = await interaction.original_response()
 
@@ -266,6 +284,26 @@ class Modify(commands.Cog):
         ids = [(facility.id_,) for facility in facilities]
         try:
             await self.bot.db.remove_facilities(ids)
+        except Exception as e:
+            await view.followup.send(':x: Failed to remove facilities', ephemeral=True)
+            raise e
+        else:
+            await view.followup.send(':white_check_mark: Successfuly removed facilities', ephemeral=True)
+
+    @commands.command()
+    @commands.guild_only()
+    @commands.is_owner()
+    async def remove_all(self, ctx: commands.Context):
+        embed = discord.Embed(title=':warning: Confirm removal of all facilities')
+        view = RemoveFacilitiesView(original_author=ctx.author)
+        message = await ctx.send(embed=embed, view=view, ephemeral=True)
+        view.message = message
+
+        if await view.wait():
+            return
+
+        try:
+            await self.bot.db.reset()
         except Exception as e:
             await view.followup.send(':x: Failed to remove facilities', ephemeral=True)
             raise e

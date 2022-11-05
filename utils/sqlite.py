@@ -78,3 +78,9 @@ class DataBase:
             values = (facility.name, facility.description, facility.maintainer, facility.item_services, facility.vehicle_services, facility.id_)
             await db.execute("UPDATE facilities SET name = ?, description = ?, maintainer = ?, item_services = ?, vehicle_services = ? WHERE id_ == ?", values)
             await db.commit()
+
+    async def reset(self) -> None:
+        async with aiosqlite.connect(self.db_name) as db:
+            await db.execute("DELETE FROM facilities")
+            await db.execute("UPDATE sqlite_sequence SET seq = 0 WHERE name == 'facilities'")
+            await db.commit()

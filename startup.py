@@ -12,7 +12,7 @@ load_dotenv('.env')
 handler = logging.FileHandler(
     filename='discord.log', encoding='utf-8', mode='w')
 
-extensions = ['cogs.modify', 'cogs.query', 'cogs.misc']
+extensions = ['cogs.modify', 'cogs.query', 'cogs.misc', 'cogs.error_handler']
 
 
 class Bot(commands.Bot):

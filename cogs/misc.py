@@ -74,6 +74,18 @@ class Misc(commands.Cog):
 
         await ctx.send(f":white_check_mark: Synced the tree to {ret}/{len(guilds)}.")
 
+    @commands.command()
+    @commands.guild_only()
+    @commands.is_owner()
+    async def cleanup(self, ctx: commands.Context, limit: int = 10) -> None:
+        def bot_message(m):
+            return m.author == self.bot.user
+
+        deleted = await ctx.channel.purge(limit=limit + 1, check=bot_message, bulk=False)
+        if deleted:
+            return await ctx.send(f':white_check_mark: Deleted {len(deleted)} messages', delete_after=5)
+        await ctx.send(f':warning: No messages deleted', delete_after=5)
+
 
 async def setup(bot: commands.bot) -> None:
     await bot.add_cog(Misc(bot))

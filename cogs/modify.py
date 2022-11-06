@@ -3,6 +3,7 @@ from typing import Optional
 from rapidfuzz.process import extract
 import discord
 from discord.ext import commands
+from discord.ext.commands.cooldowns import BucketType
 from discord import app_commands
 from utils import Facility, LocationTransformer, FacilityLocation, IdTransformer
 from data import REGIONS
@@ -139,9 +140,10 @@ class ServicesSelectView(discord.ui.View):
 class Modify(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
+ 
     @app_commands.command()
     @app_commands.guild_only()
+    @commands.cooldown(1, 20, BucketType.member)
     @app_commands.autocomplete(location=label_autocomplete)
     @app_commands.rename(name='facility-name', gps='region', maintainer='maintainer')
     async def create(self, interaction: discord.Interaction, name: app_commands.Range[str, 1, 100], gps: app_commands.Transform[FacilityLocation, LocationTransformer], location: str, maintainer: app_commands.Range[str, 1, 200], coordinates: str = None):
@@ -194,6 +196,7 @@ class Modify(commands.Cog):
 
     @app_commands.command()
     @app_commands.guild_only()
+    @commands.cooldown(2, 5, BucketType.member)
     @app_commands.rename(id_='id')
     async def modify(self, interaction: discord.Interaction, id_: int):
         """Modify faciliy information
@@ -231,6 +234,7 @@ class Modify(commands.Cog):
 
     @app_commands.command()
     @app_commands.guild_only()
+    @commands.cooldown(2, 5, BucketType.member)
     async def remove(self, interaction: discord.Interaction, ids: app_commands.Transform[tuple, IdTransformer]):
         """Remove facility
 

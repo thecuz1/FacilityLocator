@@ -84,7 +84,7 @@ class Misc(commands.Cog):
         deleted = await ctx.channel.purge(limit=limit + 1, check=bot_message, bulk=False)
         if deleted:
             return await ctx.send(f':white_check_mark: Deleted {len(deleted)} messages', delete_after=5)
-        await ctx.send(f':warning: No messages deleted', delete_after=5)
+        await ctx.send(':warning: No messages deleted', delete_after=5)
 
 
 async def setup(bot: commands.bot) -> None:

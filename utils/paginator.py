@@ -53,22 +53,26 @@ class Paginator(discord.ui.View):
         self.original_message = None
         self.author = None
         self.page_counter = None
+        self.ephemeral = None
 
     async def on_timeout(self) -> None:
-        """Remove original message on timeout
+        """Remove or edit original message on timeout
         """
         try:
-            await self.original_message.delete()
+            if self.ephemeral:
+                return await self.original_message.edit(view=None)
+            return await self.original_message.delete()
         except discord.NotFound:
             pass
 
-    async def start(self, interaction: discord.Interaction, pages: list[discord.Embed]) -> None:
+    async def start(self, interaction: discord.Interaction, pages: list[discord.Embed], ephemeral: bool = False) -> None:
         """Start paginator
 
         Args:
             interaction (discord.Interaction): Interaction to use
             pages (list[discord.Embed]): List of embeds
         """
+        self.ephemeral = ephemeral
         self.pages = pages
         self.total_page_count = len(pages)
         self.author = interaction.user
@@ -80,7 +84,7 @@ class Paginator(discord.ui.View):
         for item in (previous_button, self.page_counter, next_button):
             self.add_item(item)
 
-        await interaction.response.send_message(embed=pages[self.current_page - 1], view=self)
+        await interaction.response.send_message(embed=pages[self.current_page - 1], view=self, ephemeral=ephemeral)
         self.original_message = await interaction.original_response()
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:

@@ -49,7 +49,7 @@ class Facility:
         author (int): Author ID
         item_services (int, optional): Item services
         vehicle_services (int, optional): Vehicle services
-        creation_time (float, optional): Creation of time facility
+        creation_time (float, optional): Creation time of facility
         guild_id (int): Guild facility was created in
     """
     def __init__(self, *, name: str, region: str, marker: str, maintainer: str, author: int, guild_id: int, **options) -> None:

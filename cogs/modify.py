@@ -13,21 +13,30 @@ async def label_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[app_commands.Choice]:
-    for region in REGIONS:
-        try:
-            if region in interaction.namespace['region']:
+    # try looping through all regions and find the user selected region
+    try:
+        for region in REGIONS:
+            if region.lower() in interaction.namespace['region'].lower():
                 selected_region = region
                 break
-        except KeyError:
-            break
+    # ignore if the user has not entered a region
+    except KeyError:
+        pass
+    # try creating a generator of markers with the user entered region as a restriction
     try:
-        location_list = [marker for region, markers in REGIONS.items() for marker in markers if selected_region == region]
+        marker_generator = (marker for region, markers in REGIONS.items()
+                            for marker in markers
+                            if selected_region == region)
+    # ignore if no region was found in user input and create a generator of all markers
     except NameError:
-        location_list = [marker for markers in REGIONS.values() for marker in markers]
+        marker_generator = (marker for markers in REGIONS.values()
+                            for marker in markers)
 
-    res = extract(current, location_list, limit=25)
-    return [app_commands.Choice(name=choice[0], value=choice[0])
-            for choice in res]
+    # fuzzy search for the most likely user wanted option
+    results = extract(current, tuple(marker_generator), limit=25)
+    # return a list of choice objects from most to least likely what the user wants
+    return [app_commands.Choice(name=result[0], value=result[0])
+            for result in results]
 
 
 class RemoveFacilitiesView(discord.ui.View):

@@ -1,42 +1,10 @@
 from datetime import datetime
 from typing import Optional
-from rapidfuzz.process import extract
 import discord
 from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
 from discord import app_commands
-from utils import Facility, LocationTransformer, FacilityLocation, IdTransformer
-from data import REGIONS
-
-
-async def label_autocomplete(
-    interaction: discord.Interaction,
-    current: str,
-) -> list[app_commands.Choice]:
-    # try looping through all regions and find the user selected region
-    try:
-        for region in REGIONS:
-            if region.lower() in interaction.namespace['region'].lower():
-                selected_region = region
-                break
-    # ignore if the user has not entered a region
-    except KeyError:
-        pass
-    # try creating a generator of markers with the user entered region as a restriction
-    try:
-        marker_generator = (marker for region, markers in REGIONS.items()
-                            for marker in markers
-                            if selected_region == region)
-    # ignore if no region was found in user input and create a generator of all markers
-    except NameError:
-        marker_generator = (marker for markers in REGIONS.values()
-                            for marker in markers)
-
-    # fuzzy search for the most likely user wanted option
-    results = extract(current, tuple(marker_generator), limit=25)
-    # return a list of choice objects from most to least likely what the user wants
-    return [app_commands.Choice(name=result[0], value=result[0])
-            for result in results]
+from utils import Facility, LocationTransformer, FacilityLocation, IdTransformer, MarkerTransformer
 
 
 class RemoveFacilitiesView(discord.ui.View):
@@ -137,8 +105,10 @@ class ServicesSelectView(discord.ui.View):
         if self.facility.changed() is False:
             return await interaction.response.send_message(':warning: No changes', ephemeral=True)
 
-        dt = datetime.now()
-        self.facility.creation_time = datetime.timestamp(dt)
+        if self.facility.creation_time is None:
+            dt = datetime.now()
+            self.facility.creation_time = int(datetime.timestamp(dt))
+
         self.followup = interaction.followup
         self.stop()
         for item in self.children:
@@ -149,42 +119,39 @@ class ServicesSelectView(discord.ui.View):
 class Modify(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
- 
+
     @app_commands.command()
     @app_commands.guild_only()
     @commands.cooldown(1, 20, BucketType.member)
-    @app_commands.autocomplete(location=label_autocomplete)
-    @app_commands.rename(name='facility-name', gps='region', maintainer='maintainer')
-    async def create(self, interaction: discord.Interaction, name: app_commands.Range[str, 1, 100], gps: app_commands.Transform[FacilityLocation, LocationTransformer], location: str, maintainer: app_commands.Range[str, 1, 200], coordinates: str = None):
+    @app_commands.rename(name='facility-name', location='region')
+    async def create(
+        self,
+        interaction: discord.Interaction,
+        name: app_commands.Range[str, 1, 100],
+        location: app_commands.Transform[FacilityLocation, LocationTransformer],
+        marker: app_commands.Transform[str, MarkerTransformer],
+        maintainer: app_commands.Range[str, 1, 200],
+        coordinates: str = None
+    ) -> None:
         """Creates a public facility
 
         Args:
             name (str): Name of facility
-            gps (app_commands.Transform[FacilityLocation, LocationTransformer]): Region with optional coordinates
-            location (str): Nearest townhall/relic or location
+            location (app_commands.Transform[FacilityLocation, LocationTransformer]): Region with optional coordinates
+            marker (str): Nearest townhall/relic or location
             maintainer (str): Who maintains the facility
             coordinates (str): Optional coordinates (incase it doesn't work in the region field)
         """
-        resolved_marker = None
-        for marker_tuple in REGIONS.values():
-            for marker in marker_tuple:
-                if location.lower() in marker.lower():
-                    resolved_marker = marker
-                    break
-
-        if resolved_marker is None:
-            return await interaction.response.send_message(':x: No marker found', ephemeral=True)
-
-        if gps.coordinates is None:
+        if location.coordinates is None:
             final_coordinates = coordinates
         else:
-            final_coordinates = gps.coordinates
+            final_coordinates = location.coordinates
 
         try:
             final_coordinates = final_coordinates.upper()
         except AttributeError:
             pass
-        facility = Facility(name=name, region=gps.region, coordinates=final_coordinates, maintainer=maintainer, author=interaction.user.id, marker=resolved_marker, guild_id=interaction.guild_id)
+        facility = Facility(name=name, region=location.region, coordinates=final_coordinates, maintainer=maintainer, author=interaction.user.id, marker=marker, guild_id=interaction.guild_id)
 
         view = ServicesSelectView(facility, original_author=interaction.user)
         embed = facility.embed()

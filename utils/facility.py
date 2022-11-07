@@ -1,38 +1,6 @@
-from typing import NamedTuple, Optional
-import re
-from rapidfuzz.process import extract
+from typing import Optional
 import discord
-from discord import app_commands
-from data import REGIONS, ITEM_SERVICES, VEHICLE_SERVICES
-
-
-class FacilityLocation(NamedTuple):
-    region: str
-    coordinates: str
-
-
-class LocationTransformer(app_commands.Transformer):
-    async def transform(self, interaction: discord.Interaction, value: str) -> FacilityLocation:
-        try:
-            coordinates = re.search(
-                r'([A-R]\d{1,2}k\d)', value, flags=re.IGNORECASE).group(1)
-        except AttributeError:
-            coordinates = None
-
-        for region in REGIONS:
-            if region in value:
-                region_name = region
-                break
-        try:
-            return FacilityLocation(region_name, coordinates)
-        except UnboundLocalError:
-            await interaction.response.send_message(':x: No region found', ephemeral=True)
-            raise ValueError('Incorrect region passed')
-
-    async def autocomplete(self, interaction: discord.Interaction, current) -> list[app_commands.Choice]:
-        res = extract(current, list(REGIONS), limit=25)
-        return [app_commands.Choice(name=choice[0], value=choice[0])
-                for choice in res]
+from data import ITEM_SERVICES, VEHICLE_SERVICES
 
 
 class Facility:
@@ -49,7 +17,7 @@ class Facility:
         author (int): Author ID
         item_services (int, optional): Item services
         vehicle_services (int, optional): Vehicle services
-        creation_time (float, optional): Creation time of facility
+        creation_time (int, optional): Creation time of facility
         guild_id (int): Guild facility was created in
     """
     def __init__(self, *, name: str, region: str, marker: str, maintainer: str, author: int, guild_id: int, **options) -> None:
@@ -63,7 +31,7 @@ class Facility:
         self.author: int = author
         self.item_services: Optional[int] = options.pop('item_services', None)
         self.vehicle_services: Optional[int] = options.pop('vehicle_services', None)
-        self.creation_time: Optional[float] = options.pop('creation_time', None)
+        self.creation_time: Optional[int] = options.pop('creation_time', None)
         self.guild_id: int = guild_id
         self.initial_hash: int = self.__current_hash()
 
@@ -90,7 +58,7 @@ class Facility:
 
         creation_info = f'> Author: <@{self.author}>\n> Guild ID: `{self.guild_id}`\n'
         if self.creation_time:
-            creation_info += f'> Created: <t:{int(self.creation_time)}:R>'
+            creation_info += f'> Created: <t:{self.creation_time}:R>'
 
 
         embed = discord.Embed(title=self.name,

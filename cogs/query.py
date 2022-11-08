@@ -1,7 +1,6 @@
 from discord import Interaction
 from discord.ext import commands
 from discord import app_commands
-from discord.ext.commands.cooldowns import BucketType
 from utils import Paginator
 from utils import LocationTransformer, FacilityLocation, IdTransformer
 from data import VEHICLE_SERVICES, ITEM_SERVICES
@@ -13,7 +12,7 @@ class Query(commands.Cog):
 
     @app_commands.command()
     @app_commands.guild_only()
-    @commands.cooldown(2, 10, BucketType.member)
+    @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     @app_commands.rename(location='region', item_service='item-service', vehicle_service='vehicle-service')
     @app_commands.choices(item_service=[app_commands.Choice(name=service, value=(1 << index))
                                    for index, service in enumerate(ITEM_SERVICES)],
@@ -40,7 +39,7 @@ class Query(commands.Cog):
 
     @app_commands.command()
     @app_commands.guild_only()
-    @commands.cooldown(2, 10, BucketType.member)
+    @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def view(self, interaction: Interaction, ids: app_commands.Transform[tuple, IdTransformer], ephemeral: bool = True):
         """View facilities based on their ID's
 

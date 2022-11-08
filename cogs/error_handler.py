@@ -1,7 +1,7 @@
 import logging
 from discord.ext import commands
 import discord
-from discord.app_commands import errors
+from discord.app_commands import errors, CommandOnCooldown
 
 log = logging.getLogger('discord.log')
 
@@ -56,11 +56,15 @@ class CommandErrorHandler(commands.Cog):
             error (discord.app_commands.AppCommandError): The Exception raised
         """
         command = interaction.command
+
+        if isinstance(error, CommandOnCooldown):
+            return await interaction.response.send_message(f':hourglass: {str(error)}', ephemeral=True)
+
+        if isinstance(error, errors.TransformerError):
+            return
+
         if command is not None:
             if command._has_any_error_handlers():
-                return
-
-            if isinstance(error, errors.TransformerError):
                 return
 
             log.error('Ignoring exception in command %r', command.name, exc_info=error)

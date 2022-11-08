@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Optional
 import discord
 from discord.ext import commands
-from discord.ext.commands.cooldowns import BucketType
 from discord import app_commands
 from utils import Facility, LocationTransformer, FacilityLocation, IdTransformer, MarkerTransformer
 
@@ -122,7 +121,7 @@ class Modify(commands.Cog):
 
     @app_commands.command()
     @app_commands.guild_only()
-    @commands.cooldown(1, 20, BucketType.member)
+    @app_commands.checks.cooldown(1, 20, key=lambda i: (i.guild_id, i.user.id))
     @app_commands.rename(name='facility-name', location='region')
     async def create(
         self,
@@ -172,7 +171,7 @@ class Modify(commands.Cog):
 
     @app_commands.command()
     @app_commands.guild_only()
-    @commands.cooldown(2, 5, BucketType.member)
+    @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     @app_commands.rename(id_='id')
     async def modify(self, interaction: discord.Interaction, id_: int):
         """Modify faciliy information
@@ -210,7 +209,7 @@ class Modify(commands.Cog):
 
     @app_commands.command()
     @app_commands.guild_only()
-    @commands.cooldown(2, 5, BucketType.member)
+    @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def remove(self, interaction: discord.Interaction, ids: app_commands.Transform[tuple, IdTransformer]):
         """Remove facility
 

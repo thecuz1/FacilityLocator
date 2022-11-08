@@ -59,10 +59,10 @@ class DataBase:
             for lookup_id in ids:
                 db.row_factory = aiosqlite.Row
                 res = await db.execute("SELECT * FROM facilities WHERE id_ == ?", (lookup_id,))
-                fetched_result = await res.fetchall()
+                fetched_result = await res.fetchone()
                 if not fetched_result:
                     continue
-                facility = Facility(**fetched_result[0])
+                facility = Facility(**fetched_result)
                 facility_list.append(facility)
             if not facility_list:
                 return None

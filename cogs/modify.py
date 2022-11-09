@@ -4,7 +4,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from utils import Facility, LocationTransformer, FacilityLocation, IdTransformer, MarkerTransformer
-
+from data import ITEM_SERVICES, VEHICLE_SERVICES
 
 class RemoveFacilitiesView(discord.ui.View):
     def __init__(self, *, timeout: Optional[float] = 180, original_author: discord.User | discord.Member) -> None:
@@ -58,30 +58,18 @@ class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Informatio
         await interaction.response.edit_message(embed=embed)
 
 
-class SelectMenu(discord.ui.Select):
-    def __init__(self, row: int, placeholder: str, facility: Facility, vehicle_select: bool) -> None:
-        options = facility.select_options(vehicle_select)
-        super().__init__(row=row, placeholder=placeholder, options=options, min_values=0, max_values=len(options))
-        self.vehicle_select = vehicle_select
-        self.facility = facility
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        self.facility.set_services(self.values, self.vehicle_select)
-        self.options = self.facility.select_options(self.vehicle_select)
-        embed = self.facility.embed()
-        await interaction.response.edit_message(embed=embed, view=self.view)
-
-
 class ServicesSelectView(discord.ui.View):
     def __init__(self, facility: Facility, original_author: discord.User | discord.Member) -> None:
         super().__init__()
-        self.add_item(SelectMenu(0, 'Select item services...', facility, False))
-        self.add_item(SelectMenu(1, 'Select vehicle services...', facility, True))
         self.facility = facility
         self.original_author = original_author
+        self._update_options()
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        return interaction.user.id == self.original_author.id
+        if interaction.user and interaction.user.id in (interaction.client.owner_id, self.original_author.id):
+            return True
+        await interaction.response.send_message(':x: This pagination menu cannot be controlled by you, sorry!', ephemeral=True)
+        return False
 
     async def on_timeout(self) -> None:
         for item in self.children:
@@ -91,12 +79,30 @@ class ServicesSelectView(discord.ui.View):
         except discord.errors.NotFound:
             pass
 
-    @discord.ui.button(label='Add Description/Edit', row=2)
+    def _update_options(self) -> None:
+        self.item_select.options = self.facility.select_options(False)
+        self.vehicle_select.options = self.facility.select_options(True)
+
+    @discord.ui.select(placeholder='Select item services...', max_values=len(ITEM_SERVICES))
+    async def item_select(self, interaction: discord.Interaction, menu: discord.ui.Select) -> None:
+        self.facility.set_services(menu.values, False)
+        self._update_options()
+        embed = self.facility.embed()
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.select(placeholder='Select vehicle services...', max_values=len(VEHICLE_SERVICES))
+    async def vehicle_select(self, interaction: discord.Interaction, menu: discord.ui.Select) -> None:
+        self.facility.set_services(menu.values, True)
+        self._update_options()
+        embed = self.facility.embed()
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label='Add Description/Edit')
     async def edit(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         information = FacilityInformationModal(self.facility)
         await interaction.response.send_modal(information)
 
-    @discord.ui.button(label='Finish', style=discord.ButtonStyle.primary, row=2)
+    @discord.ui.button(label='Finish', style=discord.ButtonStyle.primary)
     async def finish(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if self.facility.item_services is None and self.facility.vehicle_services is None:
             return await interaction.response.send_message(':warning: Please select at least one service', ephemeral=True)
@@ -141,10 +147,7 @@ class Modify(commands.Cog):
             maintainer (str): Who maintains the facility
             coordinates (str): Optional coordinates (incase it doesn't work in the region field)
         """
-        if location.coordinates is None:
-            final_coordinates = coordinates
-        else:
-            final_coordinates = location.coordinates
+        final_coordinates = coordinates or location.coordinates
 
         try:
             final_coordinates = final_coordinates.upper()

@@ -57,7 +57,7 @@ class Paginator(discord.ui.View):
         max_pages = self.total_page_count
         self.go_to_first_page.disabled = page_number == 0
         self.go_to_last_page.disabled = max_pages is None or (page_number + 1) >= max_pages
-        self.go_to_current_page.label = f'{str(page_number + 1)}/{max_pages}'
+        self.go_to_current_page.label = f'{page_number + 1}/{max_pages}'
         self.go_to_next_page.disabled = max_pages is not None and (page_number + 1) >= max_pages
         self.go_to_previous_page.disabled = page_number == 0
 

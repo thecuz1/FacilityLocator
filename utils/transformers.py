@@ -48,16 +48,16 @@ class MarkerTransformer(app_commands.Transformer):
             pass
         # try creating a generator of markers with the user entered region as a restriction
         try:
-            marker_generator = (marker for region, markers in REGIONS.items()
+            marker_generator = [marker for region, markers in REGIONS.items()
                                 for marker in markers
-                                if selected_region == region)
+                                if selected_region == region]
         # ignore if no region was found in user input and create a generator of all markers
         except NameError:
-            marker_generator = (marker for markers in REGIONS.values()
-                                for marker in markers)
+            marker_generator = [marker for markers in REGIONS.values()
+                                for marker in markers]
 
         # fuzzy search for the most likely user wanted option
-        results = extract(current, tuple(marker_generator), limit=25)
+        results = extract(current, marker_generator, limit=25)
         # return a list of choice objects from most to least likely what the user wants
         return [app_commands.Choice(name=result[0], value=result[0])
                 for result in results]

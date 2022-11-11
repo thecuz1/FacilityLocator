@@ -13,12 +13,29 @@ class Query(commands.Cog):
     @app_commands.command()
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
-    @app_commands.rename(location='region', item_service='item-service', vehicle_service='vehicle-service')
-    @app_commands.choices(item_service=[app_commands.Choice(name=service, value=(1 << index))
-                                   for index, service in enumerate(ITEM_SERVICES)],
-                          vehicle_service=[app_commands.Choice(name=service, value=(1 << index))
-                                           for index, service in enumerate(VEHICLE_SERVICES)])
-    async def locate(self, interaction: Interaction, location: app_commands.Transform[FacilityLocation, LocationTransformer] = None, item_service: int = None, vehicle_service: int = None, ephemeral: bool = True) -> None:
+    @app_commands.rename(
+        location="region",
+        item_service="item-service",
+        vehicle_service="vehicle-service",
+    )
+    @app_commands.choices(
+        item_service=[
+            app_commands.Choice(name=service, value=(1 << index))
+            for index, service in enumerate(ITEM_SERVICES)
+        ],
+        vehicle_service=[
+            app_commands.Choice(name=service, value=(1 << index))
+            for index, service in enumerate(VEHICLE_SERVICES)
+        ],
+    )
+    async def locate(
+        self,
+        interaction: Interaction,
+        location: app_commands.Transform[FacilityLocation, LocationTransformer] = None,
+        item_service: int = None,
+        vehicle_service: int = None,
+        ephemeral: bool = True,
+    ) -> None:
         """Find a facility with optional search parameters
 
         Args:
@@ -28,19 +45,33 @@ class Query(commands.Cog):
             ephemeral (bool): Show results to only you
         """
         try:
-            facility_list = await self.bot.db.get_facility(location.region, item_service, vehicle_service)
+            facility_list = await self.bot.db.get_facility(
+                location.region, item_service, vehicle_service
+            )
         except AttributeError:
-            facility_list = await self.bot.db.get_facility(service=item_service, vehicle_service=vehicle_service)
+            facility_list = await self.bot.db.get_facility(
+                service=item_service, vehicle_service=vehicle_service
+            )
         if not facility_list:
-            return await interaction.response.send_message(':x: No facilities found', ephemeral=True)
-        embeds = [facility.embed()
-                  for facility in facility_list if facility.guild_id == interaction.guild_id]
+            return await interaction.response.send_message(
+                ":x: No facilities found", ephemeral=True
+            )
+        embeds = [
+            facility.embed()
+            for facility in facility_list
+            if facility.guild_id == interaction.guild_id
+        ]
         await Paginator().start(interaction, pages=embeds, ephemeral=ephemeral)
 
     @app_commands.command()
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
-    async def view(self, interaction: Interaction, ids: app_commands.Transform[tuple, IdTransformer], ephemeral: bool = True):
+    async def view(
+        self,
+        interaction: Interaction,
+        ids: app_commands.Transform[tuple, IdTransformer],
+        ephemeral: bool = True,
+    ):
         """View facilities based on their ID's
 
         Args:
@@ -49,9 +80,14 @@ class Query(commands.Cog):
         """
         facilities = await self.bot.db.get_facility_ids(ids)
         if not facilities:
-            return await interaction.response.send_message(':x: No facilities found', ephemeral=True)
-        embeds = [facility.embed()
-                  for facility in facilities if facility.guild_id == interaction.guild_id]
+            return await interaction.response.send_message(
+                ":x: No facilities found", ephemeral=True
+            )
+        embeds = [
+            facility.embed()
+            for facility in facilities
+            if facility.guild_id == interaction.guild_id
+        ]
         await Paginator().start(interaction, pages=embeds, ephemeral=ephemeral)
 
 

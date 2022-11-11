@@ -38,6 +38,10 @@ class Facility:
     def __current_hash(self) -> int:
         return hash((self.__class__, self.id_, self.name, self.description, self.region, self.coordinates, self.marker, self.maintainer, self.author, self.item_services, self.vehicle_services))
 
+    def __sizeof__(self) -> int:
+        generator = (value.__sizeof__() for value in self.__dict__.values())
+        return sum(generator)
+
     def changed(self) -> bool:
         """Determine whether the facility has changed from initial instance
 

@@ -6,6 +6,7 @@ from discord import app_commands
 from utils import Facility, LocationTransformer, FacilityLocation, IdTransformer, MarkerTransformer
 from data import ITEM_SERVICES, VEHICLE_SERVICES
 
+
 class RemoveFacilitiesView(discord.ui.View):
     def __init__(self, *, timeout: Optional[float] = 180, original_author: discord.User | discord.Member) -> None:
         super().__init__(timeout=timeout)
@@ -34,17 +35,23 @@ class RemoveFacilitiesView(discord.ui.View):
 class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Information'):
     def __init__(self, facility) -> None:
         super().__init__()
-        self.name = discord.ui.TextInput(label='Facility Name',
-                                         default=facility.name,
-                                         max_length=100)
-        self.maintainer = discord.ui.TextInput(label='Maintainer',
-                                               default=facility.maintainer,
-                                               max_length=200)
-        self.description = discord.ui.TextInput(label='Description',
-                                                style=discord.TextStyle.paragraph,
-                                                required=False,
-                                                default=facility.description,
-                                                max_length=1024)
+        self.name = discord.ui.TextInput(
+            label='Facility Name',
+            default=facility.name,
+            max_length=100
+        )
+        self.maintainer = discord.ui.TextInput(
+            label='Maintainer',
+            default=facility.maintainer,
+            max_length=200
+        )
+        self.description = discord.ui.TextInput(
+            label='Description',
+            style=discord.TextStyle.paragraph,
+            required=False,
+            default=facility.description,
+            max_length=1024
+        )
         for item in (self.name, self.maintainer, self.description):
             self.add_item(item)
         self.facility = facility
@@ -68,7 +75,7 @@ class ServicesSelectView(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user and interaction.user.id in (interaction.client.owner_id, self.original_author.id):
             return True
-        await interaction.response.send_message(':x: This pagination menu cannot be controlled by you, sorry!', ephemeral=True)
+        await interaction.response.send_message(':x: This menu cannot be controlled by you, sorry!', ephemeral=True)
         return False
 
     async def on_timeout(self) -> None:
@@ -165,12 +172,12 @@ class Modify(commands.Cog):
             return
 
         try:
-            await self.bot.db.add_facility(facility)
+            await self.bot.facility_registry.create(facility)
         except Exception as e:
-            await view.followup.send(':x: Failed to add facility', ephemeral=True)
+            await view.followup.send(':x: Failed to create facility', ephemeral=True)
             raise e
         else:
-            await view.followup.send(':white_check_mark: Successfully added facility', ephemeral=True)
+            await view.followup.send(':white_check_mark: Successfully created facility', ephemeral=True)
 
     @app_commands.command()
     @app_commands.guild_only()
@@ -182,11 +189,9 @@ class Modify(commands.Cog):
         Args:
             id_ (int): ID of facility
         """
-        facility = await self.bot.db.get_facility_ids((id_,))
+        facility = self.bot.facility_registry.find(id_)
 
-        try:
-            facility: Facility = facility[0]
-        except TypeError:
+        if facility is None:
             return await interaction.response.send_message(':x: No facility found', ephemeral=True)
 
         if self.bot.owner_id != interaction.user.id:
@@ -203,7 +208,7 @@ class Modify(commands.Cog):
             return
 
         try:
-            await self.bot.db.update_facility(facility)
+            await self.bot.facility_registry.update(facility)
         except Exception as e:
             await view.followup.send(':x: Failed to modify facility', ephemeral=True)
             raise e
@@ -220,7 +225,8 @@ class Modify(commands.Cog):
             ids (app_commands.Transform[tuple, IdTransformer]): List of facility ID's to remove
         """
         author = interaction.user
-        facilities = await self.bot.db.get_facility_ids(ids)
+        facilities = self.bot.facility_registry.find_multiple(ids)
+
         if not facilities:
             return await interaction.response.send_message(':x: No facilities found', ephemeral=True)
 

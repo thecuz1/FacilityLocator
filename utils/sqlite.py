@@ -8,6 +8,16 @@ class DataBase:
         self.bot = bot
         self.db_name = db_name
 
+    async def all_facilities(self) -> list[Facility]:
+        async with aiosqlite.connect(self.db_name) as db:
+            db.row_factory = aiosqlite.Row
+            results = await db.execute("SELECT * FROM facilities")
+            rows = await results.fetchall()
+            return [
+                Facility(**row)
+                for row in rows
+            ]
+
     async def add_facility(self, facility: Facility) -> None:
         async with aiosqlite.connect(self.db_name) as db:
             values = (facility.name, facility.description, facility.region, facility.coordinates, facility.marker, facility.maintainer, facility.author, facility.item_services, facility.vehicle_services, facility.creation_time, facility.guild_id)

@@ -46,12 +46,12 @@ class MarkerTransformer(app_commands.Transformer):
         # ignore if the user has not entered a region
         except KeyError:
             pass
-        # try creating a generator of markers with the user entered region as a restriction
+        # try creating a list of markers with the user entered region as a restriction
         try:
             marker_generator = [marker for region, markers in REGIONS.items()
                                 for marker in markers
                                 if selected_region == region]
-        # ignore if no region was found in user input and create a generator of all markers
+        # ignore if no region was found in user input and create a list of all markers
         except NameError:
             marker_generator = [marker for markers in REGIONS.values()
                                 for marker in markers]
@@ -61,6 +61,7 @@ class MarkerTransformer(app_commands.Transformer):
         # return a list of choice objects from most to least likely what the user wants
         return [app_commands.Choice(name=result[0], value=result[0])
                 for result in results]
+
 
 class FacilityLocation(NamedTuple):
     region: str

@@ -86,6 +86,12 @@ class Misc(commands.Cog):
             return await ctx.send(f':white_check_mark: Deleted {len(deleted)} messages', delete_after=5)
         await ctx.send(':warning: No messages deleted', delete_after=5)
 
+    @commands.command()
+    @commands.guild_only()
+    @commands.is_owner()
+    async def memory(self, ctx: commands.Context) -> None:
+        await ctx.send(f'Using {self.bot.facility_registry.__sizeof__()} Bytes for facilities in memory')
+
 
 async def setup(bot: commands.bot) -> None:
     await bot.add_cog(Misc(bot))

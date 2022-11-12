@@ -44,14 +44,20 @@ class Query(commands.Cog):
             vehicle_service (int, optional): Vehicle service to look for
             ephemeral (bool): Show results to only you
         """
-        try:
-            facility_list = await self.bot.db.get_facility(
-                location.region, item_service, vehicle_service
+        region = location and location.region
+
+        search_dict = {
+            name: value
+            for name, value in (
+                (" region == ? ", region),
+                (" item_services & ? ", item_service),
+                (" vehicle_services & ? ", vehicle_service),
             )
-        except AttributeError:
-            facility_list = await self.bot.db.get_facility(
-                service=item_service, vehicle_service=vehicle_service
-            )
+            if value
+        }
+
+        facility_list = await self.bot.db.get_facilities(search_dict)
+
         if not facility_list:
             return await interaction.response.send_message(
                 ":x: No facilities found", ephemeral=True

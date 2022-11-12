@@ -1,14 +1,14 @@
-from typing import Union
+from typing import List, Dict
 import aiosqlite
 from utils import Facility
 
 
-class DataBase:
+class Database:
     def __init__(self, bot, db_name) -> None:
         self.bot = bot
         self.db_name = db_name
 
-    async def all_facilities(self) -> list[Facility]:
+    async def get_all_facilities(self) -> List[Facility]:
         async with aiosqlite.connect(self.db_name) as db:
             db.row_factory = aiosqlite.Row
             results = await db.execute("SELECT * FROM facilities")
@@ -25,58 +25,42 @@ class DataBase:
             await cur.execute("INSERT INTO facilities (name, description, region, coordinates, marker, maintainer, author, item_services, vehicle_services, creation_time, guild_id) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
             await db.commit()
 
-    async def get_facility(self, region = None, service = None, vehicle_service = None) -> Union[list[Facility], None]:
+    async def get_facilities(self, search_dict: Dict[str, str | int]) -> List[Facility]:
+        if not search_dict:
+            return await self.get_all_facilities()
         async with aiosqlite.connect(self.db_name) as db:
             db.row_factory = aiosqlite.Row
-            sql = "SELECT * FROM facilities"
-            variabls = []
-            first = True
+            sql = "SELECT * FROM facilities WHERE "
+            sql += "AND".join(search_dict.keys())
 
-            if region or service or vehicle_service:
-                sql += "  WHERE "
-            if region is not None:
-                if first:
-                    sql += "region == ?"
-                    first = False
-                else:
-                    sql += "AND region == ?"
-                variabls.append(region)
-            if service is not None:
-                if first:
-                    sql += "item_services & ?"
-                    first = False
-                else:
-                    sql += "AND item_services & ?"
-                variabls.append(service)
-            if vehicle_service is not None:
-                if first:
-                    sql += "vehicle_services & ?"
-                    first = False
-                else:
-                    sql += "AND vehicle_services & ?"
-                variabls.append(vehicle_service)
+            result = await db.execute(sql, tuple(search_dict.values()))
+            fetched_results = await result.fetchall()
+            return [
+                Facility(**row)
+                for row in fetched_results
+            ]
 
-            res = await db.execute(sql, tuple(variabls))
-            fetched_result = await res.fetchall()
-            if not fetched_result:
-                return None
-            return [Facility(**row)
-                    for row in fetched_result]
-
-    async def get_facility_ids(self, ids) -> Union[list[Facility], None]:
+    async def get_facility_ids(self, ids) -> List[Facility]:
         async with aiosqlite.connect(self.db_name) as db:
+            db.row_factory = aiosqlite.Row
             facility_list = []
             for lookup_id in ids:
-                db.row_factory = aiosqlite.Row
                 res = await db.execute("SELECT * FROM facilities WHERE id_ == ?", (lookup_id,))
                 fetched_result = await res.fetchone()
                 if not fetched_result:
                     continue
                 facility = Facility(**fetched_result)
                 facility_list.append(facility)
-            if not facility_list:
-                return None
             return facility_list
+
+    async def get_facility_id(self, id_: int) -> Facility | None:
+        async with aiosqlite.connect(self.db_name) as db:
+            db.row_factory = aiosqlite.Row
+            res = await db.execute("SELECT * FROM facilities WHERE id_ == ?", (id_,))
+            fetched_result = await res.fetchone()
+            if not fetched_result:
+                return None
+            return Facility(**fetched_result)
 
     async def remove_facilities(self, ids) -> None:
         async with aiosqlite.connect(self.db_name) as db:
@@ -94,3 +78,4 @@ class DataBase:
             await db.execute("DELETE FROM facilities")
             await db.execute("UPDATE sqlite_sequence SET seq = 0 WHERE name == 'facilities'")
             await db.commit()
+            await db.execute("VACUUM")

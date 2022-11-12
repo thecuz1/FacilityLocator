@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+from asyncio import sleep
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -16,7 +17,7 @@ class RemoveFacilitiesView(discord.ui.View):
         for item in self.children:
             item.disabled = True
         try:
-            await self.message.edit(view=self)
+            await self.message.delete()
         except discord.errors.NotFound:
             pass
 
@@ -172,7 +173,7 @@ class Modify(commands.Cog):
             return
 
         try:
-            await self.bot.facility_registry.create(facility)
+            await self.bot.db.add_facility(facility)
         except Exception as e:
             await view.followup.send(':x: Failed to create facility', ephemeral=True)
             raise e
@@ -189,7 +190,7 @@ class Modify(commands.Cog):
         Args:
             id_ (int): ID of facility
         """
-        facility = self.bot.facility_registry.find(id_)
+        facility = await self.bot.db.get_facility_id(id_)
 
         if facility is None:
             return await interaction.response.send_message(':x: No facility found', ephemeral=True)
@@ -208,7 +209,7 @@ class Modify(commands.Cog):
             return
 
         try:
-            await self.bot.facility_registry.update(facility)
+            await self.bot.db.update_facility(facility)
         except Exception as e:
             await view.followup.send(':x: Failed to modify facility', ephemeral=True)
             raise e
@@ -225,7 +226,7 @@ class Modify(commands.Cog):
             ids (app_commands.Transform[tuple, IdTransformer]): List of facility ID's to remove
         """
         author = interaction.user
-        facilities = self.bot.facility_registry.find_multiple(ids)
+        facilities = await self.bot.db.get_facility_ids(ids)
 
         if not facilities:
             return await interaction.response.send_message(':x: No facilities found', ephemeral=True)
@@ -282,10 +283,10 @@ class Modify(commands.Cog):
     @commands.command()
     @commands.guild_only()
     @commands.is_owner()
-    async def remove_all(self, ctx: commands.Context):
+    async def reset(self, ctx: commands.Context):
         embed = discord.Embed(title=':warning: Confirm removal of all facilities')
-        view = RemoveFacilitiesView(original_author=ctx.author)
-        message = await ctx.send(embed=embed, view=view, ephemeral=True)
+        view = RemoveFacilitiesView(original_author=ctx.author, timeout=30)
+        message = await ctx.send(embed=embed, view=view)
         view.message = message
 
         if await view.wait():
@@ -297,7 +298,10 @@ class Modify(commands.Cog):
             await view.followup.send(':x: Failed to remove facilities', ephemeral=True)
             raise e
         else:
-            await view.followup.send(':white_check_mark: Successfuly removed facilities', ephemeral=True)
+            message = await view.followup.send(':white_check_mark: Successfuly removed facilities', wait=True)
+            await sleep(10)
+            await view.message.delete()
+            await message.delete()
 
 
 async def setup(bot: commands.bot) -> None:

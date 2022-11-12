@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import aiosqlite
 import discord
 from discord.ext import commands
-from utils import DataBase, FacilityRegistry
+from utils import Database
 
 load_dotenv()
 
@@ -47,11 +47,7 @@ class Bot(commands.Bot):
                     );''')
                 await db.commit()
                 print(f'Created {db_name}')
-        self.db = DataBase(self, db_name)
-        self.facility_registry = FacilityRegistry(self.db)
-        await self.facility_registry.fill_cache()
-        print(f'Filled cache with {len(self.facility_registry)} facilities using {sys.getsizeof(self.facility_registry)} bytes')
-
+        self.db = Database(self, db_name)
 
 intents = discord.Intents.all()
 

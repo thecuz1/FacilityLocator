@@ -29,8 +29,8 @@ class Facility:
         self.marker: str = marker
         self.maintainer: str = maintainer
         self.author: int = author
-        self.item_services: Optional[int] = options.pop('item_services', None)
-        self.vehicle_services: Optional[int] = options.pop('vehicle_services', None)
+        self.item_services: Optional[int] = options.pop('item_services', 0)
+        self.vehicle_services: Optional[int] = options.pop('vehicle_services', 0)
         self.creation_time: Optional[int] = options.pop('creation_time', None)
         self.guild_id: int = guild_id
         self.initial_hash: int = self.__current_hash()
@@ -129,7 +129,7 @@ class Facility:
         for index, available_service in enumerate(available_services):
             if available_service in selected_services:
                 service_var += (1 << index)
-        return None if service_var == 0 else service_var
+        return service_var
 
     def can_modify(self, interaction: discord.Interaction) -> bool:
         """Returns true if the passed interaction has the ability to modify the facility

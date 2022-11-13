@@ -3,7 +3,7 @@ from discord.ext import commands
 import discord
 from discord.app_commands import errors, CommandOnCooldown
 
-log = logging.getLogger('discord.log')
+command_error_logger = logging.getLogger('command_errors')
 
 
 class CommandErrorHandler(commands.Cog):
@@ -12,7 +12,11 @@ class CommandErrorHandler(commands.Cog):
         bot.tree.on_error = self.on_app_command_error
 
     @commands.Cog.listener()
-    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
+    async def on_command_error(
+        self,
+        ctx: commands.Context,
+        error: commands.CommandError
+    ) -> None:
         """The event triggered when an error is raised while invoking a command
 
         Args:
@@ -40,9 +44,11 @@ class CommandErrorHandler(commands.Cog):
         if isinstance(error, ignored):
             return
 
-        else:
-            # All other Errors not returned come here. And we can just print the default TraceBack.
-            log.error('Ignoring exception in command %r', ctx.command, exc_info=error)
+        if isinstance(error, commands.BadArgument):
+            return
+
+        # All other Errors not returned come here.
+        command_error_logger.error('Ignoring exception in command %r', ctx.command.name, exc_info=error)
 
     async def on_app_command_error(
         self,
@@ -57,19 +63,19 @@ class CommandErrorHandler(commands.Cog):
         """
         command = interaction.command
 
-        if isinstance(error, CommandOnCooldown):
-            return await interaction.response.send_message(f':hourglass: {str(error)}', ephemeral=True)
-
-        if isinstance(error, errors.TransformerError):
-            return
-
         if command is not None:
             if command._has_any_error_handlers():
                 return
 
-            log.error('Ignoring exception in command %r', command.name, exc_info=error)
+            if isinstance(error, CommandOnCooldown):
+                return await interaction.response.send_message(f':hourglass: {str(error)}', ephemeral=True)
+
+            if isinstance(error, errors.TransformerError):
+                return
+
+            command_error_logger.error('Ignoring exception in command %r', command.name, exc_info=error)
         else:
-            log.error('Ignoring exception in command tree', exc_info=error)
+            command_error_logger.error('Ignoring exception in command tree', exc_info=error)
 
 
 async def setup(bot: commands.bot) -> None:

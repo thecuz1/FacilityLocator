@@ -77,20 +77,18 @@ class Misc(commands.Cog):
     @commands.command()
     @commands.guild_only()
     @commands.is_owner()
-    async def cleanup(self, ctx: commands.Context, limit: int = 10) -> None:
-        def bot_message(m):
-            return m.author == self.bot.user
+    async def cleanup(self, ctx: commands.Context, limit: int = 1) -> None:
+        deleted_count = 0
+        async for message in ctx.channel.history():
+            if message.author == self.bot.user:
+                await message.delete()
+                deleted_count += 1
+                if deleted_count == limit:
+                    break
 
-        deleted = await ctx.channel.purge(limit=limit + 1, check=bot_message, bulk=False)
-        if deleted:
-            return await ctx.send(f':white_check_mark: Deleted {len(deleted)} messages', delete_after=5)
+        if deleted_count:
+            return await ctx.send(f':white_check_mark: Deleted {deleted_count} messages', delete_after=5)
         await ctx.send(':warning: No messages deleted', delete_after=5)
-
-    @commands.command()
-    @commands.guild_only()
-    @commands.is_owner()
-    async def memory(self, ctx: commands.Context) -> None:
-        await ctx.send(f'Using {self.bot.facility_registry.__sizeof__()} Bytes for facilities in memory')
 
 
 async def setup(bot: commands.bot) -> None:

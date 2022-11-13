@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import Optional
 from asyncio import sleep
@@ -6,6 +7,8 @@ from discord.ext import commands
 from discord import app_commands
 from utils import Facility, LocationTransformer, FacilityLocation, IdTransformer, MarkerTransformer
 from data import ITEM_SERVICES, VEHICLE_SERVICES
+
+facility_logger = logging.getLogger('facility_event')
 
 
 class RemoveFacilitiesView(discord.ui.View):
@@ -112,7 +115,7 @@ class ServicesSelectView(discord.ui.View):
 
     @discord.ui.button(label='Finish', style=discord.ButtonStyle.primary)
     async def finish(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        if self.facility.item_services is None and self.facility.vehicle_services is None:
+        if self.facility.item_services == 0 and self.facility.vehicle_services == 0:
             return await interaction.response.send_message(':warning: Please select at least one service', ephemeral=True)
 
         if self.facility.changed() is False:
@@ -150,7 +153,7 @@ class Modify(commands.Cog):
 
         Args:
             name (str): Name of facility
-            location (app_commands.Transform[FacilityLocation, LocationTransformer]): Region with optional coordinates
+            location (app_commands.Transform[FacilityLocation, LocationTransformer]): Region with optional coordinates in the form of region-coordinates from ctrl-click of map
             marker (str): Nearest townhall/relic or location
             maintainer (str): Who maintains the facility
             coordinates (str): Optional coordinates (incase it doesn't work in the region field)
@@ -174,6 +177,7 @@ class Modify(commands.Cog):
 
         try:
             await self.bot.db.add_facility(facility)
+            facility_logger.info('Facility created by %r (%r)', interaction.user.id, interaction.user.name)
         except Exception as e:
             await view.followup.send(':x: Failed to create facility', ephemeral=True)
             raise e
@@ -210,6 +214,7 @@ class Modify(commands.Cog):
 
         try:
             await self.bot.db.update_facility(facility)
+            facility_logger.info('Facility %r modified by %r (%r)', facility.id_, interaction.user.id, interaction.user.name)
         except Exception as e:
             await view.followup.send(':x: Failed to modify facility', ephemeral=True)
             raise e
@@ -223,7 +228,7 @@ class Modify(commands.Cog):
         """Remove facility
 
         Args:
-            ids (app_commands.Transform[tuple, IdTransformer]): List of facility ID's to remove
+            ids (app_commands.Transform[tuple, IdTransformer]): List of facility ID's to remove with a delimiter of ',' or a space ' ' Ex. 1,3 4 8
         """
         author = interaction.user
         facilities = await self.bot.db.get_facility_ids(ids)
@@ -271,9 +276,9 @@ class Modify(commands.Cog):
         if await view.wait():
             return
 
-        ids = [(facility.id_,) for facility in facilities]
         try:
-            await self.bot.db.remove_facilities(ids)
+            await self.bot.db.remove_facilities(facilities)
+            facility_logger.info('Facility ID(s) %r removed by %r (%r)', [facility.id_ for facility in facilities], interaction.user.id, interaction.user.name)
         except Exception as e:
             await view.followup.send(':x: Failed to remove facilities', ephemeral=True)
             raise e

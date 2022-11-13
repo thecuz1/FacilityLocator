@@ -1,12 +1,34 @@
 from typing import List, Dict
+import logging
 import aiosqlite
 from utils import Facility
 
+logger = logging.getLogger(__name__)
 
 class Database:
     def __init__(self, bot, db_name) -> None:
         self.bot = bot
         self.db_name = db_name
+
+    async def create(self):
+        async with aiosqlite.connect(self.db_name) as db:
+            await db.execute('''
+                CREATE TABLE "facilities" (
+                "id_"	INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+                "name"	TEXT,
+                "description"	TEXT,
+                "region"	TEXT,
+                "coordinates"	TEXT,
+                "marker"	INTEGER,
+                "maintainer"	TEXT,
+                "author"	INTEGER,
+                "item_services"	INTEGER,
+                "vehicle_services"	INTEGER,
+                "creation_time"	INTEGER,
+                "guild_id"	INTEGER
+            );''')
+            await db.commit()
+            logger.info('Created %r', self.db_name)
 
     async def get_all_facilities(self) -> List[Facility]:
         async with aiosqlite.connect(self.db_name) as db:
@@ -62,8 +84,9 @@ class Database:
                 return None
             return Facility(**fetched_result)
 
-    async def remove_facilities(self, ids) -> None:
+    async def remove_facilities(self, facilities) -> None:
         async with aiosqlite.connect(self.db_name) as db:
+            ids = [(facility.id_,) for facility in facilities]
             await db.executemany("DELETE FROM facilities WHERE id_ == ?", ids)
             await db.commit()
     
@@ -79,3 +102,4 @@ class Database:
             await db.execute("UPDATE sqlite_sequence SET seq = 0 WHERE name == 'facilities'")
             await db.commit()
             await db.execute("VACUUM")
+        logger.info('Removed all entries from facilities and executed VACUUM')

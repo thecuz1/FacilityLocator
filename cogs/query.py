@@ -42,7 +42,7 @@ class Query(commands.Cog):
             location (app_commands.Transform[FacilityLocation, LocationTransformer], optional): Region to search in
             item_service (int, optional): Item service to look for
             vehicle_service (int, optional): Vehicle service to look for
-            ephemeral (bool): Show results to only you
+            ephemeral (bool): Show results to only you (defaults to True)
         """
         region = location and location.region
 
@@ -81,8 +81,8 @@ class Query(commands.Cog):
         """View facilities based on their ID's
 
         Args:
-            ids (app_commands.Transform[tuple, IdTransformer]): List of ID's to look for
-            ephemeral (bool): Show results to only you
+            ids (app_commands.Transform[tuple, IdTransformer]): List of facility ID's to view with a delimiter of ',' or a space ' ' Ex. 1,3 4 8
+            ephemeral (bool): Show results to only you (defaults to True)
         """
         facilities = await self.bot.db.get_facility_ids(ids)
         if not facilities:

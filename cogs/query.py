@@ -1,4 +1,4 @@
-from discord import Interaction
+from discord import Interaction, Embed
 from discord.ext import commands
 from discord import app_commands
 from utils import Paginator
@@ -96,6 +96,21 @@ class Query(commands.Cog):
         ]
         await Paginator().start(interaction, pages=embeds, ephemeral=ephemeral)
 
+    @app_commands.command()
+    @app_commands.guild_only()
+    async def view_logs(
+        self,
+        interaction: Interaction
+    ) -> None:
+        logs = self.bot.guild_logs.get(interaction.guild_id, None)
+        if not logs:
+            return await interaction.response.send_message(':x: No logs found', ephemeral=True)
+        embed = Embed(title=f'Logs for {interaction.guild.name}')
+
+        formatted_logs = '> '
+        formatted_logs += '\n> '.join(logs)
+        embed.description = formatted_logs
+        await interaction.response.send_message(embed=embed)
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Query(bot))

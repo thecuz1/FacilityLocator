@@ -177,7 +177,14 @@ class Modify(commands.Cog):
 
         try:
             await self.bot.db.add_facility(facility)
-            facility_logger.info('Facility created by %r (%r)', interaction.user.id, interaction.user.name)
+            facility_logger.info(
+                'Facility created by %r',
+                interaction.user.mention,
+                extra={
+                    'guild_id': interaction.guild_id,
+                    'guild_name': interaction.guild.name
+                }
+            )
         except Exception as e:
             await view.followup.send(':x: Failed to create facility', ephemeral=True)
             raise e
@@ -214,7 +221,15 @@ class Modify(commands.Cog):
 
         try:
             await self.bot.db.update_facility(facility)
-            facility_logger.info('Facility %r modified by %r (%r)', facility.id_, interaction.user.id, interaction.user.name)
+            facility_logger.info(
+                'Facility ID %r modified by %r',
+                facility.id_,
+                interaction.user.mention,
+                extra={
+                    'guild_id': interaction.guild_id,
+                    'guild_name': interaction.guild.name
+                }
+            )
         except Exception as e:
             await view.followup.send(':x: Failed to modify facility', ephemeral=True)
             raise e
@@ -278,7 +293,15 @@ class Modify(commands.Cog):
 
         try:
             await self.bot.db.remove_facilities(facilities)
-            facility_logger.info('Facility ID(s) %r removed by %r (%r)', [facility.id_ for facility in facilities], interaction.user.id, interaction.user.name)
+            facility_logger.info(
+                'Facility ID(s) %r removed by %r',
+                [facility.id_ for facility in facilities],
+                interaction.user.mention,
+                extra={
+                    'guild_id': interaction.guild_id,
+                    'guild_name': interaction.guild.name
+                }
+            )
         except Exception as e:
             await view.followup.send(':x: Failed to remove facilities', ephemeral=True)
             raise e

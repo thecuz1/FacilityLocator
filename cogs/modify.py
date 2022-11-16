@@ -1,135 +1,8 @@
-import logging
-from datetime import datetime
-from typing import Optional
-from asyncio import sleep
 import discord
 from discord.ext import commands
 from discord import app_commands
-from utils import Facility, LocationTransformer, FacilityLocation, IdTransformer, MarkerTransformer
-from data import ITEM_SERVICES, VEHICLE_SERVICES
-
-facility_logger = logging.getLogger('facility_event')
-
-
-class RemoveFacilitiesView(discord.ui.View):
-    def __init__(self, *, timeout: Optional[float] = 180, original_author: discord.User | discord.Member) -> None:
-        super().__init__(timeout=timeout)
-        self.original_author = original_author
-
-    async def on_timeout(self) -> None:
-        for item in self.children:
-            item.disabled = True
-        try:
-            await self.message.delete()
-        except discord.errors.NotFound:
-            pass
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        return interaction.user.id == self.original_author.id
-
-    @discord.ui.button(label='Confirm', style=discord.ButtonStyle.primary)
-    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        self.followup = interaction.followup
-        self.stop()
-        for item in self.children:
-            item.disabled = True
-        await interaction.response.edit_message(view=self)
-
-
-class FacilityInformationModal(discord.ui.Modal, title='Edit Facility Information'):
-    def __init__(self, facility) -> None:
-        super().__init__()
-        self.name = discord.ui.TextInput(
-            label='Facility Name',
-            default=facility.name,
-            max_length=100
-        )
-        self.maintainer = discord.ui.TextInput(
-            label='Maintainer',
-            default=facility.maintainer,
-            max_length=200
-        )
-        self.description = discord.ui.TextInput(
-            label='Description',
-            style=discord.TextStyle.paragraph,
-            required=False,
-            default=facility.description,
-            max_length=1024
-        )
-        for item in (self.name, self.maintainer, self.description):
-            self.add_item(item)
-        self.facility = facility
-
-    async def on_submit(self, interaction: discord.Interaction) -> None:
-        self.facility.name = str(self.name)
-        self.facility.maintainer = str(self.maintainer)
-        self.facility.description = str(self.description)
-
-        embed = self.facility.embed()
-        await interaction.response.edit_message(embed=embed)
-
-
-class ServicesSelectView(discord.ui.View):
-    def __init__(self, facility: Facility, original_author: discord.User | discord.Member) -> None:
-        super().__init__()
-        self.facility = facility
-        self.original_author = original_author
-        self._update_options()
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user and interaction.user.id in (interaction.client.owner_id, self.original_author.id):
-            return True
-        await interaction.response.send_message(':x: This menu cannot be controlled by you, sorry!', ephemeral=True)
-        return False
-
-    async def on_timeout(self) -> None:
-        for item in self.children:
-            item.disabled = True
-        try:
-            await self.message.edit(view=self)
-        except discord.errors.NotFound:
-            pass
-
-    def _update_options(self) -> None:
-        self.item_select.options = self.facility.select_options(False)
-        self.vehicle_select.options = self.facility.select_options(True)
-
-    @discord.ui.select(placeholder='Select item services...', max_values=len(ITEM_SERVICES))
-    async def item_select(self, interaction: discord.Interaction, menu: discord.ui.Select) -> None:
-        self.facility.set_services(menu.values, False)
-        self._update_options()
-        embed = self.facility.embed()
-        await interaction.response.edit_message(embed=embed, view=self)
-
-    @discord.ui.select(placeholder='Select vehicle services...', max_values=len(VEHICLE_SERVICES))
-    async def vehicle_select(self, interaction: discord.Interaction, menu: discord.ui.Select) -> None:
-        self.facility.set_services(menu.values, True)
-        self._update_options()
-        embed = self.facility.embed()
-        await interaction.response.edit_message(embed=embed, view=self)
-
-    @discord.ui.button(label='Add Description/Edit')
-    async def edit(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        information = FacilityInformationModal(self.facility)
-        await interaction.response.send_modal(information)
-
-    @discord.ui.button(label='Finish', style=discord.ButtonStyle.primary)
-    async def finish(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        if self.facility.item_services == 0 and self.facility.vehicle_services == 0:
-            return await interaction.response.send_message(':warning: Please select at least one service', ephemeral=True)
-
-        if self.facility.changed() is False:
-            return await interaction.response.send_message(':warning: No changes', ephemeral=True)
-
-        if self.facility.creation_time is None:
-            dt = datetime.now()
-            self.facility.creation_time = int(datetime.timestamp(dt))
-
-        self.followup = interaction.followup
-        self.stop()
-        for item in self.children:
-            item.disabled = True
-        await interaction.response.edit_message(view=self)
+from utils import LocationTransformer, FacilityLocation, IdTransformer, MarkerTransformer
+from facility import Facility, CreateFacilityView, ModifyFacilityView, RemoveFacilitiesView, ResetView
 
 
 class Modify(commands.Cog):
@@ -166,30 +39,11 @@ class Modify(commands.Cog):
             pass
         facility = Facility(name=name, region=location.region, coordinates=final_coordinates, maintainer=maintainer, author=interaction.user.id, marker=marker, guild_id=interaction.guild_id)
 
-        view = ServicesSelectView(facility, original_author=interaction.user)
+        view = CreateFacilityView(facility=facility, original_author=interaction.user, bot=self.bot)
         embed = facility.embed()
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
         view.message = await interaction.original_response()
-
-        if await view.wait():
-            return
-
-        try:
-            await self.bot.db.add_facility(facility)
-            facility_logger.info(
-                'Facility created by %r',
-                interaction.user.mention,
-                extra={
-                    'guild_id': interaction.guild_id,
-                    'guild_name': interaction.guild.name
-                }
-            )
-        except Exception as e:
-            await view.followup.send(':x: Failed to create facility', ephemeral=True)
-            raise e
-        else:
-            await view.followup.send(':white_check_mark: Successfully created facility', ephemeral=True)
 
     @app_commands.command()
     @app_commands.guild_only()
@@ -210,31 +64,11 @@ class Modify(commands.Cog):
             if facility.can_modify(interaction) is False:
                 return await interaction.response.send_message(':x: No permission to modify facility', ephemeral=True)
 
-        view = ServicesSelectView(facility, original_author=interaction.user)
+        view = ModifyFacilityView(facility=facility, original_author=interaction.user, bot=self.bot)
         embed = facility.embed()
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
         view.message = await interaction.original_response()
-
-        if await view.wait():
-            return
-
-        try:
-            await self.bot.db.update_facility(facility)
-            facility_logger.info(
-                'Facility ID %r modified by %r',
-                facility.id_,
-                interaction.user.mention,
-                extra={
-                    'guild_id': interaction.guild_id,
-                    'guild_name': interaction.guild.name
-                }
-            )
-        except Exception as e:
-            await view.followup.send(':x: Failed to modify facility', ephemeral=True)
-            raise e
-        else:
-            await view.followup.send(':white_check_mark: Successfully modified facility', ephemeral=True)
 
     @app_commands.command()
     @app_commands.guild_only()
@@ -284,52 +118,19 @@ class Modify(commands.Cog):
         else:
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        view = RemoveFacilitiesView(original_author=author)
+        view = RemoveFacilitiesView(original_author=author, bot=self.bot, facilities=facilities)
+
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
         view.message = await interaction.original_response()
-
-        if await view.wait():
-            return
-
-        try:
-            await self.bot.db.remove_facilities(facilities)
-            facility_logger.info(
-                'Facility ID(s) %r removed by %r',
-                [facility.id_ for facility in facilities],
-                interaction.user.mention,
-                extra={
-                    'guild_id': interaction.guild_id,
-                    'guild_name': interaction.guild.name
-                }
-            )
-        except Exception as e:
-            await view.followup.send(':x: Failed to remove facilities', ephemeral=True)
-            raise e
-        else:
-            await view.followup.send(':white_check_mark: Successfuly removed facilities', ephemeral=True)
 
     @commands.command()
     @commands.guild_only()
     @commands.is_owner()
     async def reset(self, ctx: commands.Context):
         embed = discord.Embed(title=':warning: Confirm removal of all facilities')
-        view = RemoveFacilitiesView(original_author=ctx.author, timeout=30)
+        view = ResetView(original_author=ctx.author, timeout=30, bot=self.bot)
         message = await ctx.send(embed=embed, view=view)
         view.message = message
-
-        if await view.wait():
-            return
-
-        try:
-            await self.bot.db.reset()
-        except Exception as e:
-            await view.followup.send(':x: Failed to remove facilities', ephemeral=True)
-            raise e
-        else:
-            message = await view.followup.send(':white_check_mark: Successfuly removed facilities', wait=True)
-            await sleep(10)
-            await view.message.delete()
-            await message.delete()
 
 
 async def setup(bot: commands.bot) -> None:

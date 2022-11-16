@@ -3,7 +3,7 @@ from discord.ext import commands
 import discord
 from discord.app_commands import errors, CommandOnCooldown
 
-command_error_logger = logging.getLogger('command_errors')
+command_error_logger = logging.getLogger('command_error')
 
 
 class CommandErrorHandler(commands.Cog):

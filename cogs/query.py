@@ -98,10 +98,13 @@ class Query(commands.Cog):
 
     @app_commands.command()
     @app_commands.guild_only()
+    @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def view_logs(
         self,
         interaction: Interaction
     ) -> None:
+        """View logs for current server
+        """
         logs = self.bot.guild_logs.get(interaction.guild_id, None)
         if not logs:
             return await interaction.response.send_message(':x: No logs found', ephemeral=True)

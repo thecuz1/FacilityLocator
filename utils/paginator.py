@@ -1,8 +1,9 @@
 from typing import Optional
 import discord
+from utils.error_inheritance import ErrorLoggedView
 
 
-class Paginator(discord.ui.View):
+class Paginator(ErrorLoggedView):
     def __init__(self, *, timeout: Optional[float] = 120) -> None:
         super().__init__(timeout=timeout)
 
@@ -40,7 +41,7 @@ class Paginator(discord.ui.View):
         self.original_message = await interaction.original_response()
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        """Ignore any interaction that wasn't triggered by the original author
+        """Ignore any interaction that wasn't triggered by the original author or bot owner
 
         Args:
             interaction (discord.Interaction): Interaction to check

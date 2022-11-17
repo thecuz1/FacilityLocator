@@ -1,5 +1,4 @@
 from time import time
-from asyncio import sleep
 import logging
 from discord import ui, errors
 from discord import Interaction, User, Member, ButtonStyle, Message
@@ -24,7 +23,7 @@ class BaseFacilityView(ErrorLoggedView):
         self.bot = bot
 
     async def interaction_check(self, interaction: Interaction, /) -> bool:
-        """Ignore any interaction that wasn't triggered by the original author or bot owner
+        """Only allow bot owner and author to control the menu
 
         Args:
             interaction (Interaction): Interaction to check

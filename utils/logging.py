@@ -37,3 +37,12 @@ class GuildHandler(Handler):
 class NoVoiceFilter(logging.Filter):
     def filter(self, record):
         return not record.getMessage().startswith('PyNaCl')
+
+
+class FilterLevel(logging.Filter):
+    def __init__(self, *, level) -> None:
+        super().__init__()
+        self.level = getattr(logging, level)
+
+    def filter(self, record):
+        return record.levelno <= self.level

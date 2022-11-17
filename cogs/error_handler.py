@@ -34,7 +34,7 @@ class CommandErrorHandler(commands.Cog):
             if cog._get_overridden_method(cog.cog_command_error) is not None:
                 return
 
-        ignored = (commands.CommandNotFound, commands.DisabledCommand, commands.NoPrivateMessage)
+        ignored = (commands.CommandNotFound, commands.DisabledCommand, commands.NoPrivateMessage, commands.NotOwner)
 
         # Allows us to check for original exceptions raised and sent to CommandInvokeError.
         # If nothing is found. We keep the exception passed to on_command_error.
@@ -45,7 +45,10 @@ class CommandErrorHandler(commands.Cog):
             return
 
         if isinstance(error, commands.BadArgument):
-            return
+            return await ctx.send(str(error))
+
+        if isinstance(error, commands.MissingRequiredArgument):
+            return await ctx.send(str(error))
 
         # All other Errors not returned come here.
         command_error_logger.error('Ignoring exception in command %r', ctx.command.name, exc_info=error)

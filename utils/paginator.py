@@ -1,10 +1,9 @@
-from typing import Optional
-import discord
+from discord import ui, Interaction, ButtonStyle, Embed, NotFound
 from utils.error_inheritance import ErrorLoggedView
 
 
 class Paginator(ErrorLoggedView):
-    def __init__(self, *, timeout: Optional[float] = 120) -> None:
+    def __init__(self, *, timeout: float | None = 120) -> None:
         super().__init__(timeout=timeout)
 
         self.ephemeral = None
@@ -19,15 +18,15 @@ class Paginator(ErrorLoggedView):
         """
         try:
             return await self.original_message.edit(view=None)
-        except discord.NotFound:
+        except NotFound:
             pass
 
-    async def start(self, interaction: discord.Interaction, pages: list[discord.Embed], ephemeral: bool = False) -> None:
+    async def start(self, interaction: Interaction, pages: list[Embed], ephemeral: bool = False) -> None:
         """Start paginator
 
         Args:
-            interaction (discord.Interaction): Interaction to use
-            pages (list[discord.Embed]): List of embeds
+            interaction (Interaction): Interaction to use
+            pages (list[Embed]): List of embeds
         """
         self.ephemeral = ephemeral
         self.pages = pages
@@ -40,11 +39,11 @@ class Paginator(ErrorLoggedView):
         await interaction.response.send_message(embed=pages[self.current_page], view=self, ephemeral=ephemeral)
         self.original_message = await interaction.original_response()
 
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        """Ignore any interaction that wasn't triggered by the original author or bot owner
+    async def interaction_check(self, interaction: Interaction, /) -> bool:
+        """Only allow bot owner and author to control the menu
 
         Args:
-            interaction (discord.Interaction): Interaction to check
+            interaction (Interaction): Interaction to check
 
         Returns:
             bool: Whether to process the interaction
@@ -62,7 +61,7 @@ class Paginator(ErrorLoggedView):
         self.go_to_next_page.disabled = max_pages is not None and (page_number + 1) >= max_pages
         self.go_to_previous_page.disabled = page_number == 0
 
-    async def show_page(self, interaction: discord.Interaction, page_number: int) -> None:
+    async def show_page(self, interaction: Interaction, page_number: int) -> None:
         page = self.pages[page_number]
         self.current_page = page_number
         self._update_labels(page_number)
@@ -72,7 +71,7 @@ class Paginator(ErrorLoggedView):
         else:
             await interaction.response.edit_message(embed=page, view=self)
 
-    async def show_checked_page(self, interaction: discord.Interaction, page_number: int) -> None:
+    async def show_checked_page(self, interaction: Interaction, page_number: int) -> None:
         max_pages = self.total_page_count
         try:
             if max_pages is None:
@@ -84,26 +83,26 @@ class Paginator(ErrorLoggedView):
             # An error happened that can be handled, so ignore it.
             pass
 
-    @discord.ui.button(label='≪', style=discord.ButtonStyle.grey)
-    async def go_to_first_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @ui.button(label='≪', style=ButtonStyle.grey)
+    async def go_to_first_page(self, interaction: Interaction, button: ui.Button):
         """go to the first page"""
         await self.show_page(interaction, 0)
 
-    @discord.ui.button(label='Back', style=discord.ButtonStyle.blurple)
-    async def go_to_previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @ui.button(label='Back', style=ButtonStyle.blurple)
+    async def go_to_previous_page(self, interaction: Interaction, button: ui.Button):
         """go to the previous page"""
         await self.show_checked_page(interaction, self.current_page - 1)
 
-    @discord.ui.button(label='Current', style=discord.ButtonStyle.grey, disabled=True)
-    async def go_to_current_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @ui.button(label='Current', style=ButtonStyle.grey, disabled=True)
+    async def go_to_current_page(self, interaction: Interaction, button: ui.Button):
         pass
 
-    @discord.ui.button(label='Next', style=discord.ButtonStyle.blurple)
-    async def go_to_next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @ui.button(label='Next', style=ButtonStyle.blurple)
+    async def go_to_next_page(self, interaction: Interaction, button: ui.Button):
         """go to the next page"""
         await self.show_checked_page(interaction, self.current_page + 1)
 
-    @discord.ui.button(label='≫', style=discord.ButtonStyle.grey)
-    async def go_to_last_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @ui.button(label='≫', style=ButtonStyle.grey)
+    async def go_to_last_page(self, interaction: Interaction, button: ui.Button):
         """go to the last page"""
         await self.show_page(interaction, self.total_page_count - 1)

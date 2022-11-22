@@ -29,10 +29,6 @@ class GuildHandler(Handler):
 
         self.bot.guild_logs[record.guild_id] = guild_deque
 
-    def format(self, record: LogRecord) -> str:
-        formatted_record = super().format(record)
-        return formatted_record.replace("'", ' ')
-
 
 class NoVoiceFilter(logging.Filter):
     def filter(self, record):

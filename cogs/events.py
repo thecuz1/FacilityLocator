@@ -19,7 +19,7 @@ class Events(commands.Cog):
         Args:
             guild (Guild): Guild the bot joined
         """
-        guild_logger.info('Bot joined %r (%r)', guild.id, guild.name)
+        guild_logger.info('Bot joined %r (%s)', guild.id, guild.name)
     
     @commands.Cog.listener()
     async def on_guild_remove(
@@ -29,9 +29,9 @@ class Events(commands.Cog):
         """Logs when the bot is remove from a guild
 
         Args:
-            guild (Guild): Guild the bot was remove from 
+            guild (Guild): Guild the bot was remove from
         """
-        guild_logger.info('Bot removed from %r (%r)', guild.id, guild.name)
+        guild_logger.info('Bot removed from %r (%s)', guild.id, guild.name)
 
 
 async def setup(bot: commands.Bot) -> None:

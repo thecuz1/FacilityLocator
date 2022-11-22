@@ -79,7 +79,7 @@ class RemoveFacilitiesView(BaseFacilityView):
         else:
             await followup.send(':white_check_mark: Successfuly removed facilities', ephemeral=True)
             facility_logger.info(
-                'Facility ID(s) %r removed by %r',
+                'Facility ID(s) %r removed by %s',
                 [facility.id_ for facility in self.facilities],
                 interaction.user.mention,
                 extra={
@@ -174,7 +174,7 @@ class CreateFacilityView(BaseServicesSelectView):
         else:
             await followup.send(':white_check_mark: Successfully created facility', ephemeral=True)
             facility_logger.info(
-                'Facility created by %r',
+                'Facility created by %s',
                 interaction.user.mention,
                 extra={
                     'guild_id': interaction.guild_id,
@@ -215,7 +215,7 @@ class ModifyFacilityView(BaseServicesSelectView):
         else:
             await followup.send(':white_check_mark: Successfully modified facility', ephemeral=True)
             facility_logger.info(
-                'Facility ID %r modified by %r',
+                'Facility ID %r modified by %s',
                 self.facility.id_,
                 interaction.user.mention,
                 extra={

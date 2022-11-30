@@ -41,12 +41,12 @@ class Database:
                 for row in rows
             ]
 
-    async def add_facility(self, facility: Facility) -> None:
+    async def add_facility(self, facility: Facility) -> int:
         async with aiosqlite.connect(self.db_file) as db:
             values = (facility.name, facility.description, facility.region, facility.coordinates, facility.marker, facility.maintainer, facility.author, facility.item_services, facility.vehicle_services, facility.creation_time, facility.guild_id)
-            cur = await db.cursor()
-            await cur.execute("INSERT INTO facilities (name, description, region, coordinates, marker, maintainer, author, item_services, vehicle_services, creation_time, guild_id) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
+            cur = await db.execute("INSERT INTO facilities (name, description, region, coordinates, marker, maintainer, author, item_services, vehicle_services, creation_time, guild_id) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
             await db.commit()
+            return cur.lastrowid
 
     async def get_facilities(self, search_dict: Dict[str, str | int]) -> List[Facility]:
         if not search_dict:

@@ -1,4 +1,4 @@
-from discord import Interaction, Embed
+from discord import Interaction, Embed, Member
 from discord.ext import commands
 from discord import app_commands
 from utils import Paginator
@@ -34,6 +34,7 @@ class Query(commands.Cog):
         location: app_commands.Transform[FacilityLocation, LocationTransformer] = None,
         item_service: int = None,
         vehicle_service: int = None,
+        creator: Member = None,
         ephemeral: bool = True,
     ) -> None:
         """Find a facility with optional search parameters
@@ -42,16 +43,16 @@ class Query(commands.Cog):
             location (app_commands.Transform[FacilityLocation, LocationTransformer], optional): Region to search in
             item_service (int, optional): Item service to look for
             vehicle_service (int, optional): Vehicle service to look for
+            creator (Member, optional): Filter by facility creator
             ephemeral (bool): Show results to only you (defaults to True)
         """
-        region = location and location.region
-
         search_dict = {
             name: value
             for name, value in (
-                (" region == ? ", region),
+                (" region == ? ", location and location.region),
                 (" item_services & ? ", item_service),
                 (" vehicle_services & ? ", vehicle_service),
+                (" author == ? ", creator and creator.id),
             )
             if value
         }

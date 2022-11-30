@@ -167,12 +167,15 @@ class CreateFacilityView(BaseServicesSelectView):
 
         followup = interaction.followup
         try:
-            await self.bot.db.add_facility(self.facility)
+            facility_id = await self.bot.db.add_facility(self.facility)
         except Exception as e:
             await followup.send(':x: Failed to create facility', ephemeral=True)
             raise e
         else:
-            await followup.send(':white_check_mark: Successfully created facility', ephemeral=True)
+            await followup.send(
+                f':white_check_mark: Successfully created facility with the ID: `{facility_id}`',
+                ephemeral=True,
+            )
             facility_logger.info(
                 'Facility created by %s',
                 interaction.user.mention,

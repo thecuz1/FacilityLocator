@@ -68,7 +68,11 @@ class Query(commands.Cog):
             for facility in facility_list
             if facility.guild_id == interaction.guild_id
         ]
-        await Paginator().start(interaction, pages=embeds, ephemeral=ephemeral)
+        await Paginator(original_author=interaction.user).start(
+            interaction,
+            pages=embeds,
+            ephemeral=ephemeral
+        )
 
     @app_commands.command()
     @app_commands.guild_only()
@@ -95,7 +99,11 @@ class Query(commands.Cog):
             for facility in facilities
             if facility.guild_id == interaction.guild_id
         ]
-        await Paginator().start(interaction, pages=embeds, ephemeral=ephemeral)
+        await Paginator(original_author=interaction.user).start(
+            interaction,
+            pages=embeds,
+            ephemeral=ephemeral
+        )
 
     @app_commands.command()
     @app_commands.guild_only()

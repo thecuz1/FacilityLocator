@@ -20,7 +20,17 @@ class Facility:
         creation_time (int, optional): Creation time of facility
         guild_id (int): Guild facility was created in
     """
-    def __init__(self, *, name: str, region: str, marker: str, maintainer: str, author: int, guild_id: int, **options) -> None:
+    def __init__(
+        self,
+        *,
+        name: str,
+        region: str,
+        marker: str,
+        maintainer: str,
+        author: int,
+        guild_id: int,
+        **options,
+    ) -> None:
         self.id_: Optional[int] = options.pop('id_', None)
         self.name: str = name
         self.description: Optional[str] = options.pop('description', None)

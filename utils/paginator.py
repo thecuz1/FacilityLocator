@@ -1,10 +1,18 @@
-from discord import ui, Interaction, ButtonStyle, Embed, NotFound
-from utils.error_inheritance import ErrorLoggedView
+from discord import (
+    ui,
+    Interaction,
+    ButtonStyle,
+    Embed,
+    NotFound,
+    User,
+    Member,
+)
+from .mixins import InteractionCheckedView
 
 
-class Paginator(ErrorLoggedView):
-    def __init__(self, *, timeout: float | None = 120) -> None:
-        super().__init__(timeout=timeout)
+class Paginator(InteractionCheckedView):
+    def __init__(self, *, timeout: float = 120, original_author: User | Member) -> None:
+        super().__init__(timeout=timeout, original_author=original_author)
 
         self.ephemeral = None
         self.pages = None
@@ -21,7 +29,12 @@ class Paginator(ErrorLoggedView):
         except NotFound:
             pass
 
-    async def start(self, interaction: Interaction, pages: list[Embed], ephemeral: bool = False) -> None:
+    async def start(
+        self,
+        interaction: Interaction,
+        pages: list[Embed],
+        ephemeral: bool = False
+    ) -> None:
         """Start paginator
 
         Args:
@@ -36,22 +49,12 @@ class Paginator(ErrorLoggedView):
 
         self._update_labels(self.current_page)
 
-        await interaction.response.send_message(embed=pages[self.current_page], view=self, ephemeral=ephemeral)
+        await interaction.response.send_message(
+            embed=pages[self.current_page],
+            view=self,
+            ephemeral=ephemeral
+        )
         self.original_message = await interaction.original_response()
-
-    async def interaction_check(self, interaction: Interaction, /) -> bool:
-        """Only allow bot owner and author to control the menu
-
-        Args:
-            interaction (Interaction): Interaction to check
-
-        Returns:
-            bool: Whether to process the interaction
-        """
-        if interaction.user and interaction.user.id in (interaction.client.owner_id, self.author.id):
-            return True
-        await interaction.response.send_message(':x: This pagination menu cannot be controlled by you, sorry!', ephemeral=True)
-        return False
 
     def _update_labels(self, page_number: int) -> None:
         max_pages = self.total_page_count
@@ -84,12 +87,12 @@ class Paginator(ErrorLoggedView):
             pass
 
     @ui.button(label='≪', style=ButtonStyle.grey)
-    async def go_to_first_page(self, interaction: Interaction, button: ui.Button):
+    async def go_to_first_page(self, interaction: Interaction, _: ui.Button):
         """go to the first page"""
         await self.show_page(interaction, 0)
 
     @ui.button(label='Back', style=ButtonStyle.blurple)
-    async def go_to_previous_page(self, interaction: Interaction, button: ui.Button):
+    async def go_to_previous_page(self, interaction: Interaction, _: ui.Button):
         """go to the previous page"""
         await self.show_checked_page(interaction, self.current_page - 1)
 
@@ -98,11 +101,11 @@ class Paginator(ErrorLoggedView):
         pass
 
     @ui.button(label='Next', style=ButtonStyle.blurple)
-    async def go_to_next_page(self, interaction: Interaction, button: ui.Button):
+    async def go_to_next_page(self, interaction: Interaction, _: ui.Button):
         """go to the next page"""
         await self.show_checked_page(interaction, self.current_page + 1)
 
     @ui.button(label='≫', style=ButtonStyle.grey)
-    async def go_to_last_page(self, interaction: Interaction, button: ui.Button):
+    async def go_to_last_page(self, interaction: Interaction, _: ui.Button):
         """go to the last page"""
         await self.show_page(interaction, self.total_page_count - 1)

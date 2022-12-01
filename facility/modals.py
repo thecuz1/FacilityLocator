@@ -1,6 +1,6 @@
 from discord.ui import TextInput
 from discord import TextStyle, Interaction
-from utils.error_inheritance import ErrorLoggedModal
+from utils.mixins import ErrorLoggedModal
 from facility.main import Facility
 
 

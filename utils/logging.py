@@ -6,7 +6,7 @@ import logging
 class ExtraInfoFileHandler(logging.FileHandler):
     def format(self, record: LogRecord) -> str:
         formatted_record = super().format(record)
-        formatted_record += f' in {record.guild_id} ({record.guild_name})'
+        formatted_record += f" in {record.guild_id} ({record.guild_name})"
         return formatted_record
 
 
@@ -32,7 +32,7 @@ class GuildHandler(Handler):
 
 class NoVoiceFilter(logging.Filter):
     def filter(self, record):
-        return not record.getMessage().startswith('PyNaCl')
+        return not record.getMessage().startswith("PyNaCl")
 
 
 class FilterLevel(logging.Filter):

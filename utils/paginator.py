@@ -22,18 +22,14 @@ class Paginator(InteractionCheckedView):
         self.original_message = None
 
     async def on_timeout(self) -> None:
-        """Remove view on timeout
-        """
+        """Remove view on timeout"""
         try:
             return await self.original_message.edit(view=None)
         except NotFound:
             pass
 
     async def start(
-        self,
-        interaction: Interaction,
-        pages: list[Embed],
-        ephemeral: bool = False
+        self, interaction: Interaction, pages: list[Embed], ephemeral: bool = False
     ) -> None:
         """Start paginator
 
@@ -50,18 +46,20 @@ class Paginator(InteractionCheckedView):
         self._update_labels(self.current_page)
 
         await interaction.response.send_message(
-            embed=pages[self.current_page],
-            view=self,
-            ephemeral=ephemeral
+            embed=pages[self.current_page], view=self, ephemeral=ephemeral
         )
         self.original_message = await interaction.original_response()
 
     def _update_labels(self, page_number: int) -> None:
         max_pages = self.total_page_count
         self.go_to_first_page.disabled = page_number == 0
-        self.go_to_last_page.disabled = max_pages is None or (page_number + 1) >= max_pages
-        self.go_to_current_page.label = f'{page_number + 1}/{max_pages}'
-        self.go_to_next_page.disabled = max_pages is not None and (page_number + 1) >= max_pages
+        self.go_to_last_page.disabled = (
+            max_pages is None or (page_number + 1) >= max_pages
+        )
+        self.go_to_current_page.label = f"{page_number + 1}/{max_pages}"
+        self.go_to_next_page.disabled = (
+            max_pages is not None and (page_number + 1) >= max_pages
+        )
         self.go_to_previous_page.disabled = page_number == 0
 
     async def show_page(self, interaction: Interaction, page_number: int) -> None:
@@ -74,7 +72,9 @@ class Paginator(InteractionCheckedView):
         else:
             await interaction.response.edit_message(embed=page, view=self)
 
-    async def show_checked_page(self, interaction: Interaction, page_number: int) -> None:
+    async def show_checked_page(
+        self, interaction: Interaction, page_number: int
+    ) -> None:
         max_pages = self.total_page_count
         try:
             if max_pages is None:
@@ -86,26 +86,26 @@ class Paginator(InteractionCheckedView):
             # An error happened that can be handled, so ignore it.
             pass
 
-    @ui.button(label='≪', style=ButtonStyle.grey)
+    @ui.button(label="≪", style=ButtonStyle.grey)
     async def go_to_first_page(self, interaction: Interaction, _: ui.Button):
         """go to the first page"""
         await self.show_page(interaction, 0)
 
-    @ui.button(label='Back', style=ButtonStyle.blurple)
+    @ui.button(label="Back", style=ButtonStyle.blurple)
     async def go_to_previous_page(self, interaction: Interaction, _: ui.Button):
         """go to the previous page"""
         await self.show_checked_page(interaction, self.current_page - 1)
 
-    @ui.button(label='Current', style=ButtonStyle.grey, disabled=True)
+    @ui.button(label="Current", style=ButtonStyle.grey, disabled=True)
     async def go_to_current_page(self, interaction: Interaction, button: ui.Button):
         pass
 
-    @ui.button(label='Next', style=ButtonStyle.blurple)
+    @ui.button(label="Next", style=ButtonStyle.blurple)
     async def go_to_next_page(self, interaction: Interaction, _: ui.Button):
         """go to the next page"""
         await self.show_checked_page(interaction, self.current_page + 1)
 
-    @ui.button(label='≫', style=ButtonStyle.grey)
+    @ui.button(label="≫", style=ButtonStyle.grey)
     async def go_to_last_page(self, interaction: Interaction, _: ui.Button):
         """go to the last page"""
         await self.show_page(interaction, self.total_page_count - 1)

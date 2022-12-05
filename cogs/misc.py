@@ -13,10 +13,10 @@ class Misc(commands.Cog):
     async def reload(self, ctx, extension):
         try:
             await self.bot.reload_extension(extension)
-        except Exception as e:
-            await ctx.send(f':x: Failed to reload extension\n```py\n{e}```')
+        except Exception as exc:
+            await ctx.send(f":x: Failed to reload extension\n```py\n{exc}```")
         else:
-            await ctx.send(':white_check_mark: Successfully reloaded')
+            await ctx.send(":white_check_mark: Successfully reloaded")
 
     @commands.command()
     @commands.guild_only()
@@ -24,10 +24,10 @@ class Misc(commands.Cog):
     async def load(self, ctx, extension):
         try:
             await self.bot.load_extension(extension)
-        except Exception as e:
-            await ctx.send(f':x: Failed to load extension\n```py\n{e}```')
+        except Exception as exc:
+            await ctx.send(f":x: Failed to load extension\n```py\n{exc}```")
         else:
-            await ctx.send(':white_check_mark: Successfully loaded')
+            await ctx.send(":white_check_mark: Successfully loaded")
 
     @commands.command()
     @commands.guild_only()
@@ -35,16 +35,20 @@ class Misc(commands.Cog):
     async def unload(self, ctx, extension):
         try:
             await self.bot.unload_extension(extension)
-        except Exception as e:
-            await ctx.send(f':x: Failed to unload extension\n```py\n{e}```')
+        except Exception as exc:
+            await ctx.send(f":x: Failed to unload extension\n```py\n{exc}```")
         else:
-            await ctx.send(':white_check_mark: Successfully unloaded')
+            await ctx.send(":white_check_mark: Successfully unloaded")
 
     @commands.command()
     @commands.guild_only()
     @commands.is_owner()
     async def sync(
-      self, ctx: commands.Context, guilds: commands.Greedy[discord.Object], spec: Optional[Literal["~", "*", "^"]] = None) -> None:
+        self,
+        ctx: commands.Context,
+        guilds: commands.Greedy[discord.Object],
+        spec: Optional[Literal["~", "*", "^"]] = None,
+    ) -> None:
         if not guilds:
             if spec == "~":
                 synced = await ctx.bot.tree.sync(guild=ctx.guild)
@@ -87,8 +91,10 @@ class Misc(commands.Cog):
                     break
 
         if deleted_count:
-            return await ctx.send(f':white_check_mark: Deleted {deleted_count} messages', delete_after=5)
-        await ctx.send(':warning: No messages deleted', delete_after=5)
+            return await ctx.send(
+                f":white_check_mark: Deleted {deleted_count} messages", delete_after=5
+            )
+        await ctx.send(":warning: No messages deleted", delete_after=5)
 
 
 async def setup(bot: commands.bot) -> None:

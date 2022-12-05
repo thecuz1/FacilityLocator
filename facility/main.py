@@ -20,6 +20,7 @@ class Facility:
         creation_time (int, optional): Creation time of facility
         guild_id (int): Guild facility was created in
     """
+
     def __init__(
         self,
         *,
@@ -31,26 +32,36 @@ class Facility:
         guild_id: int,
         **options,
     ) -> None:
-        self.id_: Optional[int] = options.pop('id_', None)
+        self.id_: Optional[int] = options.pop("id_", None)
         self.name: str = name
-        self.description: Optional[str] = options.pop('description', None)
+        self.description: Optional[str] = options.pop("description", None)
         self.region: str = region
-        self.coordinates: Optional[str] = options.pop('coordinates', None)
+        self.coordinates: Optional[str] = options.pop("coordinates", None)
         self.marker: str = marker
         self.maintainer: str = maintainer
         self.author: int = author
-        self.item_services: Optional[int] = options.pop('item_services', 0)
-        self.vehicle_services: Optional[int] = options.pop('vehicle_services', 0)
-        self.creation_time: Optional[int] = options.pop('creation_time', None)
+        self.item_services: Optional[int] = options.pop("item_services", 0)
+        self.vehicle_services: Optional[int] = options.pop("vehicle_services", 0)
+        self.creation_time: Optional[int] = options.pop("creation_time", None)
         self.guild_id: int = guild_id
         self.initial_hash: int = self.__current_hash()
 
     def __current_hash(self) -> int:
-        return hash((self.__class__, self.id_, self.name, self.description, self.region, self.coordinates, self.marker, self.maintainer, self.author, self.item_services, self.vehicle_services))
-
-    def __sizeof__(self) -> int:
-        generator = (value.__sizeof__() for value in self.__dict__.values())
-        return sum(generator)
+        return hash(
+            (
+                self.__class__,
+                self.id_,
+                self.name,
+                self.description,
+                self.region,
+                self.coordinates,
+                self.marker,
+                self.maintainer,
+                self.author,
+                self.item_services,
+                self.vehicle_services,
+            )
+        )
 
     def changed(self) -> bool:
         """Determine whether the facility has changed from initial instance
@@ -66,39 +77,41 @@ class Facility:
         Returns:
             discord.Embed: Embed filled in with current state of facility
         """
-        facility_location = f'> Region: `{self.region}`\n> Marker: `{self.marker}`\n'
+        facility_location = f"> Region: `{self.region}`\n> Marker: `{self.marker}`\n"
         if self.coordinates:
-            facility_location += f'> Coordinates: `{self.coordinates}`\n'
+            facility_location += f"> Coordinates: `{self.coordinates}`\n"
 
-        creation_info = f'> Author: <@{self.author}>\n> Guild ID: `{self.guild_id}`\n'
+        creation_info = f"> Author: <@{self.author}>\n> Guild ID: `{self.guild_id}`\n"
         if self.creation_time:
-            creation_info += f'> Created: <t:{self.creation_time}:R>'
+            creation_info += f"> Created: <t:{self.creation_time}:R>"
 
-
-        embed = discord.Embed(title=self.name,
-                              description=self.description,
-                              color=0x54A24A)
-        embed.add_field(name='Location:', value=facility_location)
-        embed.add_field(name='Maintainer:', value=self.maintainer)
-        embed.add_field(name='Creation Info:', value=creation_info)
+        embed = discord.Embed(
+            title=self.name, description=self.description, color=0x54A24A
+        )
+        embed.add_field(name="Location:", value=facility_location)
+        embed.add_field(name="Maintainer:", value=self.maintainer)
+        embed.add_field(name="Creation Info:", value=creation_info)
 
         if self.id_:
-            embed.set_footer(text=f'ID: {self.id_}')
+            embed.set_footer(text=f"ID: {self.id_}")
 
         def format_services(service_tuple: tuple, services_number: int) -> str:
-            formatted_services = '```ansi\n\u001b[0;32m'
+            formatted_services = "```ansi\n\u001b[0;32m"
             for index, service in enumerate(service_tuple):
                 if (1 << index) & services_number:
-                    formatted_services += f'{service}\n'
-            formatted_services += '```'
+                    formatted_services += f"{service}\n"
+            formatted_services += "```"
             return formatted_services
+
         if self.item_services:
             formatted_services = format_services(ITEM_SERVICES, self.item_services)
-            embed.add_field(name='Item Services:', value=formatted_services)
+            embed.add_field(name="Item Services:", value=formatted_services)
 
         if self.vehicle_services:
-            formatted_services = format_services(VEHICLE_SERVICES, self.vehicle_services)
-            embed.add_field(name='Vehicle Services:', value=formatted_services)
+            formatted_services = format_services(
+                VEHICLE_SERVICES, self.vehicle_services
+            )
+            embed.add_field(name="Vehicle Services:", value=formatted_services)
         return embed
 
     def select_options(self, vehicle: bool = False) -> list[discord.SelectOption]:
@@ -114,13 +127,23 @@ class Facility:
             return self.__generate_options(self.vehicle_services, VEHICLE_SERVICES)
         return self.__generate_options(self.item_services, ITEM_SERVICES)
 
-    def __generate_options(self, selected_services: int | None, available_services: tuple):
+    def __generate_options(
+        self, selected_services: int | None, available_services: tuple
+    ):
         try:
-            return [discord.SelectOption(label=service, value=service, default=bool((1 << index) & selected_services))
-                    for index, service in enumerate(available_services)]
+            return [
+                discord.SelectOption(
+                    label=service,
+                    value=service,
+                    default=bool((1 << index) & selected_services),
+                )
+                for index, service in enumerate(available_services)
+            ]
         except TypeError:
-            return [discord.SelectOption(label=service, value=service)
-                    for service in available_services]
+            return [
+                discord.SelectOption(label=service, value=service)
+                for service in available_services
+            ]
 
     def set_services(self, services: list[str], vehicle: bool = False) -> None:
         """Set services of facility
@@ -130,15 +153,19 @@ class Facility:
             vehicle (bool, optional): If services are vehicle. Defaults to False.
         """
         if vehicle:
-            self.vehicle_services = self.__generate_service_number(services, VEHICLE_SERVICES)
+            self.vehicle_services = self.__generate_service_number(
+                services, VEHICLE_SERVICES
+            )
         else:
             self.item_services = self.__generate_service_number(services, ITEM_SERVICES)
 
-    def __generate_service_number(self, selected_services: list[str], available_services: tuple) -> int | None:
+    def __generate_service_number(
+        self, selected_services: list[str], available_services: tuple
+    ) -> int | None:
         service_var = 0
         for index, available_service in enumerate(available_services):
             if available_service in selected_services:
-                service_var += (1 << index)
+                service_var += 1 << index
         return service_var
 
     def can_modify(self, interaction: discord.Interaction) -> bool:
@@ -152,6 +179,9 @@ class Facility:
         """
         if self.author == interaction.user.id:
             return True
-        if interaction.guild_id == self.guild_id and interaction.permissions.manage_guild:
+        if (
+            interaction.guild_id == self.guild_id
+            and interaction.permissions.manage_guild
+        ):
             return True
         return False

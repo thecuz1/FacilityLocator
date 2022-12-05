@@ -5,8 +5,8 @@ from facility.main import Facility
 
 
 class FacilityInformationModal(ErrorLoggedModal, title="Edit Facility Information"):
-    """Modal to be shown to the user when editing basic info about a facility
-    """
+    """Modal to be shown to the user when editing basic info about a facility"""
+
     def __init__(self, facility: Facility) -> None:
         super().__init__()
         self.name = TextInput(

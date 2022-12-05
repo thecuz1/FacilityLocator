@@ -1,32 +1,20 @@
 from time import time
 import logging
-from discord import (
-    ui,
-    errors,
-    Interaction,
-    User,
-    Member,
-    ButtonStyle,
-    Message
-)
+from discord import ui, errors, Interaction, User, Member, ButtonStyle, Message
 from discord.ext.commands import Bot
 from facility.modals import FacilityInformationModal
 from facility.main import Facility
 from utils.mixins import InteractionCheckedView
 from data import ITEM_SERVICES, VEHICLE_SERVICES
 
-facility_logger = logging.getLogger('facility_event')
+facility_logger = logging.getLogger("facility_event")
 
 
 class BaseFacilityView(InteractionCheckedView):
     """Base view used for a facility"""
 
     def __init__(
-        self,
-        *,
-        timeout: float = 180,
-        original_author: User | Member,
-        bot: Bot
+        self, *, timeout: float = 180, original_author: User | Member, bot: Bot
     ) -> None:
         super().__init__(timeout=timeout, original_author=original_author)
         self.message: Message | None = None
@@ -59,7 +47,7 @@ class RemoveFacilitiesView(BaseFacilityView):
         timeout: float = 180,
         original_author: User | Member,
         bot: Bot,
-        facilities: list[Facility]
+        facilities: list[Facility],
     ) -> None:
         super().__init__(timeout=timeout, original_author=original_author, bot=bot)
         self.facilities = facilities
@@ -72,18 +60,20 @@ class RemoveFacilitiesView(BaseFacilityView):
         try:
             await self.bot.db.remove_facilities(self.facilities)
         except Exception as exc:
-            await followup.send(':x: Failed to remove facilities', ephemeral=True)
+            await followup.send(":x: Failed to remove facilities", ephemeral=True)
             raise exc
         else:
-            await followup.send(':white_check_mark: Successfuly removed facilities', ephemeral=True)
+            await followup.send(
+                ":white_check_mark: Successfuly removed facilities", ephemeral=True
+            )
             facility_logger.info(
-                'Facility ID(s) %r removed by %s',
+                "Facility ID(s) %r removed by %s",
                 [facility.id_ for facility in self.facilities],
                 interaction.user.mention,
                 extra={
-                    'guild_id': interaction.guild_id,
-                    'guild_name': interaction.guild.name
-                }
+                    "guild_id": interaction.guild_id,
+                    "guild_name": interaction.guild.name,
+                },
             )
 
 
@@ -106,21 +96,19 @@ class ResetView(BaseFacilityView):
         try:
             await self.bot.db.reset()
         except Exception as exc:
-            await resopnse.send_message(':x: Failed to reset DB', ephemeral=True)
+            await resopnse.send_message(":x: Failed to reset DB", ephemeral=True)
             raise exc
         else:
-            await resopnse.send_message(':white_check_mark: Successfuly reset DB', delete_after=10)
+            await resopnse.send_message(
+                ":white_check_mark: Successfuly reset DB", delete_after=10
+            )
 
 
 class BaseServicesSelectView(BaseFacilityView):
     """Base view used when creating or modifying services of a facility"""
 
     def __init__(
-        self,
-        *,
-        facility: Facility,
-        original_author: User | Member,
-        bot: Bot
+        self, *, facility: Facility, original_author: User | Member, bot: Bot
     ) -> None:
         super().__init__(original_author=original_author, bot=bot)
         self.facility = facility
@@ -131,7 +119,7 @@ class BaseServicesSelectView(BaseFacilityView):
         self.vehicle_select.options = self.facility.select_options(True)
 
     @ui.select(
-        placeholder='Select item services...',
+        placeholder="Select item services...",
         max_values=len(ITEM_SERVICES),
         min_values=0,
     )
@@ -142,7 +130,7 @@ class BaseServicesSelectView(BaseFacilityView):
         await interaction.response.edit_message(embed=embed, view=self)
 
     @ui.select(
-        placeholder='Select vehicle services...',
+        placeholder="Select vehicle services...",
         max_values=len(VEHICLE_SERVICES),
         min_values=0,
     )
@@ -152,7 +140,7 @@ class BaseServicesSelectView(BaseFacilityView):
         embed = self.facility.embed()
         await interaction.response.edit_message(embed=embed, view=self)
 
-    @ui.button(label='Add Description/Edit')
+    @ui.button(label="Add Description/Edit")
     async def edit(self, interaction: Interaction, _: ui.Button) -> None:
         information = FacilityInformationModal(self.facility)
         await interaction.response.send_modal(information)
@@ -164,13 +152,13 @@ class CreateFacilityView(BaseServicesSelectView):
     async def _checks(self, interaction: Interaction) -> bool:
         if self.facility.item_services == 0 and self.facility.vehicle_services == 0:
             await interaction.response.send_message(
-                ':warning: Please select at least one service',
+                ":warning: Please select at least one service",
                 ephemeral=True,
             )
             return False
         return True
 
-    @ui.button(label='Finish', style=ButtonStyle.primary)
+    @ui.button(label="Finish", style=ButtonStyle.primary)
     async def finish(self, interaction: Interaction, _: ui.Button) -> None:
         should_continue = await self._checks(interaction)
         if should_continue is False:
@@ -184,20 +172,20 @@ class CreateFacilityView(BaseServicesSelectView):
         try:
             facility_id = await self.bot.db.add_facility(self.facility)
         except Exception as exc:
-            await followup.send(':x: Failed to create facility', ephemeral=True)
+            await followup.send(":x: Failed to create facility", ephemeral=True)
             raise exc
         else:
             await followup.send(
-                f':white_check_mark: Successfully created facility with the ID: `{facility_id}`',
+                f":white_check_mark: Successfully created facility with the ID: `{facility_id}`",
                 ephemeral=True,
             )
             facility_logger.info(
-                'Facility created by %s',
+                "Facility created by %s",
                 interaction.user.mention,
                 extra={
-                    'guild_id': interaction.guild_id,
-                    'guild_name': interaction.guild.name
-                }
+                    "guild_id": interaction.guild_id,
+                    "guild_name": interaction.guild.name,
+                },
             )
 
 
@@ -207,20 +195,20 @@ class ModifyFacilityView(BaseServicesSelectView):
     async def _checks(self, interaction: Interaction) -> bool:
         if self.facility.item_services == 0 and self.facility.vehicle_services == 0:
             await interaction.response.send_message(
-                ':warning: Please select at least one service',
+                ":warning: Please select at least one service",
                 ephemeral=True,
             )
             return False
 
         if self.facility.changed() is False:
             await interaction.response.send_message(
-                ':warning: No changes',
+                ":warning: No changes",
                 ephemeral=True,
             )
             return False
         return True
 
-    @ui.button(label='Finish', style=ButtonStyle.primary)
+    @ui.button(label="Finish", style=ButtonStyle.primary)
     async def finish(self, interaction: Interaction, _: ui.Button) -> None:
         should_continue = await self._checks(interaction)
         if should_continue is False:
@@ -234,16 +222,18 @@ class ModifyFacilityView(BaseServicesSelectView):
         try:
             await self.bot.db.update_facility(self.facility)
         except Exception as exc:
-            await followup.send(':x: Failed to modify facility', ephemeral=True)
+            await followup.send(":x: Failed to modify facility", ephemeral=True)
             raise exc
         else:
-            await followup.send(':white_check_mark: Successfully modified facility', ephemeral=True)
+            await followup.send(
+                ":white_check_mark: Successfully modified facility", ephemeral=True
+            )
             facility_logger.info(
-                'Facility ID %r modified by %s',
+                "Facility ID %r modified by %s",
                 self.facility.id_,
                 interaction.user.mention,
                 extra={
-                    'guild_id': interaction.guild_id,
-                    'guild_name': interaction.guild.name
-                }
+                    "guild_id": interaction.guild_id,
+                    "guild_name": interaction.guild.name,
+                },
             )

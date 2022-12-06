@@ -1,11 +1,13 @@
 import discord
 from discord.ext import commands
-from discord import app_commands
+from discord import app_commands, Colour
 from utils import (
     LocationTransformer,
     FacilityLocation,
     IdTransformer,
     MarkerTransformer,
+    FeedbackEmbed,
+    feedbackType,
 )
 from facility import (
     Facility,
@@ -114,11 +116,10 @@ class Modify(commands.Cog):
         facilities = await self.bot.db.get_facility_ids(ids)
 
         if not facilities:
-            return await interaction.response.send_message(
-                ":x: No facilities found", ephemeral=True
-            )
+            embed = FeedbackEmbed("No facilities found", feedbackType.ERROR)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        embed = discord.Embed()
+        embed = discord.Embed(colour=Colour.blue())
         if len(facilities) < len(ids):
             embed.description = (
                 f":warning: Only found {len(facilities)}/{len(ids)} facilities\n"
@@ -152,7 +153,8 @@ class Modify(commands.Cog):
         if facilities:
             message = format_facility(facilities)
             embed.add_field(
-                name=":white_check_mark: Permission to delete facilties:", value=message
+                name=":white_check_mark: Permission to delete facilties:",
+                value=message,
             )
         else:
             return await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -168,7 +170,7 @@ class Modify(commands.Cog):
     @commands.guild_only()
     @commands.is_owner()
     async def reset(self, ctx: commands.Context):
-        embed = discord.Embed(title=":warning: Confirm removal of all facilities")
+        embed = FeedbackEmbed("Confirm removal of all facilities", feedbackType.WARNING)
         view = ResetView(original_author=ctx.author, timeout=30, bot=self.bot)
         message = await ctx.send(embed=embed, view=view)
         view.message = message

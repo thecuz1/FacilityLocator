@@ -1,8 +1,14 @@
-from discord import Interaction, Embed, Member
+from discord import Interaction, Embed, Member, Colour
 from discord.ext import commands
 from discord import app_commands
-from utils import Paginator
-from utils import LocationTransformer, FacilityLocation, IdTransformer
+from utils import (
+    Paginator,
+    LocationTransformer,
+    FacilityLocation,
+    IdTransformer,
+    FeedbackEmbed,
+    feedbackType,
+)
 from data import VEHICLE_SERVICES, ITEM_SERVICES
 
 
@@ -60,9 +66,9 @@ class Query(commands.Cog):
         facility_list = await self.bot.db.get_facilities(search_dict)
 
         if not facility_list:
-            return await interaction.response.send_message(
-                ":x: No facilities found", ephemeral=True
-            )
+            embed = FeedbackEmbed("No facilities found", feedbackType.ERROR)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
         embeds = [
             facility.embed()
             for facility in facility_list
@@ -89,9 +95,9 @@ class Query(commands.Cog):
         """
         facilities = await self.bot.db.get_facility_ids(ids)
         if not facilities:
-            return await interaction.response.send_message(
-                ":x: No facilities found", ephemeral=True
-            )
+            embed = FeedbackEmbed("No facilities found", feedbackType.ERROR)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
         embeds = [
             facility.embed()
             for facility in facilities
@@ -104,19 +110,22 @@ class Query(commands.Cog):
     @app_commands.command()
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
-    async def view_logs(self, interaction: Interaction) -> None:
-        """View logs for current server"""
+    async def view_logs(self, interaction: Interaction, ephemeral: bool = True) -> None:
+        """View logs for current server
+
+        Args:
+            ephemeral (bool): Show results to only you (defaults to True)
+        """
         logs = self.bot.guild_logs.get(interaction.guild_id, None)
         if not logs:
-            return await interaction.response.send_message(
-                ":x: No logs found", ephemeral=True
-            )
-        embed = Embed(title=f"Logs for {interaction.guild.name}")
+            embed = FeedbackEmbed("No logs found", feedbackType.ERROR)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+        embed = Embed(title=f"Logs for {interaction.guild.name}", colour=Colour.blue())
 
         formatted_logs = "> "
         formatted_logs += "\n> ".join(logs)
         embed.description = formatted_logs
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=ephemeral)
 
 
 async def setup(bot: commands.Bot) -> None:

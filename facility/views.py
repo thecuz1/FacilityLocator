@@ -5,6 +5,7 @@ from discord.ext.commands import Bot
 from facility.modals import FacilityInformationModal
 from facility.main import Facility
 from utils.mixins import InteractionCheckedView
+from utils.feedback import FeedbackEmbed, feedbackType
 from data import ITEM_SERVICES, VEHICLE_SERVICES
 
 facility_logger = logging.getLogger("facility_event")
@@ -60,12 +61,14 @@ class RemoveFacilitiesView(BaseFacilityView):
         try:
             await self.bot.db.remove_facilities(self.facilities)
         except Exception as exc:
-            await followup.send(":x: Failed to remove facilities", ephemeral=True)
+            embed = FeedbackEmbed(
+                f"Failed to remove facilities\n```py\n{exc}\n```", feedbackType.ERROR
+            )
+            await followup.send(embed=embed, ephemeral=True)
             raise exc
         else:
-            await followup.send(
-                ":white_check_mark: Successfuly removed facilities", ephemeral=True
-            )
+            embed = FeedbackEmbed("Removed facilities", feedbackType.SUCCESS)
+            await followup.send(embed=embed, ephemeral=True)
             facility_logger.info(
                 "Facility ID(s) %r removed by %s",
                 [facility.id_ for facility in self.facilities],
@@ -96,12 +99,14 @@ class ResetView(BaseFacilityView):
         try:
             await self.bot.db.reset()
         except Exception as exc:
-            await resopnse.send_message(":x: Failed to reset DB", ephemeral=True)
+            embed = FeedbackEmbed(
+                f"Failed to reset DB\n```py\n{exc}\n```", feedbackType.ERROR
+            )
+            await resopnse.send_message(embed=embed, ephemeral=True)
             raise exc
         else:
-            await resopnse.send_message(
-                ":white_check_mark: Successfuly reset DB", delete_after=10
-            )
+            embed = FeedbackEmbed("Reset DB", feedbackType.SUCCESS)
+            await resopnse.send_message(embed=embed, delete_after=10)
 
 
 class BaseServicesSelectView(BaseFacilityView):
@@ -151,8 +156,11 @@ class CreateFacilityView(BaseServicesSelectView):
 
     async def _checks(self, interaction: Interaction) -> bool:
         if self.facility.item_services == 0 and self.facility.vehicle_services == 0:
+            embed = FeedbackEmbed(
+                "Please select at least one service", feedbackType.WARNING
+            )
             await interaction.response.send_message(
-                ":warning: Please select at least one service",
+                embed=embed,
                 ephemeral=True,
             )
             return False
@@ -172,11 +180,17 @@ class CreateFacilityView(BaseServicesSelectView):
         try:
             facility_id = await self.bot.db.add_facility(self.facility)
         except Exception as exc:
-            await followup.send(":x: Failed to create facility", ephemeral=True)
+            embed = FeedbackEmbed(
+                f"Failed to create facility\n```py\n{exc}\n```", feedbackType.ERROR
+            )
+            await followup.send(embed=embed, ephemeral=True)
             raise exc
         else:
+            embed = FeedbackEmbed(
+                f"Created facility with the ID: `{facility_id}`", feedbackType.SUCCESS
+            )
             await followup.send(
-                f":white_check_mark: Successfully created facility with the ID: `{facility_id}`",
+                embed=embed,
                 ephemeral=True,
             )
             facility_logger.info(
@@ -194,15 +208,19 @@ class ModifyFacilityView(BaseServicesSelectView):
 
     async def _checks(self, interaction: Interaction) -> bool:
         if self.facility.item_services == 0 and self.facility.vehicle_services == 0:
+            embed = FeedbackEmbed(
+                "Please select at least one service", feedbackType.WARNING
+            )
             await interaction.response.send_message(
-                ":warning: Please select at least one service",
+                embed=embed,
                 ephemeral=True,
             )
             return False
 
         if self.facility.changed() is False:
+            embed = FeedbackEmbed("No changes", feedbackType.WARNING)
             await interaction.response.send_message(
-                ":warning: No changes",
+                embed=embed,
                 ephemeral=True,
             )
             return False
@@ -222,12 +240,14 @@ class ModifyFacilityView(BaseServicesSelectView):
         try:
             await self.bot.db.update_facility(self.facility)
         except Exception as exc:
-            await followup.send(":x: Failed to modify facility", ephemeral=True)
+            embed = FeedbackEmbed(
+                f"Failed to modify facility\n```py\n{exc}\n```", feedbackType.ERROR
+            )
+            await followup.send(embed=embed, ephemeral=True)
             raise exc
         else:
-            await followup.send(
-                ":white_check_mark: Successfully modified facility", ephemeral=True
-            )
+            embed = FeedbackEmbed("Modified facility", feedbackType.SUCCESS)
+            await followup.send(embed=embed, ephemeral=True)
             facility_logger.info(
                 "Facility ID %r modified by %s",
                 self.facility.id_,

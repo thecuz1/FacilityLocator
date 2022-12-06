@@ -1,6 +1,7 @@
 from typing import Optional, Literal
 from discord.ext import commands
 import discord
+from utils import FeedbackEmbed, feedbackType
 
 
 class Misc(commands.Cog):
@@ -14,9 +15,13 @@ class Misc(commands.Cog):
         try:
             await self.bot.reload_extension(extension)
         except Exception as exc:
-            await ctx.send(f":x: Failed to reload extension\n```py\n{exc}```")
-        else:
-            await ctx.send(":white_check_mark: Successfully reloaded")
+            embed = FeedbackEmbed(
+                f"Failed to reload extension `{extension}`", feedbackType.ERROR, exc
+            )
+            return await ctx.send(embed=embed)
+
+        embed = FeedbackEmbed(f"Reloaded `{extension}`", feedbackType.SUCCESS)
+        await ctx.send(embed=embed)
 
     @commands.command()
     @commands.guild_only()
@@ -25,9 +30,13 @@ class Misc(commands.Cog):
         try:
             await self.bot.load_extension(extension)
         except Exception as exc:
-            await ctx.send(f":x: Failed to load extension\n```py\n{exc}```")
-        else:
-            await ctx.send(":white_check_mark: Successfully loaded")
+            embed = FeedbackEmbed(
+                f"Failed to load extension `{extension}`", feedbackType.ERROR, exc
+            )
+            return await ctx.send(embed=embed)
+
+        embed = FeedbackEmbed(f"Loaded `{extension}`", feedbackType.SUCCESS)
+        await ctx.send(embed=embed)
 
     @commands.command()
     @commands.guild_only()
@@ -36,9 +45,13 @@ class Misc(commands.Cog):
         try:
             await self.bot.unload_extension(extension)
         except Exception as exc:
-            await ctx.send(f":x: Failed to unload extension\n```py\n{exc}```")
-        else:
-            await ctx.send(":white_check_mark: Successfully unloaded")
+            embed = FeedbackEmbed(
+                f"Failed to unload extension `{extension}`", feedbackType.ERROR, exc
+            )
+            return await ctx.send(embed=embed)
+
+        embed = FeedbackEmbed(f"Unloaded `{extension}`", feedbackType.SUCCESS)
+        await ctx.send(embed=embed)
 
     @commands.command()
     @commands.guild_only()
@@ -62,10 +75,11 @@ class Misc(commands.Cog):
             else:
                 synced = await ctx.bot.tree.sync()
 
-            await ctx.send(
-                f":white_check_mark: Synced {len(synced)} commands {'globally' if spec is None else 'to the current guild.'}"
+            embed = FeedbackEmbed(
+                f"Synced {len(synced)} commands {'globally' if spec is None else 'to the current guild.'}",
+                feedbackType.SUCCESS,
             )
-            return
+            return await ctx.send(embed=embed)
 
         ret = 0
         for guild in guilds:
@@ -76,25 +90,34 @@ class Misc(commands.Cog):
             else:
                 ret += 1
 
-        await ctx.send(f":white_check_mark: Synced the tree to {ret}/{len(guilds)}.")
+        embed = FeedbackEmbed(
+            "Synced the tree to {ret}/{len(guilds)}.", feedbackType.SUCCESS
+        )
+        await ctx.send(embed=embed)
 
     @commands.command()
     @commands.guild_only()
     @commands.is_owner()
     async def cleanup(self, ctx: commands.Context, limit: int = 1) -> None:
         deleted_count = 0
-        async for message in ctx.channel.history():
+        async for message in ctx.channel.history(limit=100):
             if message.author == self.bot.user:
-                await message.delete()
-                deleted_count += 1
+                try:
+                    await message.delete()
+                    deleted_count += 1
+                except discord.NotFound:
+                    pass
                 if deleted_count == limit:
                     break
 
         if deleted_count:
-            return await ctx.send(
-                f":white_check_mark: Deleted {deleted_count} messages", delete_after=5
+            embed = FeedbackEmbed(
+                f"Deleted {deleted_count} messages", feedbackType.SUCCESS
             )
-        await ctx.send(":warning: No messages deleted", delete_after=5)
+            return await ctx.send(embed=embed, delete_after=5)
+
+        embed = FeedbackEmbed("No messages deleted", feedbackType.WARNING)
+        await ctx.send(embed=embed, delete_after=5)
 
 
 async def setup(bot: commands.bot) -> None:

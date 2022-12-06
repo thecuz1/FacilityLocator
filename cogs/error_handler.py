@@ -2,6 +2,7 @@ import logging
 from discord.ext import commands
 import discord
 from discord.app_commands import errors, CommandOnCooldown
+from utils.feedback import FeedbackEmbed, feedbackType
 
 command_error_logger = logging.getLogger("command_error")
 
@@ -76,8 +77,11 @@ class CommandErrorHandler(commands.Cog):
                 return
 
             if isinstance(error, CommandOnCooldown):
+                embed = FeedbackEmbed(
+                    f"Try again in {error.retry_after:.2f}s", feedbackType.COOLDOWN
+                )
                 return await interaction.response.send_message(
-                    f":hourglass: {str(error)}", ephemeral=True
+                    embed=embed, ephemeral=True
                 )
 
             if isinstance(error, errors.TransformerError):

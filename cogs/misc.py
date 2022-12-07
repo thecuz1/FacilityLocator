@@ -1,6 +1,7 @@
 from typing import Optional, Literal
 from discord.ext import commands
 import discord
+import platform
 from utils import FeedbackEmbed, feedbackType
 
 
@@ -98,7 +99,7 @@ class Misc(commands.Cog):
     @commands.command()
     @commands.guild_only()
     @commands.is_owner()
-    async def cleanup(self, ctx: commands.Context, limit: int = 1) -> None:
+    async def clear(self, ctx: commands.Context, limit: int = 1) -> None:
         deleted_count = 0
         async for message in ctx.channel.history(limit=100):
             if message.author == self.bot.user:
@@ -118,6 +119,22 @@ class Misc(commands.Cog):
 
         embed = FeedbackEmbed("No messages deleted", feedbackType.WARNING)
         await ctx.send(embed=embed, delete_after=5)
+
+    @commands.command()
+    @commands.guild_only()
+    async def info(self, ctx: commands.Context):
+        embed = discord.Embed(title="Bot Information", colour=discord.Colour.blue())
+        embed.description = (
+            "A simple discord bot to track facilities created in Python using discordpy"
+        )
+        embed.add_field(name="Discord.py Version", value=discord.__version__)
+        embed.add_field(name="Python Version", value=platform.python_version())
+        embed.add_field(name="Developer", value="<@195009659793440768>")
+        embed.add_field(
+            name="Source Code",
+            value="[github](https://github.com/thecuz1/FacilityLocator)",
+        )
+        await ctx.send(embed=embed)
 
 
 async def setup(bot: commands.bot) -> None:

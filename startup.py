@@ -77,7 +77,11 @@ class Bot(commands.Bot):
 
 
 intents = discord.Intents.all()
-bot = Bot(BOT_PREFIX or ".", intents=intents, help_command=None)
+bot = Bot(
+    command_prefix=commands.when_mentioned_or(BOT_PREFIX or "."),
+    intents=intents,
+    help_command=None,
+)
 
 dictConfig(
     {

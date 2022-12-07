@@ -43,3 +43,4 @@ class FeedbackEmbed(Embed):
                 embed_colour = Colour.blue()
 
         super().__init__(colour=embed_colour, title=title, description=final_message)
+        self.set_footer(text="Source Code: https://github.com/thecuz1/FacilityLocator")

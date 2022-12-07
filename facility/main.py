@@ -77,13 +77,15 @@ class Facility:
         Returns:
             discord.Embed: Embed filled in with current state of facility
         """
-        facility_location = f"> Region: `{self.region}`\n> Marker: `{self.marker}`\n"
+        facility_location = f"> Region : {self.region}\n> Marker : {self.marker}\n"
         if self.coordinates:
-            facility_location += f"> Coordinates: `{self.coordinates}`\n"
+            facility_location += f"> Coordinates : {self.coordinates}\n"
 
-        creation_info = f"> Author: <@{self.author}>\n> Guild ID: `{self.guild_id}`\n"
+        creation_info = f"> Author : <@{self.author}>\n> Guild ID' : {self.guild_id}\n"
         if self.creation_time:
-            creation_info += f"> Created: <t:{self.creation_time}:R>"
+            creation_info += f"> Created : <t:{self.creation_time}:R>\n"
+        if self.id_:
+            creation_info += f"> ID : {self.id_}\n"
 
         embed = discord.Embed(
             title=self.name, description=self.description, color=0x54A24A
@@ -92,8 +94,7 @@ class Facility:
         embed.add_field(name="Maintainer:", value=self.maintainer)
         embed.add_field(name="Creation Info:", value=creation_info)
 
-        if self.id_:
-            embed.set_footer(text=f"ID: {self.id_}")
+        embed.set_footer(text="Source Code: https://github.com/thecuz1/FacilityLocator")
 
         def format_services(service_tuple: tuple, services_number: int) -> str:
             formatted_services = "```ansi\n\u001b[0;32m"

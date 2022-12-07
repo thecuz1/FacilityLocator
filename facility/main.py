@@ -81,7 +81,7 @@ class Facility:
         if self.coordinates:
             facility_location += f"> Coordinates : {self.coordinates}\n"
 
-        creation_info = f"> Author : <@{self.author}>\n> Guild ID' : {self.guild_id}\n"
+        creation_info = f"> Author : <@{self.author}>\n> Guild ID : {self.guild_id}\n"
         if self.creation_time:
             creation_info += f"> Created : <t:{self.creation_time}:R>\n"
         if self.id_:

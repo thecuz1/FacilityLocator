@@ -19,8 +19,8 @@ from facility import (
 
 
 class Modify(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
+    def __init__(self, bot: commands.Bot):
+        self.bot: commands.Bot = bot
 
     @app_commands.command()
     @app_commands.guild_only()
@@ -125,6 +125,68 @@ class Modify(commands.Cog):
                 f":warning: Only found {len(facilities)}/{len(ids)} facilities\n"
             )
 
+        removed_facilities = None
+        if self.bot.owner_id != author.id:
+            removed_facilities = [
+                facilities.pop(index)
+                for index, facility in enumerate(facilities[:])
+                if facility.can_modify(interaction) is False
+            ]
+
+        def format_facility(facility: list[Facility]) -> str:
+            message = "```\n"
+            for facilty in facility:
+                previous_message = message
+                message += f"{facilty.id_:3} - {facilty.name}\n"
+                if len(message) > 1000:
+                    message = previous_message
+                    message += "Truncated entries..."
+                    break
+            message += "```"
+            return message
+
+        if removed_facilities:
+            message = format_facility(removed_facilities)
+            embed.add_field(
+                name=":x: No permission to delete facilties:", value=message
+            )
+        if facilities:
+            message = format_facility(facilities)
+            embed.add_field(
+                name=":white_check_mark: Permission to delete facilties:",
+                value=message,
+            )
+        else:
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        view = RemoveFacilitiesView(
+            original_author=author, bot=self.bot, facilities=facilities
+        )
+
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        view.message = await interaction.original_response()
+
+    @app_commands.command()
+    @app_commands.guild_only()
+    @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
+    async def remove_all(
+        self,
+        interaction: discord.Interaction,
+    ):
+        """Remove all facilities for the current guild"""
+        author = interaction.user
+        if interaction.guild_id:
+            search_dict = {"guild_id == ?": interaction.guild_id}
+            facilities = await self.bot.db.get_facilities(search_dict)
+        else:
+            embed = FeedbackEmbed("No guild ID was set", feedbackType.ERROR)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        if not facilities:
+            embed = FeedbackEmbed("No facilities found", feedbackType.ERROR)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        embed = discord.Embed(colour=Colour.blue())
         removed_facilities = None
         if self.bot.owner_id != author.id:
             removed_facilities = [

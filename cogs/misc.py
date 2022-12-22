@@ -6,8 +6,8 @@ from utils import FeedbackEmbed, feedbackType
 
 
 class Misc(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
+    def __init__(self, bot: commands.Bot):
+        self.bot: commands.Bot = bot
 
     @commands.command()
     @commands.guild_only()

@@ -13,8 +13,8 @@ from data import VEHICLE_SERVICES, ITEM_SERVICES
 
 
 class Query(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
+    def __init__(self, bot: commands.Bot):
+        self.bot: commands.Bot = bot
 
     @app_commands.command()
     @app_commands.guild_only()

@@ -8,8 +8,8 @@ command_error_logger = logging.getLogger("command_error")
 
 
 class CommandErrorHandler(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
+    def __init__(self, bot: commands.Bot):
+        self.bot: commands.Bot = bot
         bot.tree.on_error = self.on_app_command_error
 
     @commands.Cog.listener()

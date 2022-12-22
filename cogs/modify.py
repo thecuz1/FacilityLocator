@@ -207,11 +207,6 @@ class Modify(commands.Cog):
             message += "```"
             return message
 
-        if removed_facilities:
-            message = format_facility(removed_facilities)
-            embed.add_field(
-                name=":x: No permission to delete facilties:", value=message
-            )
         if facilities:
             message = format_facility(facilities)
             embed.add_field(

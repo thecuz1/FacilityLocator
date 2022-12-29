@@ -13,7 +13,7 @@ class Database:
 
     async def create(self):
         async with aiosqlite.connect(self.db_file) as db:
-            await db.execute(
+            cur = await db.execute(
                 """
                 CREATE TABLE "facilities" (
                     "id_"	INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
@@ -28,6 +28,15 @@ class Database:
                     "vehicle_services"	INTEGER,
                     "creation_time"	INTEGER,
                     "guild_id"	INTEGER
+                );
+                """
+            )
+            await cur.execute(
+                """
+                CREATE TABLE "roles" (
+	                "id"	INTEGER UNIQUE,
+	                "guild_id"	INTEGER,
+	                PRIMARY KEY("id")
                 );
                 """
             )

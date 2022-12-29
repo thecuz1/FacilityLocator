@@ -52,6 +52,15 @@ class Query(commands.Cog):
             creator (Member, optional): Filter by facility creator
             ephemeral (bool): Show results to only you (defaults to True)
         """
+        role_ids: list[int] = await self.bot.db.get_roles(interaction.user.guild.id)
+        member_role_ids = [role.id for role in interaction.user.roles]
+        similar_roles = list(set(role_ids).intersection(member_role_ids))
+        if not (similar_roles or interaction.user.resolved_permissions.administrator):
+            embed = FeedbackEmbed(
+                "No permission to locate facilities", feedbackType.WARNING
+            )
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
         search_dict = {
             name: value
             for name, value in (
@@ -93,6 +102,15 @@ class Query(commands.Cog):
             ids (app_commands.Transform[tuple, IdTransformer]): List of facility ID's to view with a delimiter of ',' or a space ' ' Ex. 1,3 4 8
             ephemeral (bool): Show results to only you (defaults to True)
         """
+        role_ids: list[int] = await self.bot.db.get_roles(interaction.user.guild.id)
+        member_role_ids = [role.id for role in interaction.user.roles]
+        similar_roles = list(set(role_ids).intersection(member_role_ids))
+        if not (similar_roles or interaction.user.resolved_permissions.administrator):
+            embed = FeedbackEmbed(
+                "No permission to view facilities", feedbackType.WARNING
+            )
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
         facilities = await self.bot.db.get_facility_ids(ids)
         if not facilities:
             embed = FeedbackEmbed("No facilities found", feedbackType.ERROR)

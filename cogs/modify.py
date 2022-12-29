@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from discord import app_commands, Colour
+from discord import app_commands, Colour, Member, User, Interaction
 from utils import (
     LocationTransformer,
     FacilityLocation,
@@ -8,6 +8,7 @@ from utils import (
     MarkerTransformer,
     FeedbackEmbed,
     feedbackType,
+    InteractionCheckedView,
 )
 from facility import (
     Facility,
@@ -16,6 +17,55 @@ from facility import (
     RemoveFacilitiesView,
     ResetView,
 )
+
+
+class SetupView(InteractionCheckedView):
+    def __init__(
+        self, *, timeout: float = 180, original_author: User | Member, bot: commands.Bot
+    ) -> None:
+        super().__init__(timeout=timeout, original_author=original_author)
+        self.message: None | discord.Message = None
+        self.bot: commands.Bot = bot
+
+    @discord.ui.select(
+        cls=discord.ui.RoleSelect,
+        placeholder="Select roles to access facilities...",
+        min_values=0,
+        max_values=25,
+    )
+    async def role_select(self, interaction: Interaction, _: discord.ui.RoleSelect):
+        await interaction.response.defer()
+
+    @discord.ui.button(label="Confirm", style=discord.ButtonStyle.blurple)
+    async def confirm(self, interaction: Interaction, _: discord.ui.Button):
+        role_ids = [role.id for role in self.role_select.values]
+        try:
+            await self.bot.db.set_roles(role_ids, interaction.guild_id)
+        except Exception as exc:
+            embed = FeedbackEmbed("Failed to set roles", feedbackType.ERROR, exc)
+        else:
+            embed = FeedbackEmbed("Set roles for server", feedbackType.SUCCESS)
+
+        await self._finish_view()
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    async def on_timeout(self) -> None:
+        """Call finish view"""
+        await self._finish_view()
+
+    async def _finish_view(self, interaction: Interaction | None = None) -> None:
+        self.stop()
+        for item in self.children:
+            item.disabled = True
+
+        if interaction:
+            await interaction.response.edit_message(view=self)
+        else:
+            if self.message:
+                try:
+                    await self.message.edit(view=self)
+                except discord.errors.NotFound:
+                    pass
 
 
 class Modify(commands.Cog):
@@ -44,6 +94,15 @@ class Modify(commands.Cog):
             maintainer (str): Who maintains the facility
             coordinates (str): Optional coordinates (incase it doesn't work in the region field)
         """
+        role_ids: list[int] = await self.bot.db.get_roles(interaction.user.guild.id)
+        member_role_ids = [role.id for role in interaction.user.roles]
+        similar_roles = list(set(role_ids).intersection(member_role_ids))
+        if not (similar_roles or interaction.user.resolved_permissions.administrator):
+            embed = FeedbackEmbed(
+                "No permission to create facilities", feedbackType.WARNING
+            )
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
         final_coordinates = coordinates or location.coordinates
 
         try:
@@ -78,6 +137,15 @@ class Modify(commands.Cog):
         Args:
             id_ (int): ID of facility
         """
+        role_ids: list[int] = await self.bot.db.get_roles(interaction.user.guild.id)
+        member_role_ids = [role.id for role in interaction.user.roles]
+        similar_roles = list(set(role_ids).intersection(member_role_ids))
+        if not (similar_roles or interaction.user.resolved_permissions.administrator):
+            embed = FeedbackEmbed(
+                "No permission to modify facilities", feedbackType.WARNING
+            )
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
         facility = await self.bot.db.get_facility_id(id_)
 
         if facility is None:
@@ -112,6 +180,15 @@ class Modify(commands.Cog):
         Args:
             ids (app_commands.Transform[tuple, IdTransformer]): List of facility ID's to remove with a delimiter of ',' or a space ' ' Ex. 1,3 4 8
         """
+        role_ids: list[int] = await self.bot.db.get_roles(interaction.user.guild.id)
+        member_role_ids = [role.id for role in interaction.user.roles]
+        similar_roles = list(set(role_ids).intersection(member_role_ids))
+        if not (similar_roles or interaction.user.resolved_permissions.administrator):
+            embed = FeedbackEmbed(
+                "No permission to remove facilities", feedbackType.WARNING
+            )
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
         author = interaction.user
         facilities = await self.bot.db.get_facility_ids(ids)
 
@@ -174,6 +251,15 @@ class Modify(commands.Cog):
         interaction: discord.Interaction,
     ):
         """Remove all facilities for the current guild"""
+        role_ids: list[int] = await self.bot.db.get_roles(interaction.user.guild.id)
+        member_role_ids = [role.id for role in interaction.user.roles]
+        similar_roles = list(set(role_ids).intersection(member_role_ids))
+        if not (similar_roles or interaction.user.resolved_permissions.administrator):
+            embed = FeedbackEmbed(
+                "No permission to remove facilities", feedbackType.WARNING
+            )
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
         author = interaction.user
         if interaction.guild_id:
             search_dict = {"guild_id == ?": interaction.guild_id}
@@ -231,6 +317,35 @@ class Modify(commands.Cog):
         view = ResetView(original_author=ctx.author, timeout=30, bot=self.bot)
         message = await ctx.send(embed=embed, view=view)
         view.message = message
+
+    @app_commands.command()
+    @app_commands.guild_only()
+    @app_commands.default_permissions(administrator=True)
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
+    async def setup(self, interaction: discord.Interaction):
+        """Setup the roles to allow access to facilities"""
+        view = SetupView(original_author=interaction.user, bot=self.bot)
+
+        role_ids: list[int] = await self.bot.db.get_roles(interaction.user.guild.id)
+        roles: list[discord.Role] = []
+        for role_id in role_ids:
+            role = interaction.user.guild.get_role(role_id)
+            if role:
+                roles.append(role)
+        current_roles = "\n".join("%s" % role.mention for role in roles)
+        if current_roles:
+            embed = FeedbackEmbed(
+                f"Currently selected roles:\n{current_roles}", feedbackType.INFO
+            )
+        else:
+            embed = FeedbackEmbed("No roles selected", feedbackType.INFO)
+        await interaction.response.send_message(
+            embed=embed,
+            view=view,
+            ephemeral=True,
+        )
+        view.message = await interaction.original_response()
 
 
 async def setup(bot: commands.bot) -> None:

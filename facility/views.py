@@ -22,7 +22,7 @@ class BaseFacilityView(InteractionCheckedView):
         self.bot = bot
 
     async def on_timeout(self) -> None:
-        """Disable all elements on timeout"""
+        """Call finish view"""
         await self._finish_view(None)
 
     async def _finish_view(self, interaction: Interaction | None) -> None:
@@ -33,10 +33,11 @@ class BaseFacilityView(InteractionCheckedView):
         if interaction:
             await interaction.response.edit_message(view=self)
         else:
-            try:
-                await self.message.edit(view=self)
-            except errors.NotFound:
-                pass
+            if self.message:
+                try:
+                    await self.message.edit(view=self)
+                except errors.NotFound:
+                    pass
 
 
 class RemoveFacilitiesView(BaseFacilityView):

@@ -131,3 +131,24 @@ class Database:
             await db.execute("VACUUM")
             await db.commit()
         logger.info("Removed all entries from facilities and executed VACUUM")
+
+    async def set_roles(self, role_ids: list[int], guild_id: int) -> None:
+        async with aiosqlite.connect(self.db_file) as db:
+            cur = await db.execute(
+                "DELETE FROM roles WHERE guild_id == ?",
+                (guild_id,),
+            )
+            for role_id in role_ids:
+                await cur.execute(
+                    """INSERT INTO roles (id, guild_id) VALUES(?, ?)""",
+                    (role_id, guild_id),
+                )
+            await db.commit()
+
+    async def get_roles(self, guild_id: int) -> list[int]:
+        async with aiosqlite.connect(self.db_file) as db:
+            cur = await db.execute(
+                """SELECT * FROM roles WHERE guild_id == ?""", (guild_id,)
+            )
+            res = await cur.fetchall()
+            return [row[0] for row in res]

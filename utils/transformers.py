@@ -80,7 +80,7 @@ class LocationTransformer(app_commands.Transformer):
             ).group(1)
         # ignore if no coordinates were found
         except AttributeError:
-            coordinates = None
+            coordinates = ""
 
         # search for region in user sent location
         for region in REGIONS:

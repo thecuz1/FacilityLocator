@@ -83,7 +83,7 @@ class Modify(commands.Cog):
         location: app_commands.Transform[FacilityLocation, LocationTransformer],
         marker: app_commands.Transform[str, MarkerTransformer],
         maintainer: app_commands.Range[str, 1, 200],
-        coordinates: str = None,
+        coordinates: str = "",
     ) -> None:
         """Creates a public facility
 
@@ -104,11 +104,8 @@ class Modify(commands.Cog):
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
         final_coordinates = coordinates or location.coordinates
+        final_coordinates = final_coordinates.upper()
 
-        try:
-            final_coordinates = final_coordinates.upper()
-        except AttributeError:
-            pass
         facility = Facility(
             name=name,
             region=location.region,
@@ -321,25 +318,22 @@ class Modify(commands.Cog):
     @app_commands.command()
     @app_commands.guild_only()
     @app_commands.default_permissions(administrator=True)
-    @app_commands.checks.has_permissions(administrator=True)
+    # @app_commands.checks.has_permissions(administrator=True)
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def setup(self, interaction: discord.Interaction):
         """Setup the roles to allow access to facilities"""
         view = SetupView(original_author=interaction.user, bot=self.bot)
 
         role_ids: list[int] = await self.bot.db.get_roles(interaction.user.guild.id)
-        roles: list[discord.Role] = []
-        for role_id in role_ids:
-            role = interaction.user.guild.get_role(role_id)
-            if role:
-                roles.append(role)
-        current_roles = "\n".join("%s" % role.mention for role in roles)
+
+        current_roles = "\n".join("<@&%s>" % role_id for role_id in role_ids)
         if current_roles:
             embed = FeedbackEmbed(
                 f"Currently selected roles:\n{current_roles}", feedbackType.INFO
             )
         else:
             embed = FeedbackEmbed("No roles selected", feedbackType.INFO)
+
         await interaction.response.send_message(
             embed=embed,
             view=view,

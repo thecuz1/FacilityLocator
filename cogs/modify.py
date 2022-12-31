@@ -247,7 +247,9 @@ class Modify(commands.Cog):
         self,
         interaction: discord.Interaction,
     ):
-        """Remove all facilities for the current guild"""
+        """Remove all facilities that you have access to for the current guild"""
+        # disabled need to rework
+        return
         role_ids: list[int] = await self.bot.db.get_roles(interaction.user.guild.id)
         member_role_ids = [role.id for role in interaction.user.roles]
         similar_roles = list(set(role_ids).intersection(member_role_ids))

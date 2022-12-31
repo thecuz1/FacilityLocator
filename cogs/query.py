@@ -10,6 +10,7 @@ from utils import (
     feedbackType,
 )
 from data import VEHICLE_SERVICES, ITEM_SERVICES
+import rapidfuzz
 
 
 class Query(commands.Cog):
@@ -41,6 +42,7 @@ class Query(commands.Cog):
         item_service: int = None,
         vehicle_service: int = None,
         creator: Member = None,
+        vehicle: str = None,
         ephemeral: bool = True,
     ) -> None:
         """Find a facility with optional search parameters
@@ -50,6 +52,7 @@ class Query(commands.Cog):
             item_service (int, optional): Item service to look for
             vehicle_service (int, optional): Vehicle service to look for
             creator (Member, optional): Filter by facility creator
+            vehicle (str, optional): Vehicle upgrade facility to look for
             ephemeral (bool): Show results to only you (defaults to True)
         """
         role_ids: list[int] = await self.bot.db.get_roles(interaction.user.guild.id)
@@ -60,6 +63,17 @@ class Query(commands.Cog):
                 "No permission to locate facilities", feedbackType.WARNING
             )
             return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        if vehicle:
+            for index, vehicles in enumerate(VEHICLE_SERVICES.values()):
+                if vehicles and vehicle in vehicles:
+                    vehicle_service = 1 << index
+                    break
+            else:
+                embed = FeedbackEmbed("Invalid vehicle", feedbackType.WARNING)
+                return await interaction.response.send_message(
+                    embed=embed, ephemeral=True
+                )
 
         search_dict = {
             name: value
@@ -86,6 +100,22 @@ class Query(commands.Cog):
         await Paginator(original_author=interaction.user).start(
             interaction, pages=embeds, ephemeral=ephemeral
         )
+
+    @locate.autocomplete("vehicle")
+    async def vehicle_autocomplete(
+        self, _: Interaction, current: str
+    ) -> list[app_commands.Choice[str]]:
+        choices = [
+            vehicle
+            for vehicles in VEHICLE_SERVICES.values()
+            if vehicles
+            for vehicle in vehicles
+        ]
+        sorted_choices = rapidfuzz.process.extract(current, choices, limit=25)
+        return [
+            app_commands.Choice(name=choice[0], value=choice[0])
+            for choice in sorted_choices
+        ]
 
     @app_commands.command()
     @app_commands.guild_only()

@@ -2,10 +2,10 @@ ITEM_SERVICES = (
     "Bcons",
     "Pcons & Pipes",
     "Scons",
-    "Oil",
-    "Petrol",
+    "Oil & Petrol",
     "Heavy Oil",
     "Enriched Oil",
+    "Components",
     "Cams",
     "Pams",
     "Sams",
@@ -26,15 +26,52 @@ ITEM_SERVICES = (
     "75mm",
 )
 
-VEHICLE_SERVICES = (
-    "Modification Center",
-    "Light Assembly (Base)",
-    "Motor Pool",
-    "Rocket Factory",
-    "Field Station",
-    "Tank Factory",
-    "Weapons Platform",
-    "Large Assembly (Base)",
-    "Train",
-    "Heavy Tank",
-)
+VEHICLE_SERVICES = {
+    "Modification Center": None,
+    "Light Assembly (Base)": (
+        '00MS "Stinger"',
+        "Small Train Locomotive",
+        "Small Container Car",
+        "Small Flatbed Car",
+    ),
+    "Motor Pool": (
+        'T5 "Percutio" (AT Armoured Car)',
+        'T8 "Gemini" (RPG Armoured Car)',
+        'T20 "Ixion" (30mm Tankette)',
+        'T14 "Vesta" (Flame Tankette)',
+        'UV-05c "Odyssey" (LUV)',
+        'UV-24 "Icarus" (RPG LUV)',
+    ),
+    "Rocket Factory": (
+        'R-17 "Retiarius" (Rocket Artillery Truck)',
+        'DAE 3b-2 "Hades Net" (Emplaced Rocket Artillery)',
+        'HH-b "Hoplite" (Half-Track)',
+        'HH-d "Peltast" (Mortar Half-Track)',
+    ),
+    "Field Station": (
+        "BMS - Scrap Hauler (Harvester)",
+        'HC-2 "Scorpion" (Light Infantry Tank)',
+        'AB-11 "Doru" (APC)',
+        '40-45 "Smelter" (HV40mm)',
+    ),
+    "Tank Factory": (
+        'H-19 "Vulcan" (Light Tank)',
+        'H-10 "Pelekys" (Light Tank)',
+        'H-5 "Kranesca" (Light Tank)',
+        '85K-a "Spatha" (Assault Tank)',
+        '86K-c "Ranseur" (Assult Tank)',
+        'DAE 2a-1 "Raptura" (75mm EAT)',
+    ),
+    "Weapons Platform": (
+        '945g "Stygian Bolt" (94.5mm FAT)',
+        '85V-g "Talos" (Assault Tank)',
+    ),
+    "Large Assembly (Base)": (
+        "Locomotive",
+        "Container Car",
+        "Infantry Car",
+        "Flatbed Car",
+    ),
+    "Train": ("Combat Car", "Tempest Cannon RA-2 (Train Stormcannon)"),
+    "Heavy Tank": ('0-75b "Ares" (Super Tank)', "Lance-36 (Battle Tank)"),
+}

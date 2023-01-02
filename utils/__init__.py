@@ -4,3 +4,4 @@ from .paginator import Paginator
 from .logging import GuildHandler, ExtraInfoFileHandler, NoVoiceFilter, FilterLevel
 from .mixins import ErrorLoggedView, ErrorLoggedModal, InteractionCheckedView
 from .feedback import *
+from .checks import *

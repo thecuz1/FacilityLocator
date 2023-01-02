@@ -178,11 +178,4 @@ class Facility:
         Returns:
             bool: Whether the facility can be modified
         """
-        if self.author == interaction.user.id:
-            return True
-        if (
-            interaction.guild_id == self.guild_id
-            and interaction.permissions.manage_guild
-        ):
-            return True
-        return False
+        return self.author == interaction.user.id

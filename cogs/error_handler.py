@@ -10,7 +10,14 @@ command_error_logger = logging.getLogger("command_error")
 class CommandErrorHandler(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot: commands.Bot = bot
-        bot.tree.on_error = self.on_app_command_error
+
+    async def cog_load(self) -> None:
+        tree = self.bot.tree
+        tree.on_error = self.on_app_command_error
+
+    async def cog_unload(self) -> None:
+        tree = self.bot.tree
+        tree.on_error = tree.__class__.on_error
 
     @commands.Cog.listener()
     async def on_command_error(
@@ -71,7 +78,6 @@ class CommandErrorHandler(commands.Cog):
             error (discord.app_commands.AppCommandError): The Exception raised
         """
         command = interaction.command
-
         if command is not None:
             if command._has_any_error_handlers():
                 return
@@ -84,7 +90,18 @@ class CommandErrorHandler(commands.Cog):
                     embed=embed, ephemeral=True
                 )
 
-            if isinstance(error, errors.TransformerError):
+            if isinstance(error, errors.MissingPermissions):
+                embed = FeedbackEmbed(
+                    f"Missing the following permissions {error.missing_permissions}",
+                    feedbackType.ERROR,
+                )
+                return await interaction.response.send_message(
+                    embed=embed, ephemeral=True
+                )
+
+            ignored = (errors.CheckFailure, errors.TransformerError)
+
+            if isinstance(error, ignored):
                 return
 
             command_error_logger.error(
@@ -96,5 +113,5 @@ class CommandErrorHandler(commands.Cog):
             )
 
 
-async def setup(bot: commands.bot) -> None:
+async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(CommandErrorHandler(bot))

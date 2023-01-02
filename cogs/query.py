@@ -8,6 +8,7 @@ from utils import (
     IdTransformer,
     FeedbackEmbed,
     feedbackType,
+    check_facility_permission,
 )
 from data import VEHICLE_SERVICES, ITEM_SERVICES
 import rapidfuzz
@@ -35,6 +36,7 @@ class Query(commands.Cog):
             for index, service in enumerate(VEHICLE_SERVICES)
         ],
     )
+    @check_facility_permission()
     async def locate(
         self,
         interaction: Interaction,
@@ -55,15 +57,6 @@ class Query(commands.Cog):
             vehicle (str, optional): Vehicle upgrade facility to look for
             ephemeral (bool): Show results to only you (defaults to True)
         """
-        role_ids: list[int] = await self.bot.db.get_roles(interaction.user.guild.id)
-        member_role_ids = [role.id for role in interaction.user.roles]
-        similar_roles = list(set(role_ids).intersection(member_role_ids))
-        if not (similar_roles or interaction.user.resolved_permissions.administrator):
-            embed = FeedbackEmbed(
-                "No permission to locate facilities", feedbackType.WARNING
-            )
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
         if vehicle:
             for index, vehicles in enumerate(VEHICLE_SERVICES.values()):
                 if vehicles and vehicle in vehicles:
@@ -120,6 +113,7 @@ class Query(commands.Cog):
     @app_commands.command()
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
+    @check_facility_permission()
     async def view(
         self,
         interaction: Interaction,
@@ -132,15 +126,6 @@ class Query(commands.Cog):
             ids (app_commands.Transform[tuple, IdTransformer]): List of facility ID's to view with a delimiter of ',' or a space ' ' Ex. 1,3 4 8
             ephemeral (bool): Show results to only you (defaults to True)
         """
-        role_ids: list[int] = await self.bot.db.get_roles(interaction.user.guild.id)
-        member_role_ids = [role.id for role in interaction.user.roles]
-        similar_roles = list(set(role_ids).intersection(member_role_ids))
-        if not (similar_roles or interaction.user.resolved_permissions.administrator):
-            embed = FeedbackEmbed(
-                "No permission to view facilities", feedbackType.WARNING
-            )
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
         facilities = await self.bot.db.get_facility_ids(ids)
         if not facilities:
             embed = FeedbackEmbed("No facilities found", feedbackType.ERROR)

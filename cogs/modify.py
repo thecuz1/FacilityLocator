@@ -9,6 +9,7 @@ from utils import (
     FeedbackEmbed,
     feedbackType,
     InteractionCheckedView,
+    check_facility_permission,
 )
 from facility import (
     Facility,
@@ -76,6 +77,7 @@ class Modify(commands.Cog):
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 20, key=lambda i: (i.guild_id, i.user.id))
     @app_commands.rename(name="facility-name", location="region")
+    @check_facility_permission()
     async def create(
         self,
         interaction: discord.Interaction,
@@ -94,15 +96,6 @@ class Modify(commands.Cog):
             maintainer (str): Who maintains the facility
             coordinates (str): Optional coordinates (incase it doesn't work in the region field)
         """
-        role_ids: list[int] = await self.bot.db.get_roles(interaction.user.guild.id)
-        member_role_ids = [role.id for role in interaction.user.roles]
-        similar_roles = list(set(role_ids).intersection(member_role_ids))
-        if not (similar_roles or interaction.user.resolved_permissions.administrator):
-            embed = FeedbackEmbed(
-                "No permission to create facilities", feedbackType.WARNING
-            )
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
         final_coordinates = coordinates or location.coordinates
         final_coordinates = final_coordinates.upper()
 
@@ -128,22 +121,14 @@ class Modify(commands.Cog):
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     @app_commands.rename(id_="id")
+    @check_facility_permission()
     async def modify(self, interaction: discord.Interaction, id_: int):
         """Modify faciliy information
 
         Args:
             id_ (int): ID of facility
         """
-        role_ids: list[int] = await self.bot.db.get_roles(interaction.user.guild.id)
-        member_role_ids = [role.id for role in interaction.user.roles]
-        similar_roles = list(set(role_ids).intersection(member_role_ids))
-        if not (similar_roles or interaction.user.resolved_permissions.administrator):
-            embed = FeedbackEmbed(
-                "No permission to modify facilities", feedbackType.WARNING
-            )
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        facility = await self.bot.db.get_facility_id(id_)
+        facility: Facility = await self.bot.db.get_facility_id(id_)
 
         if facility is None:
             return await interaction.response.send_message(
@@ -160,150 +145,6 @@ class Modify(commands.Cog):
             facility=facility, original_author=interaction.user, bot=self.bot
         )
         embed = facility.embed()
-
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-        view.message = await interaction.original_response()
-
-    @app_commands.command()
-    @app_commands.guild_only()
-    @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
-    async def remove(
-        self,
-        interaction: discord.Interaction,
-        ids: app_commands.Transform[tuple, IdTransformer],
-    ):
-        """Remove facility
-
-        Args:
-            ids (app_commands.Transform[tuple, IdTransformer]): List of facility ID's to remove with a delimiter of ',' or a space ' ' Ex. 1,3 4 8
-        """
-        role_ids: list[int] = await self.bot.db.get_roles(interaction.user.guild.id)
-        member_role_ids = [role.id for role in interaction.user.roles]
-        similar_roles = list(set(role_ids).intersection(member_role_ids))
-        if not (similar_roles or interaction.user.resolved_permissions.administrator):
-            embed = FeedbackEmbed(
-                "No permission to remove facilities", feedbackType.WARNING
-            )
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        author = interaction.user
-        facilities = await self.bot.db.get_facility_ids(ids)
-
-        if not facilities:
-            embed = FeedbackEmbed("No facilities found", feedbackType.ERROR)
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        embed = discord.Embed(colour=Colour.blue())
-        if len(facilities) < len(ids):
-            embed.description = (
-                f":warning: Only found {len(facilities)}/{len(ids)} facilities\n"
-            )
-
-        removed_facilities = None
-        if self.bot.owner_id != author.id:
-            removed_facilities = [
-                facilities.pop(index)
-                for index, facility in enumerate(facilities[:])
-                if facility.can_modify(interaction) is False
-            ]
-
-        def format_facility(facility: list[Facility]) -> str:
-            message = "```\n"
-            for facilty in facility:
-                previous_message = message
-                message += f"{facilty.id_:3} - {facilty.name}\n"
-                if len(message) > 1000:
-                    message = previous_message
-                    message += "Truncated entries..."
-                    break
-            message += "```"
-            return message
-
-        if removed_facilities:
-            message = format_facility(removed_facilities)
-            embed.add_field(
-                name=":x: No permission to delete facilties:", value=message
-            )
-        if facilities:
-            message = format_facility(facilities)
-            embed.add_field(
-                name=":white_check_mark: Permission to delete facilties:",
-                value=message,
-            )
-        else:
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        view = RemoveFacilitiesView(
-            original_author=author, bot=self.bot, facilities=facilities
-        )
-
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-        view.message = await interaction.original_response()
-
-    @app_commands.command()
-    @app_commands.guild_only()
-    @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
-    async def remove_all(
-        self,
-        interaction: discord.Interaction,
-    ):
-        """Remove all facilities that you have access to for the current guild"""
-        # disabled need to rework
-        return
-        role_ids: list[int] = await self.bot.db.get_roles(interaction.user.guild.id)
-        member_role_ids = [role.id for role in interaction.user.roles]
-        similar_roles = list(set(role_ids).intersection(member_role_ids))
-        if not (similar_roles or interaction.user.resolved_permissions.administrator):
-            embed = FeedbackEmbed(
-                "No permission to remove facilities", feedbackType.WARNING
-            )
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        author = interaction.user
-        if interaction.guild_id:
-            search_dict = {"guild_id == ?": interaction.guild_id}
-            facilities = await self.bot.db.get_facilities(search_dict)
-        else:
-            embed = FeedbackEmbed("No guild ID was set", feedbackType.ERROR)
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        if not facilities:
-            embed = FeedbackEmbed("No facilities found", feedbackType.ERROR)
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        embed = discord.Embed(colour=Colour.blue())
-        removed_facilities = None
-        if self.bot.owner_id != author.id:
-            removed_facilities = [
-                facilities.pop(index)
-                for index, facility in enumerate(facilities[:])
-                if facility.can_modify(interaction) is False
-            ]
-
-        def format_facility(facility: list[Facility]) -> str:
-            message = "```\n"
-            for facilty in facility:
-                previous_message = message
-                message += f"{facilty.id_:3} - {facilty.name}\n"
-                if len(message) > 1000:
-                    message = previous_message
-                    message += "Truncated entries..."
-                    break
-            message += "```"
-            return message
-
-        if facilities:
-            message = format_facility(facilities)
-            embed.add_field(
-                name=":white_check_mark: Permission to delete facilties:",
-                value=message,
-            )
-        else:
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        view = RemoveFacilitiesView(
-            original_author=author, bot=self.bot, facilities=facilities
-        )
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
         view.message = await interaction.original_response()
@@ -343,6 +184,151 @@ class Modify(commands.Cog):
         )
         view.message = await interaction.original_response()
 
+    remove = app_commands.Group(
+        name="remove", description="Remove facilities", guild_only=True
+    )
 
-async def setup(bot: commands.bot) -> None:
+    @remove.command()
+    @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
+    @check_facility_permission()
+    async def user(self, interaction: Interaction, user: discord.Member):
+        """Removes all of the users facilities for the current guild"""
+        if not (interaction.guild_id and isinstance(interaction.user, Member)):
+            embed = FeedbackEmbed("Not run in guild context", feedbackType.ERROR)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        search_dict = {
+            " guild_id == ? ": interaction.guild_id,
+            " author == ? ": user.id,
+        }
+        facilities: list[Facility] = await self.bot.db.get_facilities(search_dict)
+
+        removed_facilities: list[Facility] = []
+        for facility in facilities[:]:
+            if facility.guild_id != interaction.guild_id:
+                facilities.remove(facility)
+                removed_facilities.append(facility)
+                continue
+            if not facility.can_modify(interaction):
+                if interaction.user.guild_permissions.administrator:
+                    continue
+                facilities.remove(facility)
+                removed_facilities.append(facility)
+
+        if not facilities:
+            embed = FeedbackEmbed("No facilities/required access", feedbackType.ERROR)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        facility_amount = len(facilities)
+        embed = FeedbackEmbed(
+            f"Confirm removing {facility_amount} facilit{'ies' if facility_amount > 1 else 'y'} created by {user.mention} from {interaction.guild.name}",
+            feedbackType.WARNING,
+        )
+        view = RemoveFacilitiesView(
+            original_author=interaction.user, bot=self.bot, facilities=facilities
+        )
+
+        await interaction.response.send_message(
+            view=view,
+            embed=embed,
+        )
+        view.message = await interaction.original_response()
+
+    @remove.command()
+    @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
+    @check_facility_permission()
+    async def ids(
+        self,
+        interaction: Interaction,
+        ids: app_commands.Transform[tuple, IdTransformer],
+    ):
+        """Removes facilities by ID's for the current guild
+
+        Args:
+            ids (app_commands.Transform[tuple, IdTransformer]): List of facility ID's to remove with a delimiter of ',' or a space ' ' Ex. 1,3 4 8
+        """
+        if not (interaction.guild_id and isinstance(interaction.user, Member)):
+            embed = FeedbackEmbed("Not run in guild context", feedbackType.ERROR)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        facilities: list[Facility] = await self.bot.db.get_facility_ids(ids)
+        not_found_facilities = len(ids) - len(facilities)
+
+        removed_facilities: list[Facility] = []
+        for facility in facilities[:]:
+            if facility.guild_id != interaction.guild_id:
+                facilities.remove(facility)
+                removed_facilities.append(facility)
+                continue
+            if not facility.can_modify(interaction):
+                if interaction.user.guild_permissions.administrator:
+                    continue
+                facilities.remove(facility)
+                removed_facilities.append(facility)
+
+        if not facilities:
+            embed = FeedbackEmbed("No facilities/required access", feedbackType.ERROR)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        facility_amount = len(facilities)
+        embed = FeedbackEmbed(
+            f"Confirm removing {facility_amount} facilit{'ies' if facility_amount > 1 else 'y'} from {interaction.guild.name}",
+            feedbackType.WARNING,
+        )
+        view = RemoveFacilitiesView(
+            original_author=interaction.user, bot=self.bot, facilities=facilities
+        )
+
+        removed_facility_amount = len(removed_facilities)
+        prevented_message = (
+            f":x: Not Removing {removed_facility_amount} facilit{'ies' if removed_facility_amount > 1 else 'y'} due to missing permissions"
+            if removed_facility_amount > 0
+            else ""
+        )
+
+        not_found_message = (
+            f":x: {not_found_facilities} facilit{'ies' if not_found_facilities > 1 else 'y'} not found"
+            if not_found_facilities > 0
+            else ""
+        )
+
+        await interaction.response.send_message(
+            content="\n".join((prevented_message, not_found_message)),
+            view=view,
+            embed=embed,
+        )
+        view.message = await interaction.original_response()
+
+    @remove.command()
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
+    @check_facility_permission()
+    async def all(self, interaction: Interaction):
+        """Removes all facilities for the current guild"""
+
+        if not (interaction.guild_id and isinstance(interaction.user, Member)):
+            embed = FeedbackEmbed("Not run in guild context", feedbackType.ERROR)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        search_dict = {"guild_id == ?": interaction.guild_id}
+        facilities: list[Facility] = await self.bot.db.get_facilities(search_dict)
+
+        if not facilities:
+            embed = FeedbackEmbed("No facilities found", feedbackType.ERROR)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        facility_amount = len(facilities)
+        embed = FeedbackEmbed(
+            f"Confirm removing {facility_amount} facilit{'ies' if facility_amount > 1 else 'y'} from {interaction.guild.name}",
+            feedbackType.WARNING,
+        )
+        view = RemoveFacilitiesView(
+            original_author=interaction.user, bot=self.bot, facilities=facilities
+        )
+
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        view.message = await interaction.original_response()
+
+
+async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Modify(bot))

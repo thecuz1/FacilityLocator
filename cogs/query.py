@@ -54,7 +54,7 @@ class Query(commands.Cog):
             item_service (int, optional): Item service to look for
             vehicle_service (int, optional): Vehicle service to look for
             creator (Member, optional): Filter by facility creator
-            vehicle (str, optional): Vehicle upgrade facility to look for
+            vehicle (str, optional): Vehicle upgrade/build facility to look for
             ephemeral (bool): Show results to only you (defaults to True)
         """
         if vehicle:

@@ -83,6 +83,7 @@ bot = Bot(
     help_command=None,
 )
 
+# setup logging config
 dictConfig(
     {
         "version": 1,

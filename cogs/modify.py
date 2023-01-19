@@ -175,7 +175,9 @@ class Modify(commands.Cog):
                 f"Currently selected roles:\n{current_roles}", feedbackType.INFO
             )
         else:
-            embed = FeedbackEmbed("No roles selected", feedbackType.INFO)
+            embed = FeedbackEmbed(
+                "No roles selected, all roles can access facilities", feedbackType.INFO
+            )
 
         await interaction.response.send_message(
             embed=embed,

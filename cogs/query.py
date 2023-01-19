@@ -1,3 +1,5 @@
+from itertools import groupby
+import rapidfuzz
 from discord import Interaction, Embed, Member, Colour
 from discord.ext import commands
 from discord import app_commands
@@ -11,7 +13,6 @@ from utils import (
     check_facility_permission,
 )
 from data import VEHICLE_SERVICES, ITEM_SERVICES
-import rapidfuzz
 
 
 class Query(commands.Cog):
@@ -159,6 +160,75 @@ class Query(commands.Cog):
         formatted_logs += "\n> ".join(logs)
         embed.description = formatted_logs
         await interaction.response.send_message(embed=embed, ephemeral=ephemeral)
+
+    @app_commands.command()
+    @app_commands.guild_only()
+    @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
+    async def generate_list(self, interaction: Interaction):
+        """Generate a list of all facilities"""
+        search_dict = {" guild_id == ? ": interaction.guild_id}
+
+        facility_list = await self.bot.db.get_facilities(search_dict)
+
+        if not facility_list:
+            embed = FeedbackEmbed("No facilities found", feedbackType.ERROR)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        embed = Embed(
+            title=f"Facility list ({interaction.guild.name})",
+            description="Format: ID | Name | Sub-Region",
+        )
+        embed.colour = Colour.green()
+
+        facility_regions = groupby(facility_list, key=lambda x: x.region)
+
+        # ugly needs rework
+        for region, facilities in facility_regions:
+            formatted_list = (
+                f"{facility.id_} | {facility.name} | {facility.marker}\n"
+                for facility in facilities
+            )
+
+            field_value = ""
+            for entry in formatted_list:
+                previous_value = field_value[:]
+                field_value += entry
+                if len(field_value) > 1024:
+                    number = previous_value.count("\n")
+                    if embed.fields:
+                        for field in embed.fields:
+                            if region in field.name:
+                                embed.add_field(
+                                    name=f"{region} ({number}) (Cont.)",
+                                    value=previous_value,
+                                )
+                                break
+                            embed.add_field(
+                                name=f"{region} ({number})", value=previous_value
+                            )
+                    else:
+                        embed.add_field(
+                            name=f"{region} ({number})", value=previous_value
+                        )
+
+                    field_value = entry
+
+            if field_value:
+                number = field_value.count("\n")
+                if embed.fields:
+                    for field in embed.fields:
+                        if region in field.name:
+                            embed.add_field(
+                                name=f"{region} ({number}) (Cont.)",
+                                value=field_value,
+                            )
+                            break
+                    else:
+                        embed.add_field(name=f"{region} ({number})", value=field_value)
+                else:
+                    embed.add_field(name=f"{region} ({number})", value=field_value)
+
+        await interaction.response.send_message(embed=embed)
 
 
 async def setup(bot: commands.Bot) -> None:

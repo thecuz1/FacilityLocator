@@ -1,4 +1,5 @@
 from itertools import groupby
+import re
 import rapidfuzz
 from discord import Interaction, Embed, Member, Colour
 from discord.ext import commands
@@ -181,43 +182,35 @@ class Query(commands.Cog):
         embed.colour = Colour.green()
 
         facility_list.sort(key=lambda facility: facility.region)
-        facility_regions = groupby(facility_list, key=lambda x: x.region)
-
-        def check_field_name(region_name: str) -> bool:
-            """Check if 2 or more fields already exists for the region
-
-            Args:
-                region_name (str): Region to check
-
-            Returns:
-                bool: True if 2 or more fields exists false otherwise
-            """
-            count = 0
-            for field in embed.fields:
-                if region_name in field.name:
-                    count += 1
-                    if count == 2:
-                        return True
-            return False
+        facility_regions = groupby(facility_list, key=lambda facility: facility.region)
 
         for region, facilities in facility_regions:
             formatted_list = (
                 f"{facility.id_} | {facility.name} | {facility.marker}\n"
                 for facility in facilities
             )
-            embed.add_field(name=region, value="")
+            embed.add_field(name=f"{region} (0)", value="")
             field_index = len(embed.fields) - 1
 
             for entry in formatted_list:
-                previous_value = embed.fields[field_index].value[:]
+                previous_value = embed.fields[field_index].value or ""
                 if len(field_value := previous_value + entry) > 1024:
                     embed.add_field(name=f"{region} (1) (Cont.)", value=entry)
                     field_index = len(embed.fields) - 1
                 else:
-                    facility_count = field_value.count("\n")
+                    facility_count = str(field_value.count("\n"))
+                    field_name = (
+                        embed.fields[field_index].name or f"{region} ({facility_count})"
+                    )
+                    number_span = re.search(r"\d+", field_name).span()
+                    updated_name = (
+                        field_name[: number_span[0]]
+                        + facility_count
+                        + field_name[number_span[1] :]
+                    )
                     embed.set_field_at(
                         field_index,
-                        name=f"{region} ({facility_count}) {'(Cont.)' if check_field_name(region) else ''}",
+                        name=updated_name,
                         value=field_value,
                     )
 

@@ -217,9 +217,7 @@ class Query(commands.Cog):
                         name=f"{region} ({facility_count}) {'(Cont.)' if check_field_name(region) else ''}",
                         value=previous_value,
                     )
-                    embed.add_field(
-                        name=f"{region} ({facility_count}) (Cont.)", value=entry
-                    )
+                    embed.add_field(name=f"{region} (1) (Cont.)", value=entry)
                     field_index = len(embed.fields) - 1
                 else:
                     facility_count = field_value.count("\n")

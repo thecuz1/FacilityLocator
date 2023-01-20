@@ -168,7 +168,7 @@ class Query(commands.Cog):
         """Generate a list of all facilities"""
         search_dict = {" guild_id == ? ": interaction.guild_id}
 
-        facility_list = await self.bot.db.get_facilities(search_dict)
+        facility_list: list = await self.bot.db.get_facilities(search_dict)
 
         if not facility_list:
             embed = FeedbackEmbed("No facilities found", feedbackType.ERROR)
@@ -180,53 +180,54 @@ class Query(commands.Cog):
         )
         embed.colour = Colour.green()
 
+        facility_list.sort(key=lambda facility: facility.region)
         facility_regions = groupby(facility_list, key=lambda x: x.region)
 
-        # ugly needs rework
+        def check_field_name(region_name: str) -> bool:
+            """Check if 2 or more fields already exists for the region
+
+            Args:
+                region_name (str): Region to check
+
+            Returns:
+                bool: True if 2 or more fields exists false otherwise
+            """
+            count = 0
+            for field in embed.fields:
+                if region_name in field.name:
+                    count += 1
+                    if count == 2:
+                        return True
+            return False
+
         for region, facilities in facility_regions:
             formatted_list = (
                 f"{facility.id_} | {facility.name} | {facility.marker}\n"
                 for facility in facilities
             )
+            embed.add_field(name=region, value="")
+            field_index = len(embed.fields) - 1
 
-            field_value = ""
             for entry in formatted_list:
-                previous_value = field_value[:]
-                field_value += entry
-                if len(field_value) > 1024:
-                    number = previous_value.count("\n")
-                    if embed.fields:
-                        for field in embed.fields:
-                            if region in field.name:
-                                embed.add_field(
-                                    name=f"{region} ({number}) (Cont.)",
-                                    value=previous_value,
-                                )
-                                break
-                            embed.add_field(
-                                name=f"{region} ({number})", value=previous_value
-                            )
-                    else:
-                        embed.add_field(
-                            name=f"{region} ({number})", value=previous_value
-                        )
-
-                    field_value = entry
-
-            if field_value:
-                number = field_value.count("\n")
-                if embed.fields:
-                    for field in embed.fields:
-                        if region in field.name:
-                            embed.add_field(
-                                name=f"{region} ({number}) (Cont.)",
-                                value=field_value,
-                            )
-                            break
-                    else:
-                        embed.add_field(name=f"{region} ({number})", value=field_value)
+                previous_value = embed.fields[field_index].value[:]
+                if len(field_value := previous_value + entry) > 1024:
+                    facility_count = previous_value.count("\n")
+                    embed.set_field_at(
+                        field_index,
+                        name=f"{region} ({facility_count}) {'(Cont.)' if check_field_name(region) else ''}",
+                        value=previous_value,
+                    )
+                    embed.add_field(
+                        name=f"{region} ({facility_count}) (Cont.)", value=entry
+                    )
+                    field_index = len(embed.fields) - 1
                 else:
-                    embed.add_field(name=f"{region} ({number})", value=field_value)
+                    facility_count = field_value.count("\n")
+                    embed.set_field_at(
+                        field_index,
+                        name=f"{region} ({facility_count}) {'(Cont.)' if check_field_name(region) else ''}",
+                        value=field_value,
+                    )
 
         await interaction.response.send_message(embed=embed)
 

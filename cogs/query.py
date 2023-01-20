@@ -211,12 +211,6 @@ class Query(commands.Cog):
             for entry in formatted_list:
                 previous_value = embed.fields[field_index].value[:]
                 if len(field_value := previous_value + entry) > 1024:
-                    facility_count = previous_value.count("\n")
-                    embed.set_field_at(
-                        field_index,
-                        name=f"{region} ({facility_count}) {'(Cont.)' if check_field_name(region) else ''}",
-                        value=previous_value,
-                    )
                     embed.add_field(name=f"{region} (1) (Cont.)", value=entry)
                     field_index = len(embed.fields) - 1
                 else:

@@ -1,9 +1,8 @@
-from itertools import groupby, combinations
-import re
 import rapidfuzz
-from discord import Interaction, Embed, Member, Colour
+from discord import Interaction, Embed, Member, Colour, TextChannel
 from discord.ext import commands
 from discord import app_commands
+from facility import DynamicListConfirm
 from utils import (
     Paginator,
     LocationTransformer,
@@ -165,7 +164,47 @@ class Query(commands.Cog):
     @app_commands.command()
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
-    async def generate_list(self, interaction: Interaction):
+    @app_commands.default_permissions(administrator=True)
+    async def set_list_channel(
+        self, interaction: Interaction, channel: TextChannel | None
+    ):
+        """Sets list channel to post updates of facilities
+
+        Args:
+            channel (TextChannel): Channel to set, default to current channel
+        """
+        if not channel:
+            if not isinstance(interaction.channel, TextChannel):
+                embed = FeedbackEmbed("Channel is not supported", feedbackType.ERROR)
+                return await interaction.response.send_message(
+                    embed=embed, ephemeral=True
+                )
+            channel = interaction.channel
+
+        search_dict = {" guild_id == ? ": interaction.guild_id}
+
+        facility_list: list = await self.bot.db.get_facilities(search_dict)
+
+        if not facility_list:
+            embed = FeedbackEmbed("No facilities found", feedbackType.ERROR)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        embed = FeedbackEmbed(
+            f"Confirm setting {channel.mention} as facility update channel",
+            feedbackType.INFO,
+        )
+        view = DynamicListConfirm(
+            original_author=interaction.user,
+            bot=self.bot,
+            selected_channel=channel,
+            facilities=facility_list,
+        )
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+    @app_commands.command()
+    @app_commands.guild_only()
+    @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
+    async def list(self, interaction: Interaction):
         """Generate a list of all facilities"""
         search_dict = {" guild_id == ? ": interaction.guild_id}
 
@@ -175,63 +214,9 @@ class Query(commands.Cog):
             embed = FeedbackEmbed("No facilities found", feedbackType.ERROR)
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        embed = Embed(
-            title=f"Facility list ({interaction.guild.name})",
-            description="Format: ID | Name | Sub-Region",
-        )
-        embed.colour = Colour.green()
+        from facility import create_list
 
-        facility_list.sort(key=lambda facility: facility.region)
-        facility_regions = groupby(facility_list, key=lambda facility: facility.region)
-
-        finished_embeds = []
-
-        for region, facilities in facility_regions:
-            formatted_list = (
-                f"{facility.id_} | {facility.name} | {facility.marker}\n"
-                for facility in facilities
-            )
-            if len(name := f"{region} (0)") + len(embed) + 150 > 6000:
-                finished_embeds.append(embed)
-                embed = Embed()
-                embed.colour = Colour.green()
-            embed.add_field(name=name, value="")
-            field_index = len(embed.fields) - 1
-
-            for entry in formatted_list:
-                previous_value = embed.fields[field_index].value or ""
-                new_value = previous_value + entry
-
-                if len(embed) + len(entry) > 6000 or (
-                    len(new_value) > 1024 and len(embed.fields) == 25
-                ):
-                    finished_embeds.append(embed)
-                    embed = Embed()
-                    embed.colour = Colour.green()
-                    embed.add_field(name=f"{region} (1) (Cont.)", value=entry)
-                    field_index = 0
-                elif len(new_value) > 1024:
-                    embed.add_field(name=f"{region} (1) (Cont.)", value=entry)
-                    field_index += 1
-                else:
-                    facility_count = str(new_value.count("\n"))
-                    field_name = (
-                        embed.fields[field_index].name or f"{region} ({facility_count})"
-                    )
-                    number_span = re.search(r"\d+", field_name).span()
-                    updated_name = (
-                        field_name[: number_span[0]]
-                        + facility_count
-                        + field_name[number_span[1] :]
-                    )
-                    embed.set_field_at(
-                        field_index,
-                        name=updated_name,
-                        value=new_value,
-                    )
-
-        if embed not in finished_embeds:
-            finished_embeds.append(embed)
+        finished_embeds = create_list(facility_list, interaction.guild)
 
         await interaction.response.send_message(embed=finished_embeds.pop(0))
 

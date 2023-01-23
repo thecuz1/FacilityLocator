@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from discord import app_commands, Colour, Member, User, Interaction
+from discord import app_commands, Member, User, Interaction
 from utils import (
     LocationTransformer,
     FacilityLocation,

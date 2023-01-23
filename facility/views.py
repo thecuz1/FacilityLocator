@@ -1,14 +1,21 @@
 from time import time
-import logging
-from discord import ui, errors, Interaction, User, Member, ButtonStyle, Message
+from discord import (
+    ui,
+    errors,
+    Interaction,
+    User,
+    Member,
+    ButtonStyle,
+    Message,
+    TextChannel,
+)
 from discord.ext.commands import Bot
 from facility.modals import FacilityInformationModal
 from facility.main import Facility
+
 from utils.mixins import InteractionCheckedView
 from utils.feedback import FeedbackEmbed, feedbackType
 from data import ITEM_SERVICES, VEHICLE_SERVICES
-
-facility_logger = logging.getLogger("facility_event")
 
 
 class BaseFacilityView(InteractionCheckedView):
@@ -19,7 +26,7 @@ class BaseFacilityView(InteractionCheckedView):
     ) -> None:
         super().__init__(timeout=timeout, original_author=original_author)
         self.message: Message | None = None
-        self.bot = bot
+        self.bot: Bot = bot
 
     async def on_timeout(self) -> None:
         """Call finish view"""
@@ -38,6 +45,68 @@ class BaseFacilityView(InteractionCheckedView):
                     await self.message.edit(view=self)
                 except errors.NotFound:
                     pass
+
+
+class DynamicListConfirm(BaseFacilityView):
+    """View used when setting a dynamic list"""
+
+    def __init__(
+        self,
+        *,
+        timeout: float = 180,
+        original_author: User | Member,
+        bot: Bot,
+        selected_channel: TextChannel,
+        facilities: list[Facility],
+    ) -> None:
+        super().__init__(timeout=timeout, original_author=original_author, bot=bot)
+        self.selected_channel: TextChannel = selected_channel
+        self.facilities: list[Facility] = facilities
+
+    @ui.button(label="Disable list", style=ButtonStyle.danger)
+    async def disable(self, interaction: Interaction, _: ui.Button):
+        await self._finish_view(interaction)
+        followup = interaction.followup
+
+        try:
+            await self.bot.db.remove_list(interaction.guild)
+        except Exception as exc:
+            embed = FeedbackEmbed(
+                f"Failed to remove list channel\n```py\n{exc}\n```", feedbackType.ERROR
+            )
+            await followup.send(embed=embed, ephemeral=True)
+            raise exc
+        else:
+            embed = FeedbackEmbed("Disabled list channel", feedbackType.SUCCESS)
+            await followup.send(embed=embed, ephemeral=True)
+
+    @ui.button(label="Confirm", style=ButtonStyle.primary)
+    async def confirm(self, interaction: Interaction, _: ui.Button) -> None:
+        await self._finish_view(interaction)
+        followup = interaction.followup
+
+        # circular import
+        from facility import create_list
+
+        facility_list = create_list(self.facilities, interaction.guild)
+        messages = []
+        for embed in facility_list:
+            message = await self.selected_channel.send(embed=embed)
+            messages.append(message.id)
+
+        try:
+            await self.bot.db.set_list(
+                interaction.guild, self.selected_channel, messages
+            )
+        except Exception as exc:
+            embed = FeedbackEmbed(
+                f"Failed to set list channel\n```py\n{exc}\n```", feedbackType.ERROR
+            )
+            await followup.send(embed=embed, ephemeral=True)
+            raise exc
+        else:
+            embed = FeedbackEmbed("Set list channel", feedbackType.SUCCESS)
+            await followup.send(embed=embed, ephemeral=True)
 
 
 class RemoveFacilitiesView(BaseFacilityView):
@@ -70,14 +139,11 @@ class RemoveFacilitiesView(BaseFacilityView):
         else:
             embed = FeedbackEmbed("Removed facilities", feedbackType.SUCCESS)
             await followup.send(embed=embed, ephemeral=True)
-            facility_logger.info(
-                "Facility ID(s) %r removed by %s",
-                [facility.id_ for facility in self.facilities],
-                interaction.user.mention,
-                extra={
-                    "guild_id": interaction.guild_id,
-                    "guild_name": interaction.guild.name,
-                },
+            self.bot.dispatch(
+                "bulk_facility_delete",
+                self.facilities,
+                interaction.user,
+                interaction.guild,
             )
 
 
@@ -188,19 +254,15 @@ class CreateFacilityView(BaseServicesSelectView):
             raise exc
         else:
             embed = FeedbackEmbed(
-                f"Created facility with the ID: `{facility_id}`", feedbackType.SUCCESS
+                f"Created facility with ID: `{facility_id}`", feedbackType.SUCCESS
             )
+            self.facility.id_ = facility_id
             await followup.send(
                 embed=embed,
                 ephemeral=True,
             )
-            facility_logger.info(
-                "Facility created by %s",
-                interaction.user.mention,
-                extra={
-                    "guild_id": interaction.guild_id,
-                    "guild_name": interaction.guild.name,
-                },
+            self.bot.dispatch(
+                "facility_create", self.facility, interaction.user, interaction.guild
             )
 
 
@@ -249,12 +311,6 @@ class ModifyFacilityView(BaseServicesSelectView):
         else:
             embed = FeedbackEmbed("Modified facility", feedbackType.SUCCESS)
             await followup.send(embed=embed, ephemeral=True)
-            facility_logger.info(
-                "Facility ID %r modified by %s",
-                self.facility.id_,
-                interaction.user.mention,
-                extra={
-                    "guild_id": interaction.guild_id,
-                    "guild_name": interaction.guild.name,
-                },
+            self.bot.dispatch(
+                "facility_modify", self.facility, interaction.user, interaction.guild
             )

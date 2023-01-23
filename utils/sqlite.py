@@ -1,15 +1,30 @@
-from typing import List, Dict
+from typing import List, Dict, Iterable
+from collections import UserList
+import sqlite3
 import logging
 import aiosqlite
+from discord import Guild, TextChannel
 from facility import Facility
 
 logger = logging.getLogger(__name__)
+
+
+class Messages(UserList):
+    @staticmethod
+    def adapt(messages: list[int]):
+        return ";".join(str(message) for message in messages)
+
+    @classmethod
+    def convert(cls, messages: str):
+        return cls(map(int, messages.split(b";")))
 
 
 class Database:
     def __init__(self, bot, db_file) -> None:
         self.bot = bot
         self.db_file = db_file
+        aiosqlite.register_adapter(Messages, Messages.adapt)
+        aiosqlite.register_converter("messages", Messages.convert)
 
     async def create(self):
         async with aiosqlite.connect(self.db_file) as db:
@@ -161,3 +176,38 @@ class Database:
             )
             res = await cur.fetchall()
             return [row[0] for row in res]
+
+    async def set_list(
+        self,
+        guild: Guild,
+        channel: TextChannel,
+        messages: list[int],
+    ):
+        async with aiosqlite.connect(self.db_file) as db:
+            await db.execute(
+                """INSERT OR REPLACE INTO list (guild_id, channel_id, messages) VALUES (?, ?, ?)""",
+                (guild.id, channel.id, Messages(messages)),
+            )
+            await db.commit()
+
+    async def remove_list(
+        self,
+        guild: Guild,
+    ):
+        async with aiosqlite.connect(self.db_file) as db:
+            await db.execute(
+                """DELETE FROM list WHERE guild_id == ?""",
+                (guild.id,),
+            )
+            await db.commit()
+
+    async def get_list(self, guild: Guild):
+        async with aiosqlite.connect(
+            self.db_file,
+            detect_types=sqlite3.PARSE_DECLTYPES,
+        ) as db:
+            cur = await db.execute(
+                """SELECT channel_id, messages FROM list WHERE guild_id == ?""",
+                (guild.id,),
+            )
+            return await cur.fetchone()

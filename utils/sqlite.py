@@ -1,4 +1,4 @@
-from typing import List, Dict, Iterable
+from typing import List, Dict
 from collections import UserList
 import sqlite3
 import logging
@@ -52,6 +52,16 @@ class Database:
 	                "id"	INTEGER UNIQUE,
 	                "guild_id"	INTEGER,
 	                PRIMARY KEY("id")
+                );
+                """
+            )
+            await cur.execute(
+                """
+                CREATE TABLE "list" (
+	                "guild_id"	INTEGER UNIQUE,
+	                "channel_id"	INTEGER,
+	                "messages"	messages,
+	                PRIMARY KEY("guild_id")
                 );
                 """
             )

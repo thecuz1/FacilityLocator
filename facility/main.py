@@ -63,6 +63,11 @@ class Facility:
             )
         )
 
+    def __repr__(self) -> str:
+        return (
+            f"<Facility id={self.id_} author_id={self.author} guild_id={self.guild_id}>"
+        )
+
     def changed(self) -> bool:
         """Determine whether the facility has changed from initial instance
 

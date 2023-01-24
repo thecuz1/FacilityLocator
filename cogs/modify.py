@@ -298,6 +298,7 @@ class Modify(commands.Cog):
             content="\n".join((prevented_message, not_found_message)),
             view=view,
             embed=embed,
+            ephemeral=True,
         )
         view.message = await interaction.original_response()
 

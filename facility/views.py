@@ -9,6 +9,7 @@ from discord import (
     Message,
     TextChannel,
 )
+from discord.errors import Forbidden
 from discord.ext.commands import Bot
 from facility.modals import FacilityInformationModal
 from facility.main import Facility
@@ -91,7 +92,14 @@ class DynamicListConfirm(BaseFacilityView):
         facility_list = create_list(self.facilities, interaction.guild)
         messages = []
         for embed in facility_list:
-            message = await self.selected_channel.send(embed=embed)
+            try:
+                message = await self.selected_channel.send(embed=embed)
+            except Forbidden:
+                embed = FeedbackEmbed(
+                    "No permission to send messages in selected channel",
+                    feedbackType.ERROR,
+                )
+                return await followup.send(embed=embed, ephemeral=True)
             messages.append(message.id)
 
         try:

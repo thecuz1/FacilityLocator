@@ -76,6 +76,7 @@ class Query(commands.Cog):
                 (" item_services & ? ", item_service),
                 (" vehicle_services & ? ", vehicle_service),
                 (" author == ? ", creator and creator.id),
+                (" guild_id == ? ", interaction.guild_id),
             )
             if value
         }
@@ -86,11 +87,7 @@ class Query(commands.Cog):
             embed = FeedbackEmbed("No facilities found", feedbackType.ERROR)
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        embeds = [
-            facility.embed()
-            for facility in facility_list
-            if facility.guild_id == interaction.guild_id
-        ]
+        embeds = [facility.embed() for facility in facility_list]
         await Paginator(original_author=interaction.user).start(
             interaction, pages=embeds, ephemeral=ephemeral
         )

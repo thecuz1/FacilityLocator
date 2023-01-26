@@ -141,8 +141,8 @@ class Query(commands.Cog):
     @app_commands.command()
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
-    async def view_logs(self, interaction: Interaction, ephemeral: bool = True) -> None:
-        """View logs for current server
+    async def logs(self, interaction: Interaction, ephemeral: bool = True) -> None:
+        """View logs for the current guild
 
         Args:
             ephemeral (bool): Show results to only you (defaults to True)
@@ -182,10 +182,6 @@ class Query(commands.Cog):
 
         facility_list: list = await self.bot.db.get_facilities(search_dict)
 
-        if not facility_list:
-            embed = FeedbackEmbed("No facilities found", feedbackType.ERROR)
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
         embed = FeedbackEmbed(
             f"Confirm setting {channel.mention} as facility update channel",
             feedbackType.INFO,
@@ -201,8 +197,12 @@ class Query(commands.Cog):
     @app_commands.command()
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
-    async def list(self, interaction: Interaction):
-        """Generate a list of all facilities"""
+    async def list(self, interaction: Interaction, ephemeral: bool = True):
+        """Shows a list of all facilities for the current guild
+
+        Args:
+            ephemeral (bool): Show results to only you (defaults to True)
+        """
         search_dict = {" guild_id == ? ": interaction.guild_id}
 
         facility_list: list = await self.bot.db.get_facilities(search_dict)
@@ -215,10 +215,12 @@ class Query(commands.Cog):
 
         finished_embeds = create_list(facility_list, interaction.guild)
 
-        await interaction.response.send_message(embed=finished_embeds.pop(0))
+        await interaction.response.send_message(
+            embed=finished_embeds.pop(0), ephemeral=ephemeral
+        )
 
         for embed in finished_embeds:
-            await interaction.followup.send(embed=embed)
+            await interaction.followup.send(embed=embed, ephemeral=ephemeral)
 
 
 async def setup(bot: commands.Bot) -> None:

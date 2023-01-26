@@ -7,7 +7,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
-from utils import Database, NoVoiceFilter, FilterLevel
+from utils import Database, NoVoiceFilter
 
 # load .env file
 load_dotenv()
@@ -123,18 +123,6 @@ dictConfig(
                 "mode": "w",
                 "formatter": "default",
             },
-            "stdout": {
-                "class": "logging.StreamHandler",
-                "stream": sys.stdout,
-                "formatter": "notime",
-                "filters": ["no_errors"],
-            },
-            "stderr": {
-                "class": "logging.StreamHandler",
-                "level": logging.ERROR,
-                "stream": sys.stderr,
-                "formatter": "notime",
-            },
             "guild_event_log": {
                 "class": "logging.FileHandler",
                 "filename": LOG_DIR / "guild.log",
@@ -149,51 +137,51 @@ dictConfig(
                 "mode": "a",
                 "formatter": "slim",
             },
-            "facility_event_guild": {
+            "guild": {
                 "class": "utils.GuildHandler",
                 "bot": bot,
                 "formatter": "discord_message",
+            },
+            "console": {
+                "class": "utils.ConsoleHandler",
+                "formatter": "notime",
             },
         },
         "filters": {
             "no_voice_warning": {
                 "()": NoVoiceFilter,
             },
-            "no_errors": {
-                "()": FilterLevel,
-                "level": "WARNING",
-            },
         },
         "loggers": {
-            "__main__": {
-                "level": logging.INFO,
-                "handlers": ["bot_log", "stderr", "stdout"],
-            },
-            "utils": {
-                "level": logging.INFO,
-                "handlers": ["bot_log", "stderr", "stdout"],
-            },
             "discord": {
                 "level": logging.INFO,
                 "handlers": ["discord_log"],
                 "filters": ["no_voice_warning"],
             },
+            "__main__": {
+                "level": logging.INFO,
+                "handlers": ["bot_log", "console"],
+            },
+            "utils": {
+                "level": logging.INFO,
+                "handlers": ["bot_log", "console"],
+            },
             "command_error": {
                 "level": logging.INFO,
-                "handlers": ["bot_log", "stderr", "stdout"],
+                "handlers": ["bot_log", "console"],
             },
             "view_error": {
                 "level": logging.INFO,
-                "handlers": ["bot_log", "stderr", "stdout"],
+                "handlers": ["bot_log", "console"],
             },
             "modal_error": {
                 "level": logging.INFO,
-                "handlers": ["bot_log", "stderr", "stdout"],
+                "handlers": ["bot_log", "console"],
             },
             "guild_event": {"level": logging.INFO, "handlers": ["guild_event_log"]},
             "facility_event": {
                 "level": logging.INFO,
-                "handlers": ["facility_event_log", "facility_event_guild"],
+                "handlers": ["facility_event_log", "guild"],
             },
         },
     }

@@ -45,16 +45,22 @@ class Database:
             self.db_file, detect_types=sqlite3.PARSE_DECLTYPES
         ) as db:
             db.row_factory = Row
-            if isinstance(params, list):
+            if ";" in query:
+                logger.debug("Running executescript statement %s", query)
+                cur = await db.executescript(query)
+
+            elif isinstance(params, list):
                 logger.debug(
                     "Running executemany statement %s with parameters %s", query, params
                 )
                 cur = await db.executemany(query, params)
+
             else:
                 logger.debug(
                     "Running execute statement %r with parameters %s", query, params
                 )
                 cur = await db.execute(query, params)
+
             match fetch_method:
                 case FetchMethod.ONE:
                     result = await cur.fetchone()
@@ -79,8 +85,7 @@ class Database:
                     return cur.lastrowid
 
     async def create(self):
-        sql_list = [
-            """
+        sql = """
                 CREATE TABLE "facilities" (
                     "id_"	INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
                     "name"	TEXT,
@@ -95,25 +100,19 @@ class Database:
                     "creation_time"	INTEGER,
                     "guild_id"	INTEGER
                 );
-            """,
-            """
                 CREATE TABLE "roles" (
 	                "id"	INTEGER UNIQUE,
 	                "guild_id"	INTEGER,
 	                PRIMARY KEY("id")
                 );
-            """,
-            """
                 CREATE TABLE "list" (
 	                "guild_id"	INTEGER UNIQUE,
 	                "channel_id"	INTEGER,
 	                "messages"	messages,
 	                PRIMARY KEY("guild_id")
                 );
-            """,
-        ]
-        for sql in sql_list:
-            await self._execute_query(sql)
+            """
+        await self._execute_query(sql)
         logger.info("Created database %r", str(self.db_file))
 
     async def get_all_facilities(self) -> List[Facility]:
@@ -195,13 +194,12 @@ class Database:
         )
 
     async def reset(self) -> None:
-        sql_list = [
-            """DELETE FROM facilities""",
-            """UPDATE sqlite_sequence SET seq = 0 WHERE name == 'facilities'""",
-            """VACUUM""",
-        ]
-        for sql in sql_list:
-            await self._execute_query(sql)
+        sql = """
+            DELETE FROM facilities;
+            UPDATE sqlite_sequence SET seq = 0 WHERE name == 'facilities';
+            VACUUM;
+        """
+        await self._execute_query(sql)
         logger.info("Removed all entries from facilities and executed VACUUM")
 
     async def set_roles(self, role_ids: list[int], guild_id: int) -> None:

@@ -1,6 +1,7 @@
 from collections import deque
 from logging import Handler, LogRecord
 import logging
+import sys
 
 
 class ExtraInfoFileHandler(logging.FileHandler):
@@ -42,3 +43,12 @@ class FilterLevel(logging.Filter):
 
     def filter(self, record):
         return record.levelno <= self.level
+
+
+class ConsoleHandler(logging.StreamHandler):
+    def emit(self, record):
+        if record.levelno >= logging.ERROR:
+            self.stream = sys.stderr
+        else:
+            self.stream = sys.stdout
+        super().emit(record)

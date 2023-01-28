@@ -86,6 +86,7 @@ class Modify(commands.Cog):
         marker: app_commands.Transform[str, MarkerTransformer],
         maintainer: app_commands.Range[str, 1, 200],
         coordinates: str = "",
+        image: discord.Attachment | None = None,
     ) -> None:
         """Creates a public facility
 
@@ -95,6 +96,7 @@ class Modify(commands.Cog):
             marker (str): Nearest townhall/relic or location
             maintainer (str): Who maintains the facility
             coordinates (str): Optional coordinates (incase it doesn't work in the region field)
+            image (discord.Attachment): Image to be displayed along with facility (URL can be set in edit modal)
         """
         final_coordinates = coordinates or location.coordinates
         final_coordinates = final_coordinates.upper()
@@ -107,6 +109,7 @@ class Modify(commands.Cog):
             author=interaction.user.id,
             marker=marker,
             guild_id=interaction.guild_id,
+            image_url=image and image.url,
         )
 
         view = CreateFacilityView(

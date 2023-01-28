@@ -19,6 +19,7 @@ class Facility:
         vehicle_services (int, optional): Vehicle services
         creation_time (int, optional): Creation time of facility
         guild_id (int): Guild facility was created in
+        image_url (str): Image url to use in embed
     """
 
     def __init__(
@@ -43,6 +44,7 @@ class Facility:
         self.item_services: Optional[int] = options.pop("item_services", 0)
         self.vehicle_services: Optional[int] = options.pop("vehicle_services", 0)
         self.creation_time: Optional[int] = options.pop("creation_time", None)
+        self.image_url: Optional[str] = options.pop("image_url", None)
         self.guild_id: int = guild_id
         self.initial_hash: int = self.__current_hash()
 
@@ -95,6 +97,8 @@ class Facility:
         embed = discord.Embed(
             title=self.name, description=self.description, color=0x54A24A
         )
+        if self.image_url:
+            embed.set_image(url=self.image_url)
         embed.add_field(name="Location:", value=facility_location)
         embed.add_field(name="Maintainer:", value=self.maintainer)
         embed.add_field(name="Creation Info:", value=creation_info)

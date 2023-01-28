@@ -135,9 +135,10 @@ class Database:
             facility.vehicle_services,
             facility.creation_time,
             facility.guild_id,
+            facility.image_url,
         )
         lastrowid = await self._execute_query(
-            """INSERT INTO facilities (name, description, region, coordinates, marker, maintainer, author, item_services, vehicle_services, creation_time, guild_id) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            """INSERT INTO facilities (name, description, region, coordinates, marker, maintainer, author, item_services, vehicle_services, creation_time, guild_id, image_url) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             values,
         )
         return lastrowid

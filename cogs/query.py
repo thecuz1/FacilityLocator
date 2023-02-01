@@ -1,23 +1,21 @@
 import rapidfuzz
-from discord import Interaction, Embed, Member, Colour, TextChannel
+
+from discord import Interaction, Embed, Member, Colour
 from discord.ext import commands
 from discord import app_commands
-from facility import DynamicListConfirm
-from utils import (
-    Paginator,
-    LocationTransformer,
-    FacilityLocation,
-    IdTransformer,
-    FeedbackEmbed,
-    feedbackType,
-    check_facility_permission,
-)
-from data import VEHICLE_SERVICES, ITEM_SERVICES
+
+from bot import FacilityBot
+from .utils.paginator import Paginator
+from .utils.transformers import LocationTransformer, FacilityLocation, IdTransformer
+from .utils.embeds import FeedbackEmbed, FeedbackType
+from .utils.checks import check_facility_permission
+from .utils.services import VEHICLE_SERVICES, ITEM_SERVICES
+from .utils.embeds import create_list
 
 
 class Query(commands.Cog):
-    def __init__(self, bot: commands.Bot):
-        self.bot: commands.Bot = bot
+    def __init__(self, bot: FacilityBot):
+        self.bot: FacilityBot = bot
 
     @app_commands.command()
     @app_commands.guild_only()
@@ -64,7 +62,7 @@ class Query(commands.Cog):
                     vehicle_service = 1 << index
                     break
             else:
-                embed = FeedbackEmbed("Invalid vehicle", feedbackType.WARNING)
+                embed = FeedbackEmbed("Invalid vehicle", FeedbackType.WARNING)
                 return await interaction.response.send_message(
                     embed=embed, ephemeral=True
                 )
@@ -84,7 +82,7 @@ class Query(commands.Cog):
         facility_list = await self.bot.db.get_facilities(search_dict)
 
         if not facility_list:
-            embed = FeedbackEmbed("No facilities found", feedbackType.ERROR)
+            embed = FeedbackEmbed("No facilities found", FeedbackType.ERROR)
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
         embeds = [facility.embed() for facility in facility_list]
@@ -126,7 +124,7 @@ class Query(commands.Cog):
         """
         facilities = await self.bot.db.get_facility_ids(ids)
         if not facilities:
-            embed = FeedbackEmbed("No facilities found", feedbackType.ERROR)
+            embed = FeedbackEmbed("No facilities found", FeedbackType.ERROR)
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
         embeds = [
@@ -149,7 +147,7 @@ class Query(commands.Cog):
         """
         logs = self.bot.guild_logs.get(interaction.guild_id, None)
         if not logs:
-            embed = FeedbackEmbed("No logs found", feedbackType.ERROR)
+            embed = FeedbackEmbed("No logs found", FeedbackType.ERROR)
             return await interaction.response.send_message(embed=embed, ephemeral=True)
         embed = Embed(title=f"Logs for {interaction.guild.name}", colour=Colour.blue())
 
@@ -157,42 +155,6 @@ class Query(commands.Cog):
         formatted_logs += "\n> ".join(logs)
         embed.description = formatted_logs
         await interaction.response.send_message(embed=embed, ephemeral=ephemeral)
-
-    @app_commands.command()
-    @app_commands.guild_only()
-    @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
-    @app_commands.default_permissions(administrator=True)
-    async def set_list_channel(
-        self, interaction: Interaction, channel: TextChannel | None
-    ):
-        """Sets list channel to post updates of facilities
-
-        Args:
-            channel (TextChannel): Channel to set, default to current channel
-        """
-        if not channel:
-            if not isinstance(interaction.channel, TextChannel):
-                embed = FeedbackEmbed("Channel is not supported", feedbackType.ERROR)
-                return await interaction.response.send_message(
-                    embed=embed, ephemeral=True
-                )
-            channel = interaction.channel
-
-        search_dict = {" guild_id == ? ": interaction.guild_id}
-
-        facility_list: list = await self.bot.db.get_facilities(search_dict)
-
-        embed = FeedbackEmbed(
-            f"Confirm setting {channel.mention} as facility update channel",
-            feedbackType.INFO,
-        )
-        view = DynamicListConfirm(
-            original_author=interaction.user,
-            bot=self.bot,
-            selected_channel=channel,
-            facilities=facility_list,
-        )
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
     @app_commands.command()
     @app_commands.guild_only()
@@ -208,10 +170,8 @@ class Query(commands.Cog):
         facility_list: list = await self.bot.db.get_facilities(search_dict)
 
         if not facility_list:
-            embed = FeedbackEmbed("No facilities found", feedbackType.ERROR)
+            embed = FeedbackEmbed("No facilities found", FeedbackType.ERROR)
             return await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        from facility import create_list
 
         finished_embeds = create_list(facility_list, interaction.guild)
 
@@ -223,5 +183,5 @@ class Query(commands.Cog):
             await interaction.followup.send(embed=embed, ephemeral=ephemeral)
 
 
-async def setup(bot: commands.Bot) -> None:
+async def setup(bot: FacilityBot) -> None:
     await bot.add_cog(Query(bot))

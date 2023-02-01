@@ -1,10 +1,63 @@
+from enum import Enum, auto
+import traceback
 from itertools import groupby
 import re
+
 from discord import Embed, Colour, Guild
-from facility import Facility
+
+from .facility import Facility
+
+
+class FeedbackType(Enum):
+    SUCCESS = auto()
+    INFO = auto()
+    WARNING = auto()
+    ERROR = auto()
+    COOLDOWN = auto()
+
+
+class FeedbackEmbed(Embed):
+    def __init__(
+        self, message: str, feedback_type: FeedbackType, exception: Exception = None
+    ):
+        match feedback_type:
+            case FeedbackType.SUCCESS:
+                title = "Success"
+                final_message = f":white_check_mark: | {message}"
+                embed_colour = Colour.brand_green()
+            case FeedbackType.INFO:
+                title = "Info"
+                final_message = f":information_source: | {message}"
+                embed_colour = Colour.blue()
+            case FeedbackType.WARNING:
+                title = "Warning"
+                final_message = f":warning: | {message}"
+                embed_colour = Colour.yellow()
+            case FeedbackType.ERROR:
+                title = "Error"
+                final_message = f":x: | {message}"
+                embed_colour = Colour.brand_red()
+                if exception:
+                    final_message += f"\n```py\n{traceback.format_exc()}\n```"
+            case FeedbackType.COOLDOWN:
+                title = "Cooldown"
+                final_message = f":hourglass: | {message}"
+                embed_colour = Colour.blue()
+
+        super().__init__(colour=embed_colour, title=title, description=final_message)
+        self.set_footer(text="Source Code: https://github.com/thecuz1/FacilityLocator")
 
 
 def create_list(facility_list: list[Facility], guild: Guild) -> list[Embed]:
+    """Generates embeds to list short form facilities
+
+    Args:
+        facility_list (list[Facility]): Facilities to generate list from
+        guild (Guild): Guild where the list is from
+
+    Returns:
+        list[Embed]: List of embeds
+    """
     embed = Embed(
         title=f"Facility list ({guild.name}) ({len(facility_list)})",
         description="Format: `ID | Name | Sub-Region`\nFor more info about a facility use the commmand `/view [ID(s)]`",

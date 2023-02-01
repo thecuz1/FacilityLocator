@@ -5,9 +5,11 @@ import sqlite3
 import logging
 import aiosqlite
 from aiosqlite import Row
+
 from discord import Guild, TextChannel
-from discord.ext.commands import Bot
-from facility import Facility
+
+from bot import FacilityBot
+from .facility import Facility
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +31,8 @@ class Messages(UserList):
 
 
 class Database:
-    def __init__(self, bot: Bot, db_file) -> None:
-        self.bot: Bot = bot
+    def __init__(self, bot: FacilityBot, db_file) -> None:
+        self.bot: FacilityBot = bot
         self.db_file = db_file
         aiosqlite.register_adapter(Messages, Messages.adapt)
         aiosqlite.register_converter("messages", Messages.convert)
@@ -98,7 +100,8 @@ class Database:
                     "item_services"	INTEGER,
                     "vehicle_services"	INTEGER,
                     "creation_time"	INTEGER,
-                    "guild_id"	INTEGER
+                    "guild_id"	INTEGER,
+                    "image_url"	TEXT
                 );
                 CREATE TABLE "roles" (
 	                "id"	INTEGER UNIQUE,

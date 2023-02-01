@@ -1,16 +1,19 @@
 import logging
+
 from discord import Guild, Message, User, Member, NotFound
 from discord.ext import commands
-from facility import Facility
-from facility import create_list
+
+from bot import FacilityBot
+from .utils.facility import Facility
+from .utils.embeds import create_list
 
 guild_logger = logging.getLogger("guild_event")
 facility_logger = logging.getLogger("facility_event")
 
 
 class Events(commands.Cog):
-    def __init__(self, bot: commands.Bot) -> None:
-        self.bot: commands.Bot = bot
+    def __init__(self, bot: FacilityBot) -> None:
+        self.bot: FacilityBot = bot
 
     @commands.Cog.listener()
     async def on_guild_join(
@@ -29,10 +32,10 @@ class Events(commands.Cog):
         self,
         guild: Guild,
     ) -> None:
-        """Logs when the bot is remove from a guild
+        """Logs when the bot is removed from a guild
 
         Args:
-            guild (Guild): Guild the bot was remove from
+            guild (Guild): Guild the bot was removed from
         """
         guild_logger.info("Bot removed from %r (%s)", guild.id, guild.name)
 
@@ -59,7 +62,7 @@ class Events(commands.Cog):
     @commands.Cog.listener()
     async def on_facility_create(
         self, facility: Facility, user: User | Member, guild: Guild
-    ):
+    ) -> None:
         """Triggered when a facility is created
 
         Args:
@@ -71,17 +74,14 @@ class Events(commands.Cog):
             "Facility created by %s with ID: `%s`",
             user.mention,
             facility.id_,
-            extra={
-                "guild_id": guild.id,
-                "guild_name": guild.name,
-            },
+            extra={"guild_id": guild.id, "guild_name": guild.name, "bot": self.bot},
         )
         await self.update_list(guild)
 
     @commands.Cog.listener()
     async def on_facility_modify(
         self, facility: Facility, user: User | Member, guild: Guild
-    ):
+    ) -> None:
         """Triggered when a facility is modified
 
         Args:
@@ -93,17 +93,14 @@ class Events(commands.Cog):
             "Facility ID %r modified by %s",
             facility.id_,
             user.mention,
-            extra={
-                "guild_id": guild.id,
-                "guild_name": guild.name,
-            },
+            extra={"guild_id": guild.id, "guild_name": guild.name, "bot": self.bot},
         )
         await self.update_list(guild)
 
     @commands.Cog.listener()
     async def on_bulk_facility_delete(
         self, facilities: list[Facility], user: User | Member, guild: Guild
-    ):
+    ) -> None:
         """Triggered when multiple facilities are removed
 
         Args:
@@ -115,14 +112,11 @@ class Events(commands.Cog):
             "Facility ID(s) %r removed by %s",
             [facility.id_ for facility in facilities],
             user.mention,
-            extra={
-                "guild_id": guild.id,
-                "guild_name": guild.name,
-            },
+            extra={"guild_id": guild.id, "guild_name": guild.name, "bot": self.bot},
         )
         await self.update_list(guild)
 
-    async def update_list(self, guild: Guild):
+    async def update_list(self, guild: Guild) -> None:
         list_location = await self.bot.db.get_list(guild)
         if not list_location:
             return
@@ -164,5 +158,5 @@ class Events(commands.Cog):
         await self.bot.db.set_list(guild, channel, new_messages)
 
 
-async def setup(bot: commands.Bot) -> None:
+async def setup(bot: FacilityBot) -> None:
     await bot.add_cog(Events(bot))

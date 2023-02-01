@@ -1,5 +1,6 @@
 from discord import Interaction, Member, app_commands
-from utils import FeedbackEmbed, feedbackType
+
+from .embeds import FeedbackEmbed, FeedbackType
 
 
 def check_facility_permission():
@@ -16,7 +17,7 @@ def check_facility_permission():
         similar_roles = list(set(role_ids).intersection(member_role_ids))
         if not (similar_roles or interaction.user.resolved_permissions.administrator):
             embed = FeedbackEmbed(
-                "No permission to run this command", feedbackType.WARNING
+                "No permission to run this command", FeedbackType.WARNING
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return False

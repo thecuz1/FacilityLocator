@@ -1,7 +1,8 @@
 from discord.ui import TextInput
 from discord import TextStyle, Interaction
-from utils.mixins import ErrorLoggedModal
-from facility.main import Facility
+
+from .mixins import ErrorLoggedModal
+from .facility import Facility
 
 
 class FacilityInformationModal(ErrorLoggedModal, title="Edit Facility Information"):

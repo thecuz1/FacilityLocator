@@ -1,15 +1,18 @@
 import logging
+
 from discord.ext import commands
 import discord
 from discord.app_commands import errors, CommandOnCooldown
-from utils.feedback import FeedbackEmbed, feedbackType
+
+from bot import FacilityBot
+from .utils.embeds import FeedbackEmbed, FeedbackType
 
 command_error_logger = logging.getLogger("command_error")
 
 
 class CommandErrorHandler(commands.Cog):
-    def __init__(self, bot: commands.Bot):
-        self.bot: commands.Bot = bot
+    def __init__(self, bot: FacilityBot):
+        self.bot: FacilityBot = bot
 
     async def cog_load(self) -> None:
         tree = self.bot.tree
@@ -45,6 +48,7 @@ class CommandErrorHandler(commands.Cog):
             commands.DisabledCommand,
             commands.NoPrivateMessage,
             commands.NotOwner,
+            commands.CheckFailure,
         )
 
         # Allows us to check for original exceptions raised and sent to CommandInvokeError.
@@ -55,10 +59,7 @@ class CommandErrorHandler(commands.Cog):
         if isinstance(error, ignored):
             return
 
-        if isinstance(error, commands.BadArgument):
-            return await ctx.send(str(error))
-
-        if isinstance(error, commands.MissingRequiredArgument):
+        if isinstance(error, (commands.BadArgument, commands.MissingRequiredArgument)):
             return await ctx.send(str(error))
 
         # All other Errors not returned come here.
@@ -84,7 +85,7 @@ class CommandErrorHandler(commands.Cog):
 
             if isinstance(error, CommandOnCooldown):
                 embed = FeedbackEmbed(
-                    f"Try again in {error.retry_after:.2f}s", feedbackType.COOLDOWN
+                    f"Try again in {error.retry_after:.2f}s", FeedbackType.COOLDOWN
                 )
                 return await interaction.response.send_message(
                     embed=embed, ephemeral=True
@@ -93,7 +94,7 @@ class CommandErrorHandler(commands.Cog):
             if isinstance(error, errors.MissingPermissions):
                 embed = FeedbackEmbed(
                     f"Missing the following permissions {error.missing_permissions}",
-                    feedbackType.ERROR,
+                    FeedbackType.ERROR,
                 )
                 return await interaction.response.send_message(
                     embed=embed, ephemeral=True
@@ -113,5 +114,5 @@ class CommandErrorHandler(commands.Cog):
             )
 
 
-async def setup(bot: commands.Bot) -> None:
+async def setup(bot: FacilityBot) -> None:
     await bot.add_cog(CommandErrorHandler(bot))

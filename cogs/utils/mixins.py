@@ -1,17 +1,66 @@
 import logging
+
 from discord.ui import View, Item, Modal
-from discord import Interaction, User, Member
+from discord.errors import NotFound
+from discord import Interaction, User, Member, Message
+from discord.ext import commands
+
+from bot import FacilityBot
 
 view_error_logger = logging.getLogger("view_error")
 modal_error_logger = logging.getLogger("modal_error")
 
 
-class ErrorLoggedView(View):
-    """Subclass of ui.View to log any errors to the correct place"""
+class BaseView(View):
+    """Subclass of view that adds basic functionality"""
 
-    async def on_error(
-        self, interaction: Interaction, error: Exception, item: Item, /
+    def __init__(self, *, timeout: float = 180):
+        super().__init__(timeout=timeout)
+        self.message: Message | None = None
+
+    async def send(
+        self,
+        ctx_or_interaction: commands.Context[FacilityBot] | Interaction,
+        *args,
+        **kwargs,
+    ) -> Message:
+        if isinstance(ctx_or_interaction, commands.Context):
+            ctx = ctx_or_interaction
+            self.message = await ctx.send(args, kwargs, view=self)
+        else:
+            interaction = ctx_or_interaction
+            await interaction.response.send_message(*args, **kwargs, view=self)
+            self.message = await interaction.original_response()
+        return self.message
+
+    async def on_timeout(self) -> None:
+        """Call finish view"""
+        await self._finish_view()
+
+    async def _finish_view(
+        self, interaction: Interaction | None = None, remove: bool = False
     ) -> None:
+        self.stop()
+        if remove:
+            try:
+                await self.message.delete()
+            except NotFound:
+                pass
+            return
+
+        if interaction:
+            await interaction.response.defer(ephemeral=True, thinking=True)
+
+        for item in self.children:
+            item.disabled = True
+
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except NotFound:
+                pass
+
+    async def on_error(self, _: Interaction, error: Exception, item: Item, /) -> None:
         """Log any error that happens in a view
 
         Args:
@@ -42,10 +91,10 @@ class ErrorLoggedModal(Modal):
         )
 
 
-class InteractionCheckedView(ErrorLoggedView):
+class InteractionCheckedView(BaseView):
     """View to check interaction"""
 
-    def __init__(self, *, timeout: float = 180, original_author: User | Member) -> None:
+    def __init__(self, *, timeout: float, original_author: User | Member) -> None:
         super().__init__(timeout=timeout)
         self.original_author = original_author
 

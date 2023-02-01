@@ -1,9 +1,11 @@
 from typing import NamedTuple
 import re
+
 from rapidfuzz.process import extract
 import discord
 from discord import app_commands
-from data import REGIONS
+
+from .regions import REGIONS
 
 
 class IdTransformer(app_commands.Transformer):

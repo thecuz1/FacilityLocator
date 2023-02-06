@@ -153,7 +153,7 @@ class Admin(commands.Cog, command_attrs=dict(hidden=True)):
     @commands.command()
     async def reset(self, ctx: commands.Context):
         embed = FeedbackEmbed("Confirm removal of all facilities", FeedbackType.WARNING)
-        view = ResetView(original_author=ctx.author, timeout=30, bot=self.bot)
+        view = ResetView(original_author=ctx.author, timeout=30)
         message = await ctx.send(embed=embed, view=view)
         view.message = message
 

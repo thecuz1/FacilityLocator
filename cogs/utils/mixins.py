@@ -94,7 +94,7 @@ class ErrorLoggedModal(Modal):
 class InteractionCheckedView(BaseView):
     """View to check interaction"""
 
-    def __init__(self, *, timeout: float, original_author: User | Member) -> None:
+    def __init__(self, *, timeout: float = 180, original_author: User | Member) -> None:
         super().__init__(timeout=timeout)
         self.original_author = original_author
 

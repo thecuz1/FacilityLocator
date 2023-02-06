@@ -11,6 +11,7 @@ from .utils.embeds import FeedbackEmbed, FeedbackType
 from .utils.checks import check_facility_permission
 from .utils.services import VEHICLE_SERVICES, ITEM_SERVICES
 from .utils.embeds import create_list
+from .utils.context import GuildInteraction
 
 
 class Query(commands.Cog):
@@ -38,7 +39,7 @@ class Query(commands.Cog):
     @check_facility_permission()
     async def locate(
         self,
-        interaction: Interaction,
+        interaction: GuildInteraction,
         location: app_commands.Transform[FacilityLocation, LocationTransformer] = None,
         item_service: int = None,
         vehicle_service: int = None,
@@ -112,7 +113,7 @@ class Query(commands.Cog):
     @check_facility_permission()
     async def view(
         self,
-        interaction: Interaction,
+        interaction: GuildInteraction,
         ids: app_commands.Transform[tuple, IdTransformer],
         ephemeral: bool = True,
     ):
@@ -139,7 +140,7 @@ class Query(commands.Cog):
     @app_commands.command()
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
-    async def logs(self, interaction: Interaction, ephemeral: bool = True) -> None:
+    async def logs(self, interaction: GuildInteraction, ephemeral: bool = True) -> None:
         """View logs for the current guild
 
         Args:
@@ -159,7 +160,7 @@ class Query(commands.Cog):
     @app_commands.command()
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
-    async def list(self, interaction: Interaction, ephemeral: bool = True):
+    async def list(self, interaction: GuildInteraction, ephemeral: bool = True):
         """Shows a list of all facilities for the current guild
 
         Args:

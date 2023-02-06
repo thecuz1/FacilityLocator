@@ -6,31 +6,38 @@ from logging.config import dictConfig
 from pathlib import Path
 from collections import deque
 
+from discord import utils
+
 from bot import FacilityBot
+from cogs.utils.context import GuildInteraction
+
+
+class LogRecordContext(LogRecord):
+    ctx: GuildInteraction
 
 
 class ExtraInfoFileHandler(logging.FileHandler):
-    def format(self, record: LogRecord) -> str:
+    def format(self, record: LogRecordContext) -> str:
+        ctx = record.ctx
         formatted_record = super().format(record)
-        formatted_record += f" in {record.guild_id} ({record.guild_name})"
+        formatted_record += f" in {ctx.guild_id} ({ctx.guild.name})"
         return formatted_record
 
 
 class GuildHandler(Handler):
-    def emit(self, record: LogRecord) -> None:
+    def emit(self, record: LogRecordContext) -> None:
         """Add log record to the guild
 
         Args:
-            record (LogRecord): Record to add
+            record (LogRecordContext): Record to add
         """
-        bot: FacilityBot = record.bot
-        guild_id: int = record.guild_id
-        guild_deque = bot.guild_logs.get(guild_id, deque(maxlen=50))
+        ctx = record.ctx
+        guild_deque = ctx.client.guild_logs.get(ctx.guild_id, deque(maxlen=50))
 
         formatted_record = self.format(record)
         guild_deque.append(formatted_record)
 
-        bot.guild_logs[guild_id] = guild_deque
+        ctx.client.guild_logs[ctx.guild_id] = guild_deque
 
 
 class NoVoiceFilter(logging.Filter):
@@ -171,8 +178,20 @@ async def run_bot():
         await bot.start()
 
 
-if __name__ == "__main__":
+def setup_logging():
     dictConfig(logging_dict)
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers:
+        if (
+            isinstance(handler, logging.StreamHandler)
+            and utils.stream_supports_colour(handler.stream)
+            and not isinstance(handler, logging.FileHandler)
+        ):
+            handler.formatter = utils._ColourFormatter()
+
+
+if __name__ == "__main__":
+    setup_logging()
 
     try:
         asyncio.run(run_bot())

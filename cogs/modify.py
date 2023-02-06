@@ -1,6 +1,12 @@
-import discord
 from discord.ext import commands
-from discord import app_commands, Member, User, Interaction, TextChannel
+from discord import (
+    app_commands,
+    Member,
+    TextChannel,
+    ui,
+    ButtonStyle,
+    Attachment,
+)
 
 from bot import FacilityBot
 from .utils.transformers import (
@@ -19,31 +25,25 @@ from .utils.views import (
     RemoveFacilitiesView,
     DynamicListConfirm,
 )
+from .utils.context import GuildInteraction
 
 
 class SetupView(InteractionCheckedView):
-    def __init__(
-        self, *, timeout: float = 180, original_author: User | Member, bot: FacilityBot
-    ) -> None:
-        super().__init__(timeout=timeout, original_author=original_author)
-        self.message: None | discord.Message = None
-        self.bot: FacilityBot = bot
-
-    @discord.ui.select(
-        cls=discord.ui.RoleSelect,
+    @ui.select(
+        cls=ui.RoleSelect,
         placeholder="Select roles to access facilities...",
         min_values=0,
         max_values=25,
     )
-    async def role_select(self, interaction: Interaction, _: discord.ui.RoleSelect):
+    async def role_select(self, interaction: GuildInteraction, _: ui.RoleSelect):
         await interaction.response.defer()
 
-    @discord.ui.button(label="Confirm", style=discord.ButtonStyle.blurple)
-    async def confirm(self, interaction: Interaction, _: discord.ui.Button):
+    @ui.button(label="Confirm", style=ButtonStyle.blurple)
+    async def confirm(self, interaction: GuildInteraction, _: ui.Button):
         await self._finish_view(interaction)
         role_ids = [role.id for role in self.role_select.values]
         try:
-            await self.bot.db.set_roles(role_ids, interaction.guild_id)
+            await interaction.client.db.set_roles(role_ids, interaction.guild_id)
         except Exception as exc:
             embed = FeedbackEmbed("Failed to set roles", FeedbackType.ERROR, exc)
         else:
@@ -55,6 +55,7 @@ class SetupView(InteractionCheckedView):
 class Modify(commands.Cog):
     def __init__(self, bot: FacilityBot):
         self.bot: FacilityBot = bot
+        self._facility_being_created: set[int] = set()
 
     @app_commands.command()
     @app_commands.guild_only()
@@ -63,13 +64,13 @@ class Modify(commands.Cog):
     @check_facility_permission()
     async def create(
         self,
-        interaction: discord.Interaction,
+        interaction: GuildInteraction,
         name: app_commands.Range[str, 1, 100],
         location: app_commands.Transform[FacilityLocation, LocationTransformer],
         marker: app_commands.Transform[str, MarkerTransformer],
         maintainer: app_commands.Range[str, 1, 200],
         coordinates: str = "",
-        image: discord.Attachment | None = None,
+        image: Attachment | None = None,
     ) -> None:
         """Creates a public facility
 
@@ -84,6 +85,25 @@ class Modify(commands.Cog):
         final_coordinates = coordinates or location.coordinates
         final_coordinates = final_coordinates.upper()
 
+        if interaction.user.id in self._facility_being_created:
+            embed = FeedbackEmbed("Already creating a facility", FeedbackType.ERROR)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        search_dict = {
+            " guild_id == ? ": interaction.guild_id,
+            " author == ? ": interaction.user.id,
+        }
+
+        facility_list = await self.bot.db.get_facilities(search_dict)
+        if (
+            len(facility_list) >= 5
+            and not interaction.user.guild_permissions.administrator
+        ):
+            embed = FeedbackEmbed(
+                "Cannot create more then 5 facilities", FeedbackType.ERROR
+            )
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
         facility = Facility(
             name=name,
             region=location.region,
@@ -95,19 +115,20 @@ class Modify(commands.Cog):
             image_url=image and image.url,
         )
 
-        view = CreateFacilityView(
-            facility=facility, original_author=interaction.user, bot=self.bot
-        )
+        view = CreateFacilityView(facility=facility, original_author=interaction.user)
         embed = facility.embed()
 
+        self._facility_being_created.add(interaction.user.id)
         await view.send(interaction, embed=embed, ephemeral=True)
+        await view.wait()
+        self._facility_being_created.remove(interaction.user.id)
 
     @app_commands.command()
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     @app_commands.rename(id_="id")
     @check_facility_permission()
-    async def modify(self, interaction: discord.Interaction, id_: int):
+    async def modify(self, interaction: GuildInteraction, id_: int):
         """Modify faciliy information
 
         Args:
@@ -126,9 +147,7 @@ class Modify(commands.Cog):
                     ":x: No permission to modify facility", ephemeral=True
                 )
 
-        view = ModifyFacilityView(
-            facility=facility, original_author=interaction.user, bot=self.bot
-        )
+        view = ModifyFacilityView(facility=facility, original_author=interaction.user)
         embed = facility.embed()
 
         await view.send(interaction, embed=embed, ephemeral=True)
@@ -137,9 +156,9 @@ class Modify(commands.Cog):
     @app_commands.guild_only()
     @app_commands.default_permissions(administrator=True)
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
-    async def setup(self, interaction: discord.Interaction):
+    async def setup(self, interaction: GuildInteraction):
         """Setup the roles to allow access to facilities"""
-        view = SetupView(original_author=interaction.user, bot=self.bot)
+        view = SetupView(original_author=interaction.user)
 
         role_ids: list[int] = await self.bot.db.get_roles(interaction.user.guild.id)
 
@@ -159,16 +178,12 @@ class Modify(commands.Cog):
             ephemeral=True,
         )
 
-    remove = app_commands.Group(
-        name="remove", description="Remove facilities", guild_only=True
-    )
-
     @app_commands.command()
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     @app_commands.default_permissions(administrator=True)
     async def set_list_channel(
-        self, interaction: Interaction, channel: TextChannel | None
+        self, interaction: GuildInteraction, channel: TextChannel | None
     ):
         """Sets list channel to post updates of facilities
 
@@ -193,20 +208,20 @@ class Modify(commands.Cog):
         )
         view = DynamicListConfirm(
             original_author=interaction.user,
-            bot=self.bot,
             selected_channel=channel,
             facilities=facility_list,
         )
         await view.send(interaction, embed=embed, ephemeral=True)
 
+    remove = app_commands.Group(
+        name="remove", description="Remove facilities", guild_only=True
+    )
+
     @remove.command()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     @check_facility_permission()
-    async def user(self, interaction: Interaction, user: discord.Member):
+    async def user(self, interaction: GuildInteraction, user: Member):
         """Removes all of the users facilities for the current guild"""
-        if not (interaction.guild_id and isinstance(interaction.user, Member)):
-            embed = FeedbackEmbed("Not run in guild context", FeedbackType.ERROR)
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
 
         search_dict = {
             " guild_id == ? ": interaction.guild_id,
@@ -236,7 +251,7 @@ class Modify(commands.Cog):
             FeedbackType.WARNING,
         )
         view = RemoveFacilitiesView(
-            original_author=interaction.user, bot=self.bot, facilities=facilities
+            original_author=interaction.user, facilities=facilities
         )
 
         await view.send(interaction, embed=embed, ephemeral=True)
@@ -246,7 +261,7 @@ class Modify(commands.Cog):
     @check_facility_permission()
     async def ids(
         self,
-        interaction: Interaction,
+        interaction: GuildInteraction,
         ids: app_commands.Transform[tuple, IdTransformer],
     ):
         """Removes facilities by ID's for the current guild
@@ -254,10 +269,6 @@ class Modify(commands.Cog):
         Args:
             ids (app_commands.Transform[tuple, IdTransformer]): List of facility ID's to remove with a delimiter of ',' or a space ' ' Ex. 1,3 4 8
         """
-        if not (interaction.guild_id and isinstance(interaction.user, Member)):
-            embed = FeedbackEmbed("Not run in guild context", FeedbackType.ERROR)
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
-
         facilities: list[Facility] = await self.bot.db.get_facility_ids(ids)
         not_found_facilities = len(ids) - len(facilities)
 
@@ -283,7 +294,7 @@ class Modify(commands.Cog):
             FeedbackType.WARNING,
         )
         view = RemoveFacilitiesView(
-            original_author=interaction.user, bot=self.bot, facilities=facilities
+            original_author=interaction.user, facilities=facilities
         )
 
         removed_facility_amount = len(removed_facilities)
@@ -310,12 +321,8 @@ class Modify(commands.Cog):
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     @check_facility_permission()
-    async def all(self, interaction: Interaction):
+    async def all(self, interaction: GuildInteraction):
         """Removes all facilities for the current guild"""
-
-        if not (interaction.guild_id and isinstance(interaction.user, Member)):
-            embed = FeedbackEmbed("Not run in guild context", FeedbackType.ERROR)
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
 
         search_dict = {"guild_id == ?": interaction.guild_id}
         facilities: list[Facility] = await self.bot.db.get_facilities(search_dict)
@@ -330,7 +337,7 @@ class Modify(commands.Cog):
             FeedbackType.WARNING,
         )
         view = RemoveFacilitiesView(
-            original_author=interaction.user, bot=self.bot, facilities=facilities
+            original_author=interaction.user, facilities=facilities
         )
 
         await view.send(

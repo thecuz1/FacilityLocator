@@ -1,9 +1,10 @@
 import logging
 
-from discord import Guild, Message, User, Member, NotFound
+from discord import Guild, Message, NotFound
 from discord.ext import commands
 
 from bot import FacilityBot
+from .utils.context import GuildInteraction
 from .utils.facility import Facility
 from .utils.embeds import create_list
 
@@ -61,60 +62,58 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_facility_create(
-        self, facility: Facility, user: User | Member, guild: Guild
+        self, facility: Facility, ctx: GuildInteraction
     ) -> None:
         """Triggered when a facility is created
 
         Args:
             facility (Facility): Facility that was created
-            user (User | Member): User that created
-            guild (Guild): Guild command was ran
+            ctx (GuildInteraction): Context of facility creation
         """
         facility_logger.info(
             "Facility created by %s with ID: `%s`",
-            user.mention,
+            ctx.user.mention,
             facility.id_,
-            extra={"guild_id": guild.id, "guild_name": guild.name, "bot": self.bot},
+            extra={"ctx": ctx},
         )
-        await self.update_list(guild)
+        await self.update_list(ctx.guild)
 
     @commands.Cog.listener()
     async def on_facility_modify(
-        self, facility: Facility, user: User | Member, guild: Guild
+        self, before: Facility, after: Facility, ctx: GuildInteraction
     ) -> None:
         """Triggered when a facility is modified
 
         Args:
-            facility (Facility): Facility that was modified
-            user (User | Member): User that modified
-            guild (Guild): Guild command was ran
+            before (Facility): Previous facility
+            after (Facility): New facility
+            ctx (GuildInteraction): Context of facility modification
         """
         facility_logger.info(
             "Facility ID %r modified by %s",
-            facility.id_,
-            user.mention,
-            extra={"guild_id": guild.id, "guild_name": guild.name, "bot": self.bot},
+            after.id_,
+            ctx.user.mention,
+            extra={"ctx": ctx},
         )
-        await self.update_list(guild)
+        await self.update_list(ctx.guild)
 
     @commands.Cog.listener()
     async def on_bulk_facility_delete(
-        self, facilities: list[Facility], user: User | Member, guild: Guild
+        self, facilities: list[Facility], ctx: GuildInteraction
     ) -> None:
         """Triggered when multiple facilities are removed
 
         Args:
             facilities (list[Facility]): Facilities that were removed
-            user (User | Member): User that removed them
-            guild (Guild): Guild where command was ran
+            ctx (GuildInteraction): Context of facility deletion
         """
         facility_logger.info(
             "Facility ID(s) %r removed by %s",
             [facility.id_ for facility in facilities],
-            user.mention,
-            extra={"guild_id": guild.id, "guild_name": guild.name, "bot": self.bot},
+            ctx.user.mention,
+            extra={"ctx": ctx},
         )
-        await self.update_list(guild)
+        await self.update_list(ctx.guild)
 
     async def update_list(self, guild: Guild) -> None:
         list_location = await self.bot.db.get_list(guild)

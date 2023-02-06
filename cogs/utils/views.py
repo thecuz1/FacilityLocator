@@ -1,4 +1,5 @@
 from time import time
+from copy import copy
 
 from discord import (
     ui,
@@ -10,26 +11,16 @@ from discord import (
 )
 from discord.errors import Forbidden
 
-from bot import FacilityBot
 from .modals import FacilityInformationModal
 from .facility import Facility
 from .mixins import InteractionCheckedView
 from .embeds import FeedbackEmbed, FeedbackType
 from .services import ITEM_SERVICES, VEHICLE_SERVICES
 from .embeds import create_list
+from .context import GuildInteraction
 
 
-class BaseFacilityView(InteractionCheckedView):
-    """Base view used for a facility"""
-
-    def __init__(
-        self, *, timeout: float = 180, original_author: User | Member, bot: FacilityBot
-    ) -> None:
-        super().__init__(timeout=timeout, original_author=original_author)
-        self.bot: FacilityBot = bot
-
-
-class DynamicListConfirm(BaseFacilityView):
+class DynamicListConfirm(InteractionCheckedView):
     """View used when setting a dynamic list"""
 
     def __init__(
@@ -37,33 +28,15 @@ class DynamicListConfirm(BaseFacilityView):
         *,
         timeout: float = 180,
         original_author: User | Member,
-        bot: FacilityBot,
         selected_channel: TextChannel,
         facilities: list[Facility],
     ) -> None:
-        super().__init__(timeout=timeout, original_author=original_author, bot=bot)
+        super().__init__(timeout=timeout, original_author=original_author)
         self.selected_channel: TextChannel = selected_channel
         self.facilities: list[Facility] = facilities
 
-    @ui.button(label="Disable list", style=ButtonStyle.danger)
-    async def disable(self, interaction: Interaction, _: ui.Button):
-        await self._finish_view(interaction)
-        followup = interaction.followup
-
-        try:
-            await self.bot.db.remove_list(interaction.guild)
-        except Exception as exc:
-            embed = FeedbackEmbed(
-                f"Failed to remove list channel\n```py\n{exc}\n```", FeedbackType.ERROR
-            )
-            await followup.send(embed=embed, ephemeral=True)
-            raise exc
-        else:
-            embed = FeedbackEmbed("Disabled list channel", FeedbackType.SUCCESS)
-            await followup.send(embed=embed, ephemeral=True)
-
-    @ui.button(label="Confirm", style=ButtonStyle.primary)
-    async def confirm(self, interaction: Interaction, _: ui.Button) -> None:
+    @ui.button(label="Set", style=ButtonStyle.green)
+    async def confirm(self, interaction: GuildInteraction, _: ui.Button) -> None:
         await self._finish_view(interaction)
         followup = interaction.followup
 
@@ -81,7 +54,7 @@ class DynamicListConfirm(BaseFacilityView):
             messages.append(message.id)
 
         try:
-            await self.bot.db.set_list(
+            await interaction.client.db.set_list(
                 interaction.guild, self.selected_channel, messages
             )
         except Exception as exc:
@@ -94,8 +67,25 @@ class DynamicListConfirm(BaseFacilityView):
             embed = FeedbackEmbed("Set list channel", FeedbackType.SUCCESS)
             await followup.send(embed=embed, ephemeral=True)
 
+    @ui.button(label="Disable list", style=ButtonStyle.danger)
+    async def disable(self, interaction: GuildInteraction, _: ui.Button):
+        await self._finish_view(interaction)
+        followup = interaction.followup
 
-class RemoveFacilitiesView(BaseFacilityView):
+        try:
+            await interaction.client.db.remove_list(interaction.guild)
+        except Exception as exc:
+            embed = FeedbackEmbed(
+                f"Failed to remove list channel\n```py\n{exc}\n```", FeedbackType.ERROR
+            )
+            await followup.send(embed=embed, ephemeral=True)
+            raise exc
+        else:
+            embed = FeedbackEmbed("Disabled list channel", FeedbackType.SUCCESS)
+            await followup.send(embed=embed, ephemeral=True)
+
+
+class RemoveFacilitiesView(InteractionCheckedView):
     """View used when removing facilities"""
 
     def __init__(
@@ -103,19 +93,18 @@ class RemoveFacilitiesView(BaseFacilityView):
         *,
         timeout: float = 180,
         original_author: User | Member,
-        bot: FacilityBot,
         facilities: list[Facility],
     ) -> None:
-        super().__init__(timeout=timeout, original_author=original_author, bot=bot)
+        super().__init__(timeout=timeout, original_author=original_author)
         self.facilities = facilities
 
-    @ui.button(label="Confirm", style=ButtonStyle.primary)
-    async def confirm(self, interaction: Interaction, _: ui.Button) -> None:
+    @ui.button(label="Remove", style=ButtonStyle.red)
+    async def confirm(self, interaction: GuildInteraction, _: ui.Button) -> None:
         await self._finish_view(interaction)
 
         followup = interaction.followup
         try:
-            await self.bot.db.remove_facilities(self.facilities)
+            await interaction.client.db.remove_facilities(self.facilities)
         except Exception as exc:
             embed = FeedbackEmbed(
                 f"Failed to remove facilities\n```py\n{exc}\n```", FeedbackType.ERROR
@@ -125,15 +114,14 @@ class RemoveFacilitiesView(BaseFacilityView):
         else:
             embed = FeedbackEmbed("Removed facilities", FeedbackType.SUCCESS)
             await followup.send(embed=embed, ephemeral=True)
-            self.bot.dispatch(
+            interaction.client.dispatch(
                 "bulk_facility_delete",
                 self.facilities,
-                interaction.user,
-                interaction.guild,
+                interaction,
             )
 
 
-class ResetView(BaseFacilityView):
+class ResetView(InteractionCheckedView):
     """View used when resetting and removing all facilities"""
 
     @ui.button(label="Confirm", style=ButtonStyle.primary)
@@ -142,7 +130,7 @@ class ResetView(BaseFacilityView):
         resopnse = interaction.response
 
         try:
-            await self.bot.db.reset()
+            await interaction.client.db.reset()
         except Exception as exc:
             embed = FeedbackEmbed(
                 f"Failed to reset DB\n```py\n{exc}\n```", FeedbackType.ERROR
@@ -154,13 +142,15 @@ class ResetView(BaseFacilityView):
             await resopnse.send_message(embed=embed, delete_after=10)
 
 
-class BaseServicesSelectView(BaseFacilityView):
+class BaseServicesSelectView(InteractionCheckedView):
     """Base view used when creating or modifying services of a facility"""
 
-    def __init__(
-        self, *, facility: Facility, original_author: User | Member, bot: FacilityBot
-    ) -> None:
-        super().__init__(original_author=original_author, bot=bot)
+    def __init__(self, *, facility: Facility, original_author: User | Member) -> None:
+        super().__init__(original_author=original_author)
+        for item in (self.edit, self.quit):
+            self.remove_item(item)
+            self.add_item(item)
+        self.initial_facility = copy(facility)
         self.facility = facility
         self._update_options()
 
@@ -173,7 +163,7 @@ class BaseServicesSelectView(BaseFacilityView):
         max_values=len(ITEM_SERVICES),
         min_values=0,
     )
-    async def item_select(self, interaction: Interaction, menu: ui.Select) -> None:
+    async def item_select(self, interaction: GuildInteraction, menu: ui.Select) -> None:
         self.facility.set_services(menu.values, False)
         self._update_options()
         embed = self.facility.embed()
@@ -184,22 +174,31 @@ class BaseServicesSelectView(BaseFacilityView):
         max_values=len(VEHICLE_SERVICES),
         min_values=0,
     )
-    async def vehicle_select(self, interaction: Interaction, menu: ui.Select) -> None:
+    async def vehicle_select(
+        self, interaction: GuildInteraction, menu: ui.Select
+    ) -> None:
         self.facility.set_services(menu.values, True)
         self._update_options()
         embed = self.facility.embed()
         await interaction.response.edit_message(embed=embed, view=self)
 
     @ui.button(label="Add Description/Edit")
-    async def edit(self, interaction: Interaction, _: ui.Button) -> None:
+    async def edit(self, interaction: GuildInteraction, _: ui.Button) -> None:
         information = FacilityInformationModal(self.facility)
         await interaction.response.send_modal(information)
+
+    @ui.button(label="Quit", style=ButtonStyle.red)
+    async def quit(self, interaction: GuildInteraction, _: ui.Button) -> None:
+        for item in self.children:
+            item.disabled = True
+        await interaction.response.edit_message(view=self)
+        self.stop()
 
 
 class CreateFacilityView(BaseServicesSelectView):
     """View when creating a facility"""
 
-    async def _checks(self, interaction: Interaction) -> bool:
+    async def _checks(self, interaction: GuildInteraction) -> bool:
         if self.facility.item_services == 0 and self.facility.vehicle_services == 0:
             embed = FeedbackEmbed(
                 "Please select at least one service", FeedbackType.WARNING
@@ -211,8 +210,8 @@ class CreateFacilityView(BaseServicesSelectView):
             return False
         return True
 
-    @ui.button(label="Finish", style=ButtonStyle.primary)
-    async def finish(self, interaction: Interaction, _: ui.Button) -> None:
+    @ui.button(label="Create", style=ButtonStyle.green)
+    async def finish(self, interaction: GuildInteraction, _: ui.Button) -> None:
         should_continue = await self._checks(interaction)
         if should_continue is False:
             return
@@ -223,7 +222,7 @@ class CreateFacilityView(BaseServicesSelectView):
 
         followup = interaction.followup
         try:
-            facility_id = await self.bot.db.add_facility(self.facility)
+            facility_id = await interaction.client.db.add_facility(self.facility)
         except Exception as exc:
             embed = FeedbackEmbed(
                 f"Failed to create facility\n```py\n{exc}\n```", FeedbackType.ERROR
@@ -239,15 +238,17 @@ class CreateFacilityView(BaseServicesSelectView):
                 embed=embed,
                 ephemeral=True,
             )
-            self.bot.dispatch(
-                "facility_create", self.facility, interaction.user, interaction.guild
+            interaction.client.dispatch(
+                "facility_create",
+                self.facility,
+                interaction,
             )
 
 
 class ModifyFacilityView(BaseServicesSelectView):
     """View when modifying a facility"""
 
-    async def _checks(self, interaction: Interaction) -> bool:
+    async def _checks(self, interaction: GuildInteraction) -> bool:
         if self.facility.item_services == 0 and self.facility.vehicle_services == 0:
             embed = FeedbackEmbed(
                 "Please select at least one service", FeedbackType.WARNING
@@ -267,8 +268,8 @@ class ModifyFacilityView(BaseServicesSelectView):
             return False
         return True
 
-    @ui.button(label="Finish", style=ButtonStyle.primary)
-    async def finish(self, interaction: Interaction, _: ui.Button) -> None:
+    @ui.button(label="Update", style=ButtonStyle.green)
+    async def finish(self, interaction: GuildInteraction, _: ui.Button) -> None:
         should_continue = await self._checks(interaction)
         if should_continue is False:
             return
@@ -279,7 +280,7 @@ class ModifyFacilityView(BaseServicesSelectView):
 
         followup = interaction.followup
         try:
-            await self.bot.db.update_facility(self.facility)
+            await interaction.client.db.update_facility(self.facility)
         except Exception as exc:
             embed = FeedbackEmbed(
                 f"Failed to modify facility\n```py\n{exc}\n```", FeedbackType.ERROR
@@ -289,6 +290,9 @@ class ModifyFacilityView(BaseServicesSelectView):
         else:
             embed = FeedbackEmbed("Modified facility", FeedbackType.SUCCESS)
             await followup.send(embed=embed, ephemeral=True)
-            self.bot.dispatch(
-                "facility_modify", self.facility, interaction.user, interaction.guild
+            interaction.client.dispatch(
+                "facility_modify",
+                self.initial_facility,
+                self.facility,
+                interaction,
             )

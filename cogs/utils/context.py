@@ -1,21 +1,21 @@
 from typing import Union
 
-from discord import Member, Guild, VoiceChannel, TextChannel, Thread, Interaction
+from discord import Member, Guild, Thread, Interaction
 from discord.abc import GuildChannel
 from discord.ext import commands
 
 from bot import FacilityBot
 
 
-class GuildContext(commands.Context):
-    author: Member
-    guild: Guild
-    channel: Union[VoiceChannel, TextChannel, Thread]
-    me: Member
-    prefix: str
+class Context(commands.Context):
+    bot: FacilityBot
 
 
-class GuildInteraction(Interaction):
+class ClientInteraction(Interaction):
+    client: FacilityBot
+
+
+class GuildInteraction(ClientInteraction):
     user: Member
     guild: Guild
     guild_id: int

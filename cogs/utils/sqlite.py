@@ -4,6 +4,7 @@ from collections import UserList
 import sqlite3
 import logging
 import aiosqlite
+from contextlib import asynccontextmanager
 from aiosqlite import Row
 
 from discord import Guild, TextChannel
@@ -37,29 +38,37 @@ class Database:
         aiosqlite.register_adapter(Messages, Messages.adapt)
         aiosqlite.register_converter("messages", Messages.convert)
 
+    @asynccontextmanager
+    async def _connect(self):
+        conn = await aiosqlite.connect(
+            self.db_file, detect_types=sqlite3.PARSE_DECLTYPES
+        )
+        try:
+            yield conn
+        finally:
+            await conn.close()
+
     async def _execute_query(
         self,
         query: str,
         params: tuple | list[tuple] | None = None,
         fetch_method: FetchMethod = FetchMethod.NONE,
     ) -> Iterable[Row] | Row | None:
-        async with aiosqlite.connect(
-            self.db_file, detect_types=sqlite3.PARSE_DECLTYPES
-        ) as db:
+        async with self._connect() as db:
             db.row_factory = Row
             if ";" in query:
-                logger.debug("Running executescript statement %s", query)
+                logger.debug("Running executescript statement %r", query)
                 cur = await db.executescript(query)
 
             elif isinstance(params, list):
                 logger.debug(
-                    "Running executemany statement %s with parameters %s", query, params
+                    "Running executemany statement %s with parameters %r", query, params
                 )
                 cur = await db.executemany(query, params)
 
             else:
                 logger.debug(
-                    "Running execute statement %r with parameters %s", query, params
+                    "Running execute statement %r with parameters %r", query, params
                 )
                 cur = await db.execute(query, params)
 
@@ -67,7 +76,7 @@ class Database:
                 case FetchMethod.ONE:
                     result = await cur.fetchone()
                     if result:
-                        logger.debug("Fetched row with first column %s", result[0])
+                        logger.debug("Fetched row with first column %r", result[0])
                     else:
                         logger.debug("Fetched row with no result")
                     return result
@@ -75,7 +84,7 @@ class Database:
                     result = await cur.fetchall()
                     if result:
                         logger.debug(
-                            "Fetched multiple rows with first column's %s",
+                            "Fetched multiple rows with first column's %r",
                             [row[0] for row in result],
                         )
                     else:
@@ -83,8 +92,50 @@ class Database:
                     return result
                 case _:
                     await db.commit()
-                    logger.debug("Committed changes to DB, lastrowid %s", cur.lastrowid)
+                    logger.debug("Committed changes to DB, lastrowid %r", cur.lastrowid)
                     return cur.lastrowid
+
+    async def fetch(
+        self,
+        query: str,
+        *params,
+    ) -> Iterable[Row]:
+        async with self._connect() as db:
+            logger.debug(
+                "Running fetchall statement %r with parameters %r",
+                query,
+                params,
+            )
+            result = await db.execute_fetchall(query, params)
+
+            if result:
+                logger.debug(
+                    "Fetched multiple rows with first column's %r",
+                    [row[0] for row in result],
+                )
+            else:
+                logger.debug("Fetched multiple rows with no result")
+            return result or []
+
+    async def execute(
+        self,
+        query: str,
+        *params,
+    ) -> int:
+        async with self._connect() as db:
+            logger.debug(
+                "Running execute statement %r with parameters %r", query, params
+            )
+            cur = await db.execute(query, params)
+            await db.commit()
+            logger.debug("Committed changes to database")
+
+            return cur.lastrowid
+
+    async def executemultiple(self, query: str):
+        async with self._connect() as db:
+            await db.executescript(query)
+            await db.commit()
 
     async def create(self):
         sql = """
@@ -103,10 +154,10 @@ class Database:
                     "guild_id"	INTEGER,
                     "image_url"	TEXT
                 );
-                CREATE TABLE "roles" (
-	                "id"	INTEGER UNIQUE,
-	                "guild_id"	INTEGER,
-	                PRIMARY KEY("id")
+                CREATE TABLE "blacklist" (
+	                "object_id"	INTEGER UNIQUE,
+	                "reason"	TEXT,
+	                PRIMARY KEY("object_id")
                 );
                 CREATE TABLE "list" (
 	                "guild_id"	INTEGER UNIQUE,
@@ -115,7 +166,7 @@ class Database:
 	                PRIMARY KEY("guild_id")
                 );
             """
-        await self._execute_query(sql)
+        await self.executemultiple(sql)
         logger.info("Created database %r", str(self.db_file))
 
     async def get_all_facilities(self) -> List[Facility]:
@@ -179,7 +230,7 @@ class Database:
             return None
         return Facility(**row)
 
-    async def remove_facilities(self, facilities) -> None:
+    async def remove_facilities(self, facilities: list[Facility]) -> None:
         ids = [(facility.id_,) for facility in facilities]
         await self._execute_query("""DELETE FROM facilities WHERE id_ == ?""", ids)
 

@@ -22,9 +22,8 @@ Run `pip install -U -r requirements.txt`
 
 Create a `.env` file with the following contents:
 ```env
-OWNER_ID=Enter your ID here *Not required but recomended*
-BOT_TOKEN='Token goes here'
-BOT_PREFIX='.'
+BOT_TOKEN='' # bot token
+BOT_PREFIX='' # prefix for commands, defaults to '.'
 ```
 
 5. **Make sure all intents are enabled in the dev portal**

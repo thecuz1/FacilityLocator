@@ -2,12 +2,17 @@ import logging
 
 from discord.ext import commands
 import discord
-from discord.app_commands import errors, CommandOnCooldown
+from discord.app_commands import errors, CommandOnCooldown, AppCommandError
 
 from bot import FacilityBot
 from .utils.embeds import FeedbackEmbed, FeedbackType
 
 command_error_logger = logging.getLogger("command_error")
+
+
+class MessageError(AppCommandError):
+    def __init__(self, message: str):
+        self.message: str = message
 
 
 class CommandErrorHandler(commands.Cog):
@@ -94,6 +99,15 @@ class CommandErrorHandler(commands.Cog):
             if isinstance(error, errors.MissingPermissions):
                 embed = FeedbackEmbed(
                     f"Missing the following permissions {error.missing_permissions}",
+                    FeedbackType.ERROR,
+                )
+                return await interaction.response.send_message(
+                    embed=embed, ephemeral=True
+                )
+
+            if isinstance(error, MessageError):
+                embed = FeedbackEmbed(
+                    error.message,
                     FeedbackType.ERROR,
                 )
                 return await interaction.response.send_message(

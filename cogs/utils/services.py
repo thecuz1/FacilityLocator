@@ -28,12 +28,12 @@ ITEM_SERVICES = (
 VEHICLE_SERVICES = {
     "Modification Center": None,
     "Light Assembly (Base)": (
-        '00MS "Stinger"',
-        "Small Train Locomotive",
-        "Small Container Car",
-        "Small Flatbed Car",
+        '00MS "Stinger" (Motorcycle)',
+        'BMS "Mineseeker" (Small Train)',
+        'BMS "Railtruck" (Small Container Car)',
+        'BMS "Linerunner" (Small Flatbed Car)',
     ),
-    "Motor Pool": (
+    "Motor Pool (Light Assembly)": (
         'T5 "Percutio" (AT Armoured Car)',
         'T8 "Gemini" (RPG Armoured Car)',
         'T20 "Ixion" (30mm Tankette)',
@@ -41,19 +41,19 @@ VEHICLE_SERVICES = {
         'UV-05c "Odyssey" (LUV)',
         'UV-24 "Icarus" (RPG LUV)',
     ),
-    "Rocket Factory": (
+    "Rocket Factory (Light Assembly)": (
         'R-17 "Retiarius" (Rocket Artillery Truck)',
         'DAE 3b-2 "Hades Net" (Emplaced Rocket Artillery)',
         'HH-b "Hoplite" (Half-Track)',
         'HH-d "Peltast" (Mortar Half-Track)',
     ),
-    "Field Station": (
+    "Field Station (Light Assembly)": (
         "BMS - Scrap Hauler (Harvester)",
         'HC-2 "Scorpion" (Light Infantry Tank)',
         'AB-11 "Doru" (APC)',
         '40-45 "Smelter" (HV40mm)',
     ),
-    "Tank Factory": (
+    "Tank Factory (Light Assembly)": (
         'H-19 "Vulcan" (Light Tank)',
         'H-10 "Pelekys" (Light Tank)',
         'H-5 "Kranesca" (Light Tank)',
@@ -61,16 +61,20 @@ VEHICLE_SERVICES = {
         '86K-c "Ranseur" (Assult Tank)',
         'DAE 2a-1 "Raptura" (75mm EAT)',
     ),
-    "Weapons Platform": (
+    "Weapons Platform (Light Assembly)": (
         '945g "Stygian Bolt" (94.5mm FAT)',
         '85V-g "Talos" (Assault Tank)',
     ),
-    "Large Assembly (Base)": (
-        "Locomotive",
-        "Container Car",
-        "Infantry Car",
-        "Flatbed Car",
+    "Large Assembly (Base Assembly)": (
+        'BMS "Black Bolt" (Locomotive)',
+        'BMS "Rockhold" (Container Car)',
+        'BMS "Holdout" (Infantry Car)',
+        'BMS "Longrider" (Flatbed Car)',
+        'BMS "Roadhouse" (Caboose)',
     ),
-    "Train": ("Combat Car", "Tempest Cannon RA-2 (Train Stormcannon)"),
-    "Heavy Tank": ('0-75b "Ares" (Super Tank)', "Lance-36 (Battle Tank)"),
+    "Train (Large Assembly)": ("Combat Car", "Tempest Cannon RA-2 (Artillery Car)"),
+    "Heavy Tank (Large Assembly)": (
+        '0-75b "Ares" (Super Tank)',
+        "Lance-36 (Battle Tank)",
+    ),
 }

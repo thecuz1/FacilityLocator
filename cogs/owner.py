@@ -9,14 +9,13 @@ import discord
 from discord.ext import commands
 from discord import Embed, Colour
 
-
 from bot import FacilityBot
-from .__init__ import EXTENSIONS
+from . import EXTENSIONS
 from .utils.embeds import FeedbackEmbed, FeedbackType
 from .utils.views import ResetView
 
 
-class Admin(commands.Cog, command_attrs=dict(hidden=True)):
+class Owner(commands.Cog, command_attrs={"hidden": True}):
     def __init__(self, bot: FacilityBot):
         self.bot: FacilityBot = bot
         self._last_result: Optional[Any] = None
@@ -128,7 +127,7 @@ class Admin(commands.Cog, command_attrs=dict(hidden=True)):
         )
         await ctx.send(embed=embed)
 
-    @commands.command()
+    @commands.command(aliases=["clean"])
     async def clear(self, ctx: commands.Context, limit: int = 1) -> None:
         deleted_count = 0
         async for message in ctx.channel.history(limit=100):
@@ -145,9 +144,9 @@ class Admin(commands.Cog, command_attrs=dict(hidden=True)):
             embed = FeedbackEmbed(
                 f"Deleted {deleted_count} messages", FeedbackType.SUCCESS
             )
-            return await ctx.send(embed=embed, delete_after=5)
+        else:
+            embed = FeedbackEmbed("No messages deleted", FeedbackType.WARNING)
 
-        embed = FeedbackEmbed("No messages deleted", FeedbackType.WARNING)
         await ctx.send(embed=embed, delete_after=5)
 
     @commands.command()
@@ -157,7 +156,7 @@ class Admin(commands.Cog, command_attrs=dict(hidden=True)):
         message = await ctx.send(embed=embed, view=view)
         view.message = message
 
-    @commands.command(hidden=True)
+    @commands.command()
     async def sudo(
         self,
         ctx: commands.Context,
@@ -184,7 +183,7 @@ class Admin(commands.Cog, command_attrs=dict(hidden=True)):
         # remove `foo`
         return content.strip("` \n")
 
-    @commands.command(hidden=True, name="eval")
+    @commands.command(name="eval")
     async def _eval(self, ctx: commands.Context, *, body: str):
         """Evaluates code"""
 
@@ -233,4 +232,4 @@ class Admin(commands.Cog, command_attrs=dict(hidden=True)):
 
 
 async def setup(bot: FacilityBot) -> None:
-    await bot.add_cog(Admin(bot))
+    await bot.add_cog(Owner(bot))

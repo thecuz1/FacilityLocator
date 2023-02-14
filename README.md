@@ -30,4 +30,4 @@ BOT_PREFIX='' # prefix for commands, defaults to '.'
 
 6. **Run `startup.py` & Sync Commands**
 
-Majority of the commands are app commands which needs to be synced with discord running the command `{BOT_PREFIX}sync` will sync these commands
+Majority of the commands are app commands which needs to be synced with discord running the command `{BOT_PREFIX}jsk sync` will sync these commands

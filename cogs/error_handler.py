@@ -64,7 +64,14 @@ class CommandErrorHandler(commands.Cog):
         if isinstance(error, ignored):
             return
 
-        if isinstance(error, (commands.BadArgument, commands.MissingRequiredArgument)):
+        if isinstance(
+            error,
+            (
+                commands.BadArgument,
+                commands.MissingRequiredArgument,
+                commands.TooManyArguments,
+            ),
+        ):
             return await ctx.send(str(error))
 
         # All other Errors not returned come here.

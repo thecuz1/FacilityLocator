@@ -22,12 +22,12 @@ BOT_PREFIX = os.environ.get("BOT_PREFIX")
 TOKEN = os.environ.get("BOT_TOKEN")
 
 
-# class EmbedHelp(commands.MinimalHelpCommand):
-#    async def send_pages(self):
-#        destination = self.get_destination()
-#        for page in self.paginator.pages:
-#            embed = discord.Embed(description=page, colour=discord.Colour.blue())
-#            await destination.send(embed=embed)
+class EmbedHelp(commands.MinimalHelpCommand):
+    async def send_pages(self):
+        destination = self.get_destination()
+        for page in self.paginator.pages:
+            embed = discord.Embed(description=page, colour=discord.Colour.blue())
+            await destination.send(embed=embed)
 
 
 class FacilityBot(commands.Bot):
@@ -36,7 +36,7 @@ class FacilityBot(commands.Bot):
         super().__init__(
             command_prefix=commands.when_mentioned_or(BOT_PREFIX or "."),
             intents=intents,
-            help_command=None,
+            help_command=EmbedHelp(),
         )
         self.guild_logs: dict[str, deque] = {}
         from cogs.utils.sqlite import Database

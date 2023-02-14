@@ -1,6 +1,6 @@
 import re
 from contextlib import contextmanager
-from typing_extensions import NamedTuple
+from typing import NamedTuple
 from rapidfuzz.process import extract
 
 from discord.ext import commands
@@ -248,9 +248,6 @@ class FacilityCog(commands.Cog):
 
         Args:
             user (Member): Member's facilities to remove
-
-        Returns:
-            _type_: _description_
         """
 
         search_dict = {

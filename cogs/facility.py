@@ -14,56 +14,8 @@ from .utils.views import ModifyFacilityView, RemoveFacilitiesView, CreateFacilit
 from .utils.regions import REGIONS
 from .utils.services import ITEM_SERVICES, VEHICLE_SERVICES
 from .utils.paginator import Paginator
-from .error_handler import MessageError
-
-
-class FacilityTransformer(app_commands.Transformer):
-    async def transform(self, interaction: GuildInteraction, value: str) -> Facility:
-
-        try:
-            facility_id = int(value)
-        except ValueError:
-            match_obj = re.search(r"\d+", value)
-            if not match_obj:
-                raise MessageError("No facility selected/ID passed")
-            facility_id = int(match_obj.group())
-
-        facility = await interaction.client.db.get_facility_id(facility_id)
-        if not facility or facility.guild_id != interaction.guild_id:
-            raise MessageError("Facility not found")
-        return facility
-
-    async def autocomplete(
-        self,
-        interaction: GuildInteraction,
-        value: str,
-    ) -> list[app_commands.Choice[str]]:
-        prefixed_value = "%" + value + "%"
-        query = """SELECT id_, name FROM facilities WHERE guild_id=? AND LOWER(name) LIKE ? LIMIT 12"""
-        results: list[tuple[int, str]] = await interaction.client.db.fetch(
-            query, interaction.guild_id, prefixed_value.lower()
-        )
-        return [
-            app_commands.Choice(name=f"{id_} - {name}", value=str(id_))
-            for id_, name in results
-        ]
-
-
-class IdTransformer(app_commands.Transformer):
-    async def transform(self, interaction: GuildInteraction, value: str) -> tuple:
-        delimiters = " ", ".", ","
-        regex_pattern = "|".join(map(re.escape, delimiters))
-        res = re.split(regex_pattern, value)
-        seperated = tuple(filter(None, res))
-
-        def convert(element: str):
-            try:
-                return int(element)
-            except ValueError:
-                return False
-
-        id_tuple = tuple(map(convert, seperated))
-        return tuple(filter(None, id_tuple))
+from .utils.transformers import FacilityTransformer, IdTransformer
+from .utils.errors import MessageError
 
 
 class MarkerTransformer(app_commands.Transformer):
@@ -389,7 +341,9 @@ class FacilityCog(commands.Cog):
         try:
             await self.bot.db.remove_facilities(facility_list)
         except Exception as exc:
-            raise MessageError(f"Failed to remove facilities\n```py\n{exc}\n```")
+            raise MessageError(
+                f"Failed to remove facilities\n```py\n{exc}\n```"
+            ) from exc
         else:
             embed = FeedbackEmbed("Removed facility", FeedbackType.SUCCESS)
             await interaction.response.send_message(embed=embed, ephemeral=True)

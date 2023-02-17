@@ -2,17 +2,13 @@ import logging
 
 from discord.ext import commands
 import discord
-from discord.app_commands import errors, CommandOnCooldown, AppCommandError
+from discord.app_commands import errors, CommandOnCooldown
 
 from bot import FacilityBot
 from .utils.embeds import FeedbackEmbed, FeedbackType
+from .utils.errors import MessageError
 
 command_error_logger = logging.getLogger("command_error")
-
-
-class MessageError(AppCommandError):
-    def __init__(self, message: str):
-        self.message: str = message
 
 
 class CommandErrorHandler(commands.Cog):

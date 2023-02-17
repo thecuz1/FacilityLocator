@@ -5,7 +5,7 @@ from bot import FacilityBot
 from .utils.context import Context, GuildInteraction, ClientInteraction
 from .utils.embeds import FeedbackEmbed, FeedbackType
 from .utils.views import DynamicListConfirm
-from .error_handler import MessageError
+from .utils.errors import MessageError
 
 
 class Config(commands.Cog):

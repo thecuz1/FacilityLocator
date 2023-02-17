@@ -208,12 +208,20 @@ class Database:
 
         return [Facility(**row) for row in rows]
 
-    async def get_facility_ids(self, ids) -> List[Facility]:
+    async def get_facility_ids(
+        self, ids: list[int], guild_id: int | None = None
+    ) -> List[Facility]:
+        sql = """SELECT * FROM facilities WHERE id_ == ?"""
+        if guild_id:
+            sql += """AND guild_id == ?"""
         facility_list = []
         for lookup_id in ids:
+            values = [lookup_id]
+            if guild_id:
+                values.append(guild_id)
             row = await self._execute_query(
-                """SELECT * FROM facilities WHERE id_ == ?""",
-                (lookup_id,),
+                sql,
+                tuple(values),
                 FetchMethod.ONE,
             )
             if not row:

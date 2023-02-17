@@ -6,7 +6,7 @@ from discord import app_commands, Embed, Colour
 
 from bot import FacilityBot
 from .utils.context import GuildInteraction
-from .error_handler import MessageError
+from .utils.errors import MessageError
 
 
 class Misc(commands.Cog):

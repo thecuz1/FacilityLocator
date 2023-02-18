@@ -1,16 +1,17 @@
 from enum import Enum, auto
 from typing import List, Dict, Iterable
 from collections import UserList
+from contextlib import asynccontextmanager
 import sqlite3
 import logging
 import aiosqlite
-from contextlib import asynccontextmanager
 from aiosqlite import Row
 
 from discord import Guild, TextChannel
 
 from bot import FacilityBot
 from .facility import Facility
+from .flags import ItemServiceFlags, VehicleServiceFlags
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,12 @@ class Database:
         self.db_file = db_file
         aiosqlite.register_adapter(Messages, Messages.adapt)
         aiosqlite.register_converter("messages", Messages.convert)
+        aiosqlite.register_adapter(ItemServiceFlags, ItemServiceFlags.adapt)
+        aiosqlite.register_converter("ITEM_SERVICES", ItemServiceFlags._from_value)
+        aiosqlite.register_adapter(VehicleServiceFlags, VehicleServiceFlags.adapt)
+        aiosqlite.register_converter(
+            "VEHICLE_SERVICES", VehicleServiceFlags._from_value
+        )
 
     @asynccontextmanager
     async def _connect(self):
@@ -148,8 +155,8 @@ class Database:
                     "marker"	INTEGER,
                     "maintainer"	TEXT,
                     "author"	INTEGER,
-                    "item_services"	INTEGER,
-                    "vehicle_services"	INTEGER,
+                    "item_services"	ITEM_SERVICES,
+                    "vehicle_services"	VEHICLE_SERVICES,
                     "creation_time"	INTEGER,
                     "guild_id"	INTEGER,
                     "image_url"	TEXT
@@ -242,7 +249,7 @@ class Database:
         ids = [(facility.id_,) for facility in facilities]
         await self._execute_query("""DELETE FROM facilities WHERE id_ == ?""", ids)
 
-    async def update_facility(self, facility) -> None:
+    async def update_facility(self, facility: Facility) -> None:
         values = (
             facility.name,
             facility.description,

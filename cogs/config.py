@@ -52,12 +52,14 @@ class Config(commands.Cog):
         await ctx.send(rows)
 
     @blacklist.command(name="add")
+    @commands.is_owner()
     async def blacklist_add(self, ctx: Context, object_id: int, reason: str = ""):
         query = """INSERT OR IGNORE INTO blacklist (object_id, reason) VALUES (?, ?)"""
         await self.bot.db.execute(query, object_id, reason)
         await ctx.send(content=":white_check_mark:")
 
     @blacklist.command(name="remove")
+    @commands.is_owner()
     async def blacklist_remove(self, ctx: Context, object_id: int):
         query = """DELETE FROM blacklist WHERE object_id = ?"""
         await self.bot.db.execute(query, object_id)

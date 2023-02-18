@@ -15,7 +15,7 @@ from .modals import FacilityInformationModal
 from .facility import Facility
 from .mixins import InteractionCheckedView
 from .embeds import FeedbackEmbed, FeedbackType
-from .services import ITEM_SERVICES, VEHICLE_SERVICES
+from .flags import ItemServiceFlags, VehicleServiceFlags
 from .embeds import create_list
 from .context import GuildInteraction
 
@@ -152,33 +152,37 @@ class BaseServicesSelectView(InteractionCheckedView):
             self.add_item(item)
         self.initial_facility = copy(facility)
         self.facility = facility
-        self._update_options()
 
-    def _update_options(self) -> None:
-        self.item_select.options = self.facility.select_options(False)
-        self.vehicle_select.options = self.facility.select_options(True)
+        self.item_select.options = self.facility.item_services.select_options()
+        self.vehicle_select.options = self.facility.vehicle_services.select_options()
 
     @ui.select(
         placeholder="Select item services...",
-        max_values=len(ITEM_SERVICES),
+        max_values=len(ItemServiceFlags),
         min_values=0,
     )
     async def item_select(self, interaction: GuildInteraction, menu: ui.Select) -> None:
-        self.facility.set_services(menu.values, False)
-        self._update_options()
+        item_services = ItemServiceFlags.from_menu(*menu.values)
+
+        self.facility.item_services = item_services
+        menu.options = item_services.select_options()
+
         embed = self.facility.embed()
         await interaction.response.edit_message(embed=embed, view=self)
 
     @ui.select(
         placeholder="Select vehicle services...",
-        max_values=len(VEHICLE_SERVICES),
+        max_values=len(VehicleServiceFlags),
         min_values=0,
     )
     async def vehicle_select(
         self, interaction: GuildInteraction, menu: ui.Select
     ) -> None:
-        self.facility.set_services(menu.values, True)
-        self._update_options()
+        vehicle_services = VehicleServiceFlags.from_menu(*menu.values)
+
+        self.facility.vehicle_services = vehicle_services
+        menu.options = vehicle_services.select_options()
+
         embed = self.facility.embed()
         await interaction.response.edit_message(embed=embed, view=self)
 

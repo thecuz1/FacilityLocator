@@ -6,7 +6,7 @@ from logging.config import dictConfig
 from pathlib import Path
 from collections import deque
 
-from discord import utils
+from discord import utils, VoiceClient
 
 from bot import FacilityBot
 from cogs.utils.context import GuildInteraction
@@ -38,11 +38,6 @@ class GuildHandler(Handler):
         guild_deque.append(formatted_record)
 
         ctx.client.guild_logs[ctx.guild_id] = guild_deque
-
-
-class NoVoiceFilter(logging.Filter):
-    def filter(self, record):
-        return not record.getMessage().startswith("PyNaCl")
 
 
 class FilterLevel(logging.Filter):
@@ -98,7 +93,6 @@ logging_dict = {
             "encoding": "utf-8",
             "mode": "w",
             "formatter": "default",
-            "filters": ["no_voice_warning"],
         },
         "bot_log": {
             "class": "logging.FileHandler",
@@ -128,11 +122,6 @@ logging_dict = {
         "console": {
             "class": "__main__.ConsoleHandler",
             "formatter": "notime",
-        },
-    },
-    "filters": {
-        "no_voice_warning": {
-            "()": NoVoiceFilter,
         },
     },
     "loggers": {
@@ -191,6 +180,7 @@ def setup_logging():
 
 
 if __name__ == "__main__":
+    VoiceClient.warn_nacl = False
     setup_logging()
 
     try:

@@ -32,13 +32,16 @@ class EmbedHelp(commands.MinimalHelpCommand):
 
 class FacilityBot(commands.Bot):
     def __init__(self) -> None:
-        intents = discord.Intents.all()
+        intents = discord.Intents(
+            guilds=True, members=True, messages=True, message_content=True
+        )
         super().__init__(
             command_prefix=commands.when_mentioned_or(BOT_PREFIX or "."),
             intents=intents,
             help_command=EmbedHelp(),
         )
         self.guild_logs: dict[str, deque] = {}
+
         from cogs.utils.sqlite import Database
 
         self.db = Database(self, DB_FILE)

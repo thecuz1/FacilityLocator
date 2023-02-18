@@ -2,7 +2,7 @@ from typing import Optional
 
 import discord
 
-from .services import ITEM_SERVICES, VEHICLE_SERVICES
+from .flags import ItemServiceFlags, VehicleServiceFlags
 
 
 class Facility:
@@ -17,8 +17,8 @@ class Facility:
         marker (str): Location in region
         maintainer (str): Maintainer
         author (int): Author ID
-        item_services (int, optional): Item services
-        vehicle_services (int, optional): Vehicle services
+        item_services (ItemServiceFlags, optional): Item services
+        vehicle_services (VehicleServiceFlags, optional): Vehicle services
         creation_time (int, optional): Creation time of facility
         guild_id (int): Guild facility was created in
         image_url (str): Image url to use in embed
@@ -43,8 +43,25 @@ class Facility:
         self.marker: str = marker
         self.maintainer: str = maintainer
         self.author: int = author
-        self.item_services: Optional[int] = options.pop("item_services", 0)
-        self.vehicle_services: Optional[int] = options.pop("vehicle_services", 0)
+
+        item_services: ItemServiceFlags = options.pop(
+            "item_services", ItemServiceFlags()
+        )
+        if not isinstance(item_services, ItemServiceFlags):
+            raise TypeError(
+                f"item_services must be ItemServiceFlags not {type(item_services)}"
+            )
+        self.item_services = item_services
+
+        vehicle_services: VehicleServiceFlags = options.pop(
+            "vehicle_services", VehicleServiceFlags()
+        )
+        if not isinstance(vehicle_services, VehicleServiceFlags):
+            raise TypeError(
+                f"vehicle_services must be VehicleServiceFlags not {type(vehicle_services)}"
+            )
+        self.vehicle_services = vehicle_services
+
         self.creation_time: Optional[int] = options.pop("creation_time", None)
         self.image_url: Optional[str] = options.pop("image_url", None)
         self.guild_id: int = guild_id
@@ -107,78 +124,24 @@ class Facility:
 
         embed.set_footer(text="Source Code: https://github.com/thecuz1/FacilityLocator")
 
-        def format_services(service_tuple: tuple, services_number: int) -> str:
-            formatted_services = "```ansi\n\u001b[0;32m"
-            for index, service in enumerate(service_tuple):
-                if (1 << index) & services_number:
-                    formatted_services += f"{service}\n"
-            formatted_services += "```"
-            return formatted_services
+        start = "```ansi\n\u001b[0;32m"
+        end = "\n```"
 
         if self.item_services:
-            formatted_services = format_services(ITEM_SERVICES, self.item_services)
-            embed.add_field(name="Item Services:", value=formatted_services)
+            services = "\n".join(
+                (name for name, enabled in self.item_services if enabled)
+            )
+            embed.add_field(
+                name="Item Services:",
+                value=f"{start}{services}{end}",
+            )
 
         if self.vehicle_services:
-            formatted_services = format_services(
-                VEHICLE_SERVICES, self.vehicle_services
+            services = "\n".join(
+                (name for name, enabled in self.vehicle_services if enabled)
             )
-            embed.add_field(name="Vehicle Services:", value=formatted_services)
+            embed.add_field(name="Vehicle Services:", value=f"{start}{services}{end}")
         return embed
-
-    def select_options(self, vehicle: bool = False) -> list[discord.SelectOption]:
-        """Generates select options with defaults set for the currently selected services
-
-        Args:
-            vehicle (bool, optional): Generate vehicle select options. Defaults to False.
-
-        Returns:
-            list[discord.SelectOption]: List of select options with defaults set based on current services
-        """
-        if vehicle:
-            return self.__generate_options(self.vehicle_services, VEHICLE_SERVICES)
-        return self.__generate_options(self.item_services, ITEM_SERVICES)
-
-    def __generate_options(
-        self, selected_services: int | None, available_services: tuple
-    ):
-        try:
-            return [
-                discord.SelectOption(
-                    label=service,
-                    value=service,
-                    default=bool((1 << index) & selected_services),
-                )
-                for index, service in enumerate(available_services)
-            ]
-        except TypeError:
-            return [
-                discord.SelectOption(label=service, value=service)
-                for service in available_services
-            ]
-
-    def set_services(self, services: list[str], vehicle: bool = False) -> None:
-        """Set services of facility
-
-        Args:
-            services (list[str]): List of services to set
-            vehicle (bool, optional): If services are vehicle. Defaults to False.
-        """
-        if vehicle:
-            self.vehicle_services = self.__generate_service_number(
-                services, VEHICLE_SERVICES
-            )
-        else:
-            self.item_services = self.__generate_service_number(services, ITEM_SERVICES)
-
-    def __generate_service_number(
-        self, selected_services: list[str], available_services: tuple
-    ) -> int | None:
-        service_var = 0
-        for index, available_service in enumerate(available_services):
-            if available_service in selected_services:
-                service_var += 1 << index
-        return service_var
 
     def can_modify(self, interaction: discord.Interaction) -> bool:
         """Returns true if the passed interaction has the ability to modify the facility

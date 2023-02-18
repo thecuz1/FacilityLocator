@@ -12,7 +12,7 @@ from .utils.embeds import FeedbackEmbed, FeedbackType, create_list
 from .utils.facility import Facility
 from .utils.views import ModifyFacilityView, RemoveFacilitiesView, CreateFacilityView
 from .utils.regions import REGIONS
-from .utils.services import ITEM_SERVICES, VEHICLE_SERVICES
+from .utils.flags import ItemServiceFlags, VehicleServiceFlags
 from .utils.paginator import Paginator
 from .utils.transformers import FacilityTransformer, IdTransformer
 from .utils.errors import MessageError
@@ -87,6 +87,25 @@ class LocationTransformer(app_commands.Transformer):
         results = extract(value, tuple(REGIONS), limit=25)
         return [
             app_commands.Choice(name=result[0], value=result[0]) for result in results
+        ]
+
+
+class VehicleTransformer(app_commands.Transformer):
+    async def transform(self, interaction: GuildInteraction, value: str) -> int:
+        for vehicle, flag in VehicleServiceFlags.all_vehicles():
+            if vehicle in value:
+                return flag.flag_value
+        raise MessageError("Invalid vehicle")
+
+    async def autocomplete(
+        self, _: GuildInteraction, value: str
+    ) -> list[app_commands.Choice[str]]:
+
+        choices = [name for name, _ in VehicleServiceFlags.all_vehicles()]
+        sorted_choices = extract(value, choices, limit=25)
+        return [
+            app_commands.Choice(name=choice[0], value=choice[0])
+            for choice in sorted_choices
         ]
 
 
@@ -410,12 +429,12 @@ class FacilityCog(commands.Cog):
     )
     @app_commands.choices(
         item_service=[
-            app_commands.Choice(name=service, value=(1 << index))
-            for index, service in enumerate(ITEM_SERVICES)
+            app_commands.Choice(name=flag.display_name, value=flag.flag_value)
+            for flag in ItemServiceFlags.MAPPED_FLAGS.values()
         ],
         vehicle_service=[
-            app_commands.Choice(name=service, value=(1 << index))
-            for index, service in enumerate(VEHICLE_SERVICES)
+            app_commands.Choice(name=flag.display_name, value=flag.flag_value)
+            for flag in VehicleServiceFlags.MAPPED_FLAGS.values()
         ],
     )
     async def locate(
@@ -424,10 +443,10 @@ class FacilityCog(commands.Cog):
         location: app_commands.Transform[
             FacilityLocation | None, LocationTransformer
         ] = None,
-        item_service: int | None = None,
-        vehicle_service: int | None = None,
+        item_service: int = 0,
+        vehicle_service: int = 0,
         creator: Member | None = None,
-        vehicle: str | None = None,
+        vehicle: app_commands.Transform[int, VehicleTransformer] = 0,
         ephemeral: bool = True,
     ) -> None:
         """Find a facility with optional search parameters
@@ -437,16 +456,10 @@ class FacilityCog(commands.Cog):
             item_service (int, optional): Item service to look for
             vehicle_service (int, optional): Vehicle service to look for
             creator (Member, optional): Filter by facility creator
-            vehicle (str, optional): Vehicle upgrade/build facility to look for
+            vehicle (int, optional): Vehicle upgrade/build facility to look for
             ephemeral (bool): Show results to only you. Defaults to True.
         """
-        if vehicle:
-            for index, vehicles in enumerate(VEHICLE_SERVICES.values()):
-                if vehicles and vehicle in vehicles:
-                    vehicle_service = 1 << index
-                    break
-            else:
-                raise MessageError("Invalid vehicle")
+        vehicle_service = vehicle or vehicle_service
 
         search_dict = {
             name: value
@@ -469,22 +482,6 @@ class FacilityCog(commands.Cog):
         await Paginator(original_author=interaction.user).start(
             interaction, pages=embeds, ephemeral=ephemeral
         )
-
-    @locate.autocomplete("vehicle")
-    async def vehicle_autocomplete(
-        self, _: GuildInteraction, current: str
-    ) -> list[app_commands.Choice[str]]:
-        choices = {
-            vehicle
-            for vehicles in VEHICLE_SERVICES.values()
-            if vehicles
-            for vehicle in vehicles
-        }
-        sorted_choices = extract(current, choices, limit=25)
-        return [
-            app_commands.Choice(name=choice[0], value=choice[0])
-            for choice in sorted_choices
-        ]
 
     @app_commands.command()
     @app_commands.guild_only()

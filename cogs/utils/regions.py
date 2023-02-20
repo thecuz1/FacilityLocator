@@ -1,3 +1,10 @@
+from itertools import chain
+
+
+def all_markers():
+    return set(chain.from_iterable(REGIONS.values()))
+
+
 REGIONS: dict[str, tuple[str, ...]] = {
     "Kalokai": (
         "Baccae Ridge",

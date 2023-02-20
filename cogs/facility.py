@@ -11,7 +11,7 @@ from .utils.context import GuildInteraction
 from .utils.embeds import FeedbackEmbed, FeedbackType, create_list
 from .utils.facility import Facility
 from .utils.views import ModifyFacilityView, RemoveFacilitiesView, CreateFacilityView
-from .utils.regions import REGIONS
+from .utils.regions import REGIONS, all_markers
 from .utils.flags import ItemServiceFlags, VehicleServiceFlags
 from .utils.paginator import Paginator
 from .utils.transformers import FacilityTransformer, IdTransformer
@@ -20,37 +20,34 @@ from .utils.errors import MessageError
 
 class MarkerTransformer(app_commands.Transformer):
     async def transform(self, interaction: GuildInteraction, value: str) -> str:
-        resolved_marker = None
-        for marker_tuple in REGIONS.values():
-            for marker in marker_tuple:
-                if value.lower() in marker.lower():
-                    resolved_marker = marker
-                    break
+        for marker in all_markers():
+            if value.lower() in marker.lower():
+                return marker
 
-        if resolved_marker is None:
-            raise MessageError("No marker found")
-        return resolved_marker
+        raise MessageError("No marker found")
 
     async def autocomplete(
         self, interaction: GuildInteraction, value: str
     ) -> list[app_commands.Choice]:
-        user_region: str | None = interaction.namespace.region
+        def generate_options(markers):
+            results = extract(value, markers, limit=25)
+            return [
+                app_commands.Choice(name=result[0], value=result[0])
+                for result in results
+            ]
 
-        if user_region is not None:
-            for region in REGIONS:
-                if region.lower() in user_region.lower():
-                    user_region = region
-                    break
+        ns_region = interaction.namespace.region
+        if not isinstance(ns_region, str):
+            if ns_region is None:
+                pass
+            else:
+                raise RuntimeError(f"Unexpected namespace type {type(ns_region)}")
+        elif not ns_region == "":
+            for region, markers in REGIONS.items():
+                if region.lower() in ns_region.lower():
+                    return generate_options(markers)
 
-        markers = REGIONS.get(user_region)
-        if markers is None:
-            markers = {marker for markers in REGIONS.values() for marker in markers}
-
-        results = extract(value, markers, limit=25)
-
-        return [
-            app_commands.Choice(name=result[0], value=result[0]) for result in results
-        ]
+        return generate_options(all_markers())
 
 
 class FacilityLocation(NamedTuple):
@@ -70,16 +67,11 @@ class LocationTransformer(app_commands.Transformer):
         except AttributeError:
             coordinates = ""
 
-        selected_region = None
         for region in REGIONS:
             if region.lower() in value.lower():
-                selected_region = region
-                break
+                return FacilityLocation(region, coordinates.upper())
 
-        if selected_region is None:
-            raise MessageError("Invalid region")
-
-        return FacilityLocation(selected_region, coordinates.upper())
+        raise MessageError("Invalid region")
 
     async def autocomplete(
         self, interaction: GuildInteraction, value: str

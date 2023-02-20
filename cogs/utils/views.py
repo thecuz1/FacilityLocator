@@ -203,7 +203,7 @@ class CreateFacilityView(BaseServicesSelectView):
     """View when creating a facility"""
 
     async def _checks(self, interaction: GuildInteraction) -> bool:
-        if self.facility.item_services == 0 and self.facility.vehicle_services == 0:
+        if not self.facility.item_services and not self.facility.vehicle_services == 0:
             embed = FeedbackEmbed(
                 "Please select at least one service", FeedbackType.WARNING
             )

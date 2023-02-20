@@ -1,19 +1,18 @@
+# only essential imports to load logging config to limit overriding loggers
 import sys
-import asyncio
 import logging
+from typing import TypeVar
 from logging import LogRecord, Handler
 from logging.config import dictConfig
 from pathlib import Path
 from collections import deque
 
-from discord import utils, VoiceClient
 
-from bot import FacilityBot
-from cogs.utils.context import GuildInteraction
+GI = TypeVar("GI", bound="GuildInteraction")
 
 
 class LogRecordContext(LogRecord):
-    ctx: GuildInteraction
+    ctx: GI
 
 
 class ExtraInfoFileHandler(logging.FileHandler):
@@ -130,21 +129,21 @@ logging_dict = {
             "handlers": ["discord_log"],
             "propagate": False,
         },
-        "bot": {
-            "level": logging.INFO,
-        },
-        "cogs": {
-            "level": logging.INFO,
-        },
-        "command_error": {
-            "level": logging.INFO,
-        },
-        "view_error": {
-            "level": logging.INFO,
-        },
-        "modal_error": {
-            "level": logging.INFO,
-        },
+        # "bot": {
+        #    "level": logging.INFO,
+        # },
+        # "cogs": {
+        #    "level": logging.INFO,
+        # },
+        # "command_error": {
+        #    "level": logging.INFO,
+        # },
+        # "view_error": {
+        #    "level": logging.INFO,
+        # },
+        # "modal_error": {
+        #    "level": logging.INFO,
+        # },
         "guild_event": {
             "level": logging.INFO,
             "handlers": ["guild_event_log"],
@@ -158,17 +157,16 @@ logging_dict = {
     },
     "root": {
         "handlers": ["bot_log", "console"],
+        "level": logging.INFO,
     },
 }
 
 
-async def run_bot():
-    async with FacilityBot() as bot:
-        await bot.start()
-
-
-def setup_logging():
+if __name__ == "__main__":
     dictConfig(logging_dict)
+
+    from discord import utils
+
     root_logger = logging.getLogger()
     for handler in root_logger.handlers:
         if (
@@ -178,10 +176,19 @@ def setup_logging():
         ):
             handler.formatter = utils._ColourFormatter()
 
+    # remaining imports as logging is setup
+    import asyncio
 
-if __name__ == "__main__":
+    from discord import VoiceClient
+
+    from bot import FacilityBot
+    from cogs.utils.context import GuildInteraction
+
+    async def run_bot():
+        async with FacilityBot() as bot:
+            await bot.start()
+
     VoiceClient.warn_nacl = False
-    setup_logging()
 
     try:
         asyncio.run(run_bot())

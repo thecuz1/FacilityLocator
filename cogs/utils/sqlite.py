@@ -1,6 +1,5 @@
 from enum import Enum, auto
 from typing import List, Dict, Iterable
-from collections import UserList
 from contextlib import asynccontextmanager
 import sqlite3
 import logging
@@ -22,7 +21,7 @@ class FetchMethod(Enum):
     ALL = auto()
 
 
-class Messages(UserList):
+class Messages(list):
     @staticmethod
     def adapt(messages: list[int]):
         return ";".join(str(message) for message in messages)

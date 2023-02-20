@@ -117,7 +117,7 @@ class CommandErrorHandler(commands.Cog):
                     embed=embed, ephemeral=True
                 )
 
-            ignored = (errors.CheckFailure, errors.TransformerError)
+            ignored = errors.CheckFailure
 
             if isinstance(error, ignored):
                 return

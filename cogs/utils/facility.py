@@ -79,8 +79,8 @@ class Facility:
                 self.marker,
                 self.maintainer,
                 self.author,
-                self.item_services,
-                self.vehicle_services,
+                self.item_services.value,
+                self.vehicle_services.value,
             )
         )
 
@@ -153,3 +153,6 @@ class Facility:
             bool: Whether the facility can be modified
         """
         return self.author == interaction.user.id
+
+    def has_one_service(self) -> bool:
+        return self.item_services or self.vehicle_services

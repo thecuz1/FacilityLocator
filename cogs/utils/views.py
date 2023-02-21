@@ -10,6 +10,7 @@ from discord import (
     TextChannel,
 )
 from discord.errors import Forbidden
+from discord.ui import Item
 
 from .modals import FacilityInformationModal
 from .facility import Facility
@@ -18,6 +19,14 @@ from .embeds import FeedbackEmbed, FeedbackType
 from .flags import ItemServiceFlags, VehicleServiceFlags
 from .embeds import create_list
 from .context import GuildInteraction
+
+
+class NoServices(Exception):
+    pass
+
+
+class NoChanges(Exception):
+    pass
 
 
 class DynamicListConfirm(InteractionCheckedView):
@@ -198,27 +207,29 @@ class BaseServicesSelectView(InteractionCheckedView):
         await interaction.response.edit_message(view=self)
         self.stop()
 
+    async def on_error(
+        self, interaction: Interaction, error: Exception, item: Item
+    ) -> None:
+        if isinstance(error, (NoServices, NoChanges)):
+            embed = FeedbackEmbed(str(error), FeedbackType.WARNING)
+            return await interaction.response.send_message(
+                embed=embed,
+                ephemeral=True,
+            )
+
+        await super().on_error(interaction, error, item)
+
+    def _checks(self, _: GuildInteraction) -> bool:
+        if not self.facility.has_one_service():
+            raise NoServices("Please select at least one service")
+
 
 class CreateFacilityView(BaseServicesSelectView):
     """View when creating a facility"""
 
-    async def _checks(self, interaction: GuildInteraction) -> bool:
-        if not self.facility.item_services and not self.facility.vehicle_services == 0:
-            embed = FeedbackEmbed(
-                "Please select at least one service", FeedbackType.WARNING
-            )
-            await interaction.response.send_message(
-                embed=embed,
-                ephemeral=True,
-            )
-            return False
-        return True
-
     @ui.button(label="Create", style=ButtonStyle.green)
     async def finish(self, interaction: GuildInteraction, _: ui.Button) -> None:
-        should_continue = await self._checks(interaction)
-        if should_continue is False:
-            return
+        self._checks(interaction)
 
         await self._finish_view(interaction)
         if self.facility.creation_time is None:
@@ -252,31 +263,15 @@ class CreateFacilityView(BaseServicesSelectView):
 class ModifyFacilityView(BaseServicesSelectView):
     """View when modifying a facility"""
 
-    async def _checks(self, interaction: GuildInteraction) -> bool:
-        if self.facility.item_services == 0 and self.facility.vehicle_services == 0:
-            embed = FeedbackEmbed(
-                "Please select at least one service", FeedbackType.WARNING
-            )
-            await interaction.response.send_message(
-                embed=embed,
-                ephemeral=True,
-            )
-            return False
+    def _checks(self, interaction: GuildInteraction) -> bool:
+        super()._checks(interaction)
 
-        if self.facility.changed() is False:
-            embed = FeedbackEmbed("No changes", FeedbackType.WARNING)
-            await interaction.response.send_message(
-                embed=embed,
-                ephemeral=True,
-            )
-            return False
-        return True
+        if not self.facility.changed():
+            raise NoChanges("No changes")
 
     @ui.button(label="Update", style=ButtonStyle.green)
     async def finish(self, interaction: GuildInteraction, _: ui.Button) -> None:
-        should_continue = await self._checks(interaction)
-        if should_continue is False:
-            return
+        self._checks(interaction)
 
         await self._finish_view(interaction)
         if self.facility.creation_time is None:

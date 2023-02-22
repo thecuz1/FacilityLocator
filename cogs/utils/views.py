@@ -8,9 +8,9 @@ from discord import (
     Member,
     ButtonStyle,
     TextChannel,
+    Button,
 )
 from discord.errors import Forbidden
-from discord.ui import Item
 
 from .modals import FacilityInformationModal
 from .facility import Facility
@@ -21,12 +21,18 @@ from .embeds import create_list
 from .context import GuildInteraction
 
 
-class NoServices(Exception):
+class ButtonMessage(Exception):
     pass
 
 
-class NoChanges(Exception):
-    pass
+class NoServices(ButtonMessage):
+    def __init__(self, *args: object) -> None:
+        super().__init__("Select one service")
+
+
+class NoChanges(ButtonMessage):
+    def __init__(self, *args: object) -> None:
+        super().__init__("No changes")
 
 
 class DynamicListConfirm(InteractionCheckedView):
@@ -154,6 +160,8 @@ class ResetView(InteractionCheckedView):
 class BaseServicesSelectView(InteractionCheckedView):
     """Base view used when creating or modifying services of a facility"""
 
+    finish: Button
+
     def __init__(self, *, facility: Facility, original_author: User | Member) -> None:
         super().__init__(original_author=original_author)
         for item in (self.edit, self.quit):
@@ -164,6 +172,31 @@ class BaseServicesSelectView(InteractionCheckedView):
 
         self.item_select.options = self.facility.item_services.select_options()
         self.vehicle_select.options = self.facility.vehicle_services.select_options()
+
+        self.original_button = (
+            self.finish.label,
+            self.finish.style,
+            self.finish.disabled,
+        )
+        self._update_button()
+
+    def _update_button(self):
+        try:
+            self._checks()
+        except ButtonMessage as exc:
+            self.finish.label = str(exc)
+            self.finish.style = ButtonStyle.blurple
+            self.finish.disabled = True
+        else:
+            label, style, disabled = self.original_button
+
+            self.finish.label = label
+            self.finish.style = style
+            self.finish.disabled = disabled
+
+    def _checks(self) -> bool:
+        if not self.facility.has_one_service():
+            raise NoServices()
 
     @ui.select(
         placeholder="Select item services...",
@@ -176,6 +209,7 @@ class BaseServicesSelectView(InteractionCheckedView):
         self.facility.item_services = item_services
         menu.options = item_services.select_options()
 
+        self._update_button()
         embed = self.facility.embed()
         await interaction.response.edit_message(embed=embed, view=self)
 
@@ -192,12 +226,13 @@ class BaseServicesSelectView(InteractionCheckedView):
         self.facility.vehicle_services = vehicle_services
         menu.options = vehicle_services.select_options()
 
+        self._update_button()
         embed = self.facility.embed()
         await interaction.response.edit_message(embed=embed, view=self)
 
     @ui.button(label="Add Description/Edit")
     async def edit(self, interaction: GuildInteraction, _: ui.Button) -> None:
-        information = FacilityInformationModal(self.facility)
+        information = FacilityInformationModal(self.facility, self)
         await interaction.response.send_modal(information)
 
     @ui.button(label="Quit", style=ButtonStyle.red)
@@ -207,30 +242,12 @@ class BaseServicesSelectView(InteractionCheckedView):
         await interaction.response.edit_message(view=self)
         self.stop()
 
-    async def on_error(
-        self, interaction: Interaction, error: Exception, item: Item
-    ) -> None:
-        if isinstance(error, (NoServices, NoChanges)):
-            embed = FeedbackEmbed(str(error), FeedbackType.WARNING)
-            return await interaction.response.send_message(
-                embed=embed,
-                ephemeral=True,
-            )
-
-        await super().on_error(interaction, error, item)
-
-    def _checks(self, _: GuildInteraction) -> bool:
-        if not self.facility.has_one_service():
-            raise NoServices("Please select at least one service")
-
 
 class CreateFacilityView(BaseServicesSelectView):
     """View when creating a facility"""
 
     @ui.button(label="Create", style=ButtonStyle.green)
     async def finish(self, interaction: GuildInteraction, _: ui.Button) -> None:
-        self._checks(interaction)
-
         await self._finish_view(interaction)
         if self.facility.creation_time is None:
             self.facility.creation_time = int(time())
@@ -263,16 +280,14 @@ class CreateFacilityView(BaseServicesSelectView):
 class ModifyFacilityView(BaseServicesSelectView):
     """View when modifying a facility"""
 
-    def _checks(self, interaction: GuildInteraction) -> bool:
-        super()._checks(interaction)
+    def _checks(self) -> bool:
+        super()._checks()
 
         if not self.facility.changed():
-            raise NoChanges("No changes")
+            raise NoChanges()
 
     @ui.button(label="Update", style=ButtonStyle.green)
     async def finish(self, interaction: GuildInteraction, _: ui.Button) -> None:
-        self._checks(interaction)
-
         await self._finish_view(interaction)
         if self.facility.creation_time is None:
             self.facility.creation_time = int(time())

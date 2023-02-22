@@ -143,18 +143,19 @@ class FacilityCog(commands.Cog):
         with self._facility_create_lock(interaction.user.id):
             final_coordinates = coordinates.upper() or location.coordinates
 
-            search_dict = {
-                " guild_id == ? ": interaction.guild_id,
-                " author == ? ": interaction.user.id,
-            }
+            query = """SELECT count(id_) FROM facilities WHERE guild_id == ? AND author == ?"""
+            facility_count_row = await self.bot.db.fetch_one(
+                query, interaction.guild_id, interaction.user.id
+            )
+            facility_count: int = facility_count_row[0]
 
-            facility_list = await self.bot.db.get_facilities(search_dict)
             if (
-                len(facility_list) >= 5
+                facility_count >= 5
                 and not interaction.user.guild_permissions.administrator
             ):
                 raise MessageError("Cannot create more then 5 facilities")
 
+            url = image and image.url
             facility = Facility(
                 name=name,
                 region=location.region,
@@ -163,7 +164,7 @@ class FacilityCog(commands.Cog):
                 author=interaction.user.id,
                 marker=marker,
                 guild_id=interaction.guild_id,
-                image_url=image and image.url,
+                image_url=url or "",
             )
 
             view = CreateFacilityView(

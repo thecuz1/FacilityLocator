@@ -37,7 +37,7 @@ class Facility:
     ) -> None:
         self.id_: Optional[int] = options.pop("id_", None)
         self.name: str = name
-        self.description: Optional[str] = options.pop("description", None)
+        self.description: str = options.pop("description", "")
         self.region: str = region
         self.coordinates: Optional[str] = options.pop("coordinates", None)
         self.marker: str = marker
@@ -63,14 +63,13 @@ class Facility:
         self.vehicle_services = vehicle_services
 
         self.creation_time: Optional[int] = options.pop("creation_time", None)
-        self.image_url: Optional[str] = options.pop("image_url", None)
+        self.image_url: str = options.pop("image_url", "")
         self.guild_id: int = guild_id
         self.initial_hash: int = self.__current_hash()
 
     def __current_hash(self) -> int:
         return hash(
             (
-                self.__class__,
                 self.id_,
                 self.name,
                 self.description,
@@ -81,6 +80,7 @@ class Facility:
                 self.author,
                 self.item_services.value,
                 self.vehicle_services.value,
+                self.image_url,
             )
         )
 

@@ -123,6 +123,29 @@ class Database:
                 logger.debug("Fetched multiple rows with no result")
             return result or []
 
+    async def fetch_one(
+        self,
+        query: str,
+        *params,
+    ) -> Row | None:
+        async with self._connect() as db:
+            logger.debug(
+                "Running fetch statement %r with parameters %r",
+                query,
+                params,
+            )
+            cur = await db.execute(query, params)
+            result = await cur.fetchone()
+
+            if result:
+                logger.debug(
+                    "Fetched row with first column %r",
+                    result[0],
+                )
+            else:
+                logger.debug("Fetched row with no result")
+            return result
+
     async def execute(
         self,
         query: str,
@@ -255,10 +278,11 @@ class Database:
             facility.maintainer,
             facility.item_services,
             facility.vehicle_services,
+            facility.image_url,
             facility.id_,
         )
         await self._execute_query(
-            """UPDATE facilities SET name = ?, description = ?, maintainer = ?, item_services = ?, vehicle_services = ? WHERE id_ == ?""",
+            """UPDATE facilities SET name = ?, description = ?, maintainer = ?, item_services = ?, vehicle_services = ?, image_url = ? WHERE id_ == ?""",
             values,
         )
 

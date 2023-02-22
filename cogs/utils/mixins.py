@@ -76,9 +76,7 @@ class BaseView(View):
 class ErrorLoggedModal(Modal):
     """Subclass of ui.Modal to log any errors to the correct place"""
 
-    async def on_error(
-        self, interaction: Interaction, error: Exception, item: Item, /
-    ) -> None:
+    async def on_error(self, interaction: Interaction, error: Exception, /) -> None:
         """Log any error that happens in a Modal
 
         Args:
@@ -87,7 +85,7 @@ class ErrorLoggedModal(Modal):
             item (Item): The item that failed the dispatch.
         """
         modal_error_logger.error(
-            "Ignoring exception in modal %r for item %r", self, item, exc_info=error
+            "Ignoring exception in modal %r:", self, exc_info=error
         )
 
 

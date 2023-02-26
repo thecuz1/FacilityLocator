@@ -49,17 +49,41 @@ class Misc(commands.Cog):
         embed.description = formatted_logs
         await interaction.response.send_message(embed=embed, ephemeral=ephemeral)
 
-    # remove eventually
-    @app_commands.command()
-    @app_commands.guild_only()
-    @app_commands.default_permissions(administrator=True)
-    @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
-    async def setup(self, interaction: GuildInteraction):
-        """Decommissioned in favor of integrations"""
-        await interaction.response.send_message(
-            ":x: Decommissioned in favour of `Guild Settings > Integrations > Bots and Apps`",
-            ephemeral=True,
+    stats = app_commands.Group(
+        name="stats",
+        description="Stats about the bot",
+        guild_only=True,
+    )
+
+    @stats.command(name="command")
+    @app_commands.checks.cooldown(1, 30, key=lambda i: (i.guild_id, i.user.id))
+    async def command_stats(self, interaction: GuildInteraction):
+        """Command stats about the bot"""
+
+        # fmt: off
+        make_table=lambda rows,labels=None,centered=False:"".join(["┌"+"┬".join("─"*(max([*(len(str(o)) for o in c),len(str(labels[i])) if labels else 0])+2) for i,c in enumerate(list(zip(*rows))))+"┐\n",("│"+"│".join(f" {str(e).center(k)} "if centered else f" {str(e).ljust(k, ' ')} "for e,k in zip(labels,(max(len(str(o)) for o in [*c,l]) for c,l in zip(list(zip(*rows)),labels))))+"│\n├"+"┼".join("─"*(max([*(len(str(o)) for o in c),len(str(labels[i]))])+2 if labels else 0) for i,c in enumerate(list(zip(*rows))))+"┤\n"if labels else "")+"\n".join("│"+"│".join(f" {str(e).center(l)} "if centered else f" {str(e).ljust(l, ' ')} "for e,l in zip(r, ((max([*(len(str(o)) for o in c),len(str(labels[i])) if labels else 0])) for i,c in enumerate(list(zip(*rows)))))) + "│"for r in rows)+"\n└"+"┴".join("─"*(max([*(len(str(o)) for o in c),len(str(labels[i])) if labels else 0])+2) for i,c in enumerate(list(zip(*rows))))+"┘"])
+        # fmt: on
+
+        query = """
+            SELECT name, 
+                  SUM(CASE WHEN guild_id = ? THEN run_count ELSE 0 END) AS guild_count,
+                  SUM(run_count) AS global_count
+           FROM command_stats
+           GROUP BY name
+           ORDER BY name;"""
+        rows = await self.bot.db.fetch(query, interaction.guild_id or 0)
+        if not rows:
+            raise MessageError("No command stats found")
+
+        start = "Command Run Counts:```\n"
+        table = make_table(
+            rows=rows, labels=["command_name", "guild_count", "global_count"]
         )
+        embed = Embed(
+            description=start + table + "\n```",
+            colour=Colour.blue(),
+        )
+        await interaction.response.send_message(embed=embed)
 
 
 async def setup(bot: FacilityBot) -> None:

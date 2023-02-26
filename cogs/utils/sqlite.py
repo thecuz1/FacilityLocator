@@ -194,6 +194,15 @@ class Database:
 	                "messages"	messages,
 	                PRIMARY KEY("guild_id")
                 );
+                CREATE TABLE "command_stats" (
+	                "name"	TEXT NOT NULL,
+	                "run_count"	INTEGER NOT NULL,
+	                "guild_id"	INTEGER NOT NULL
+                );
+                CREATE UNIQUE INDEX "command_index" ON "command_stats" (
+	                "name",
+	                "guild_id"
+                );
             """
         await self.executemultiple(sql)
         logger.info("Created database %r", str(self.db_file))

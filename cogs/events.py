@@ -1,6 +1,7 @@
 import logging
 
-from discord import Guild, Message, NotFound
+from discord import Guild, Message, NotFound, Interaction
+from discord.app_commands import Command, ContextMenu
 from discord.ext import commands
 
 from bot import FacilityBot
@@ -15,6 +16,15 @@ facility_logger = logging.getLogger("facility_event")
 class Events(commands.Cog):
     def __init__(self, bot: FacilityBot) -> None:
         self.bot: FacilityBot = bot
+
+    @commands.Cog.listener()
+    async def on_app_command_completion(
+        self, interaction: Interaction, command: Command | ContextMenu
+    ) -> None:
+        insert_query = """INSERT INTO command_stats VALUES (?, ?, ?) ON CONFLICT(name, guild_id) DO UPDATE SET run_count = run_count + 1"""
+        await self.bot.db.execute(
+            insert_query, command.qualified_name, 1, interaction.guild_id or 0
+        )
 
     @commands.Cog.listener()
     async def on_guild_join(

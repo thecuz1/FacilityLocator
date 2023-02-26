@@ -86,13 +86,6 @@ logging_dict = {
         },
     },
     "handlers": {
-        "discord_log": {
-            "class": "logging.FileHandler",
-            "filename": LOG_DIR / "discord.log",
-            "encoding": "utf-8",
-            "mode": "w",
-            "formatter": "default",
-        },
         "bot_log": {
             "class": "logging.FileHandler",
             "filename": LOG_DIR / "bot.log",
@@ -124,11 +117,6 @@ logging_dict = {
         },
     },
     "loggers": {
-        "discord": {
-            "level": logging.INFO,
-            "handlers": ["discord_log"],
-            "propagate": False,
-        },
         # "bot": {
         #    "level": logging.INFO,
         # },

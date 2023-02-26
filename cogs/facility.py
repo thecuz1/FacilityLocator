@@ -150,10 +150,12 @@ class FacilityCog(commands.Cog):
             facility_count: int = facility_count_row[0]
 
             if (
-                facility_count >= 5
+                facility_count >= 10
                 and not interaction.user.guild_permissions.administrator
             ):
-                raise MessageError("Cannot create more then 5 facilities")
+                raise MessageError(
+                    f"Cannot create more then {facility_count} facilities"
+                )
 
             url = image and image.url
             facility = Facility(
@@ -401,7 +403,7 @@ class FacilityCog(commands.Cog):
         """
         facilities = await self.bot.db.get_facility_ids(ids)
         if not facilities:
-            raise MessageError("No facilities found")
+            raise MessageError("No facilities found", ephemeral=ephemeral)
 
         embeds = [
             facility.embed()
@@ -469,7 +471,7 @@ class FacilityCog(commands.Cog):
         facility_list = await self.bot.db.get_facilities(search_dict)
 
         if not facility_list:
-            raise MessageError("No facilities found")
+            raise MessageError("No facilities found", ephemeral=ephemeral)
 
         embeds = [facility.embed() for facility in facility_list]
         await Paginator(original_author=interaction.user).start(
@@ -490,7 +492,7 @@ class FacilityCog(commands.Cog):
         facility_list = await self.bot.db.get_facilities(search_dict)
 
         if not facility_list:
-            raise MessageError("No facilities found")
+            raise MessageError("No facilities found", ephemeral=ephemeral)
 
         finished_embeds = create_list(facility_list, interaction.guild)
 

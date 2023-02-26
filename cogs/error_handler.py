@@ -114,7 +114,7 @@ class CommandErrorHandler(commands.Cog):
                     FeedbackType.ERROR,
                 )
                 return await interaction.response.send_message(
-                    embed=embed, ephemeral=True
+                    embed=embed, ephemeral=error.ephemeral
                 )
 
             ignored = errors.CheckFailure

@@ -200,9 +200,9 @@ class ItemServiceFlags(FacilityFlags):
     def rocket(self):
         return 65536  # 1 << 16
 
-    @flag(display_name="Incendiary Rocket")
-    def incendiary_rocket(self):
-        return 131072  # 1 << 17
+    # @flag(display_name="Incendiary Rocket") # warden
+    # def incendiary_rocket(self):
+    #    return 131072  # 1 << 17
 
     @flag(display_name="300mm")
     def mm300(self):
@@ -248,6 +248,11 @@ class VehicleServiceFlags(FacilityFlags):
         display_name="Light Assembly (Base)",
         produces=(
             '00MS "Stinger" (Motorcycle)',
+            'R-9 "Speartip" Escort',
+            'R-5b "Sisyphus" Hauler',
+            # "Dunne Landrunner 12c", # warden vehicles
+            # "Dunne Leatherback 2a",
+            "Material Pallet",
             'BMS "Mineseeker" (Small Train)',
             'BMS "Railtruck" (Small Container Car)',
             'BMS "Linerunner" (Small Flatbed Car)',
@@ -259,12 +264,17 @@ class VehicleServiceFlags(FacilityFlags):
     @vehicle_flag(
         display_name="Motor Pool (Light Assembly)",
         produces=(
-            'T5 "Percutio" (AT Armoured Car)',
-            'T8 "Gemini" (RPG Armoured Car)',
+            'T5 "Percutio" (AT-AC)',
+            'T8 "Gemini" (RPG-AC)',
             'T20 "Ixion" (30mm Tankette)',
             'T14 "Vesta" (Flame Tankette)',
             'UV-05c "Odyssey" (LUV)',
             'UV-24 "Icarus" (RPG LUV)',
+            # "O'Brien V.113 "Gravekeeper" (AC)",
+            # "O'Brien V.121 "Highlander" (AC)",
+            # "O'Brien V.130 "Wild Jack" (AC)",
+            # "O'Brien V.101 "Freeman" (AC)",
+            # "Drummond 100a (LUV)",
         ),
     )
     def motor_pool(self):
@@ -277,6 +287,9 @@ class VehicleServiceFlags(FacilityFlags):
             'DAE 3b-2 "Hades Net" (Emplaced Rocket Artillery)',
             'HH-b "Hoplite" (Half-Track)',
             'HH-d "Peltast" (Mortar Half-Track)',
+            # 'Rycker 4/3-F "Wasp Nest"',
+            # 'Niska-Rycker Mk. IX "Skycaller"'
+            # 'Niska Mk. II "Blinder"',
         ),
     )
     def rocket_factory(self):
@@ -285,10 +298,12 @@ class VehicleServiceFlags(FacilityFlags):
     @vehicle_flag(
         display_name="Field Station (Light Assembly)",
         produces=(
-            "BMS - Scrap Hauler (Harvester)",
             'HC-2 "Scorpion" (Light Infantry Tank)',
             'AB-11 "Doru" (APC)',
             '40-45 "Smelter" (HV40mm)',
+            # "Balfour Rampart 68mm (HV68mm)",
+            # 'King Gallant Mk. II (Scout Tank)',
+            "BMS - Scrap Hauler (Harvester)",
         ),
     )
     def field_station(self):
@@ -302,7 +317,13 @@ class VehicleServiceFlags(FacilityFlags):
             'H-5 "Kranesca" (Light Tank)',
             '85K-a "Spatha" (Assault Tank)',
             '86K-c "Ranseur" (Assult Tank)',
-            'DAE 2a-1 "Raptura" (75mm EAT)',
+            'DAE 2a-1 "Raptura" (HV75mm Cannon)',
+            # "Silverhand Chieftain - Mk. VI (Assault Tank)",
+            # "Gallagher Highwayman Mk. III (Cruiser Tank)",
+            # "Noble Firebrand Mk. XVII (Tank Destroyer)",
+            # "Devitt Ironhide Mk. IV (Light Tank)",
+            # "Devitt-Caine Mk. IV MMR (Light Tank)",
+            # "Huber Starbreaker 94.5mm (HV94.5 EAT)",
         ),
     )
     def tank_factory(self):
@@ -313,6 +334,8 @@ class VehicleServiceFlags(FacilityFlags):
         produces=(
             '945g "Stygian Bolt" (94.5mm FAT)',
             '85V-g "Talos" (Assault Tank)',
+            # "Gallagher Thornfall Mk. VI (Cruiser Tank)",
+            # "Balfour Stockade 75mm (Field Gun)",
         ),
     )
     def weapons_platform(self):
@@ -346,6 +369,8 @@ class VehicleServiceFlags(FacilityFlags):
         produces=(
             '0-75b "Ares" (Super Tank)',
             "Lance-36 (Battle Tank)",
+            # "Flood Mk. I (Battle Tank)",
+            # "Cullen Predator Mk. III (Super Tank)",
         ),
     )
     def heavy_tank(self):

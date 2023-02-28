@@ -11,8 +11,8 @@ class Context(commands.Context):
     bot: FacilityBot
 
 
-class ClientInteraction(Interaction):
-    client: FacilityBot
+class ClientInteraction(Interaction[FacilityBot]):
+    pass
 
 
 class GuildInteraction(ClientInteraction):
@@ -21,4 +21,3 @@ class GuildInteraction(ClientInteraction):
     guild_id: int
     channel: Union[GuildChannel, Thread]
     channel_id: int
-    client: FacilityBot

@@ -30,13 +30,16 @@ class Paginator(InteractionCheckedView):
             pass
 
     async def start(
-        self, interaction: Interaction, pages: list[Embed], ephemeral: bool = False
+        self,
+        interaction: Interaction,
+        pages: list[list[Embed]],
+        ephemeral: bool = False,
     ) -> None:
         """Start paginator
 
         Args:
             interaction (Interaction): Interaction to use
-            pages (list[Embed]): List of embeds
+            pages (list[list[Embed]]): List of embeds
         """
         self.ephemeral = ephemeral
         self.pages = pages
@@ -47,7 +50,7 @@ class Paginator(InteractionCheckedView):
         self._update_labels(self.current_page)
 
         await interaction.response.send_message(
-            embed=pages[self.current_page], view=self, ephemeral=ephemeral
+            embeds=pages[self.current_page], view=self, ephemeral=ephemeral
         )
         self.original_message = await interaction.original_response()
 
@@ -69,9 +72,9 @@ class Paginator(InteractionCheckedView):
         self._update_labels(page_number)
         if interaction.response.is_done():
             if self.original_message:
-                await self.original_message.edit(embed=page, view=self)
+                await self.original_message.edit(embeds=page, view=self)
         else:
-            await interaction.response.edit_message(embed=page, view=self)
+            await interaction.response.edit_message(embeds=page, view=self)
 
     async def show_checked_page(
         self, interaction: Interaction, page_number: int

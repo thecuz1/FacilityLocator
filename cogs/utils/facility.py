@@ -97,12 +97,14 @@ class Facility:
         """
         return self.initial_hash != self.__current_hash()
 
-    def embed(self) -> discord.Embed:
-        """Generates a embed for viewing the facility
+    def embeds(self) -> list[discord.Embed]:
+        """Generates a list of embeds for viewing the facility
 
         Returns:
-            discord.Embed: Embed filled in with current state of facility
+            list[discord.Embed]: Embeds representing the current state of facility
         """
+        embeds: list[discord.Embed] = []
+
         facility_location = f"> Region : {self.region}\n> Marker : {self.marker}\n"
         if self.coordinates:
             facility_location += f"> Coordinates : {self.coordinates}\n"
@@ -117,7 +119,10 @@ class Facility:
             title=self.name, description=self.description, color=0x54A24A
         )
         if self.image_url:
-            embed.set_image(url=self.image_url)
+            image_embed = discord.Embed(
+                type="image", colour=discord.Colour.dark_embed()
+            ).set_image(url=self.image_url)
+            embeds.append(image_embed)
         embed.add_field(name="Location:", value=facility_location)
         embed.add_field(name="Maintainer:", value=self.maintainer)
         embed.add_field(name="Creation Info:", value=creation_info)
@@ -141,7 +146,9 @@ class Facility:
                 (name for name, enabled in self.vehicle_services if enabled)
             )
             embed.add_field(name="Vehicle Services:", value=f"{start}{services}{end}")
-        return embed
+
+        embeds.append(embed)
+        return embeds
 
     def can_modify(self, interaction: discord.Interaction) -> bool:
         """Returns true if the passed interaction has the ability to modify the facility

@@ -210,8 +210,8 @@ class BaseServicesSelectView(InteractionCheckedView):
         menu.options = item_services.select_options()
 
         self._update_button()
-        embed = self.facility.embed()
-        await interaction.response.edit_message(embed=embed, view=self)
+        embeds = self.facility.embeds()
+        await interaction.response.edit_message(embeds=embeds, view=self)
 
     @ui.select(
         placeholder="Select vehicle services...",
@@ -227,8 +227,8 @@ class BaseServicesSelectView(InteractionCheckedView):
         menu.options = vehicle_services.select_options()
 
         self._update_button()
-        embed = self.facility.embed()
-        await interaction.response.edit_message(embed=embed, view=self)
+        embeds = self.facility.embeds()
+        await interaction.response.edit_message(embeds=embeds, view=self)
 
     @ui.button(label="Add Description/Edit")
     async def edit(self, interaction: GuildInteraction, _: ui.Button) -> None:

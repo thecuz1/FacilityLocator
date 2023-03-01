@@ -69,7 +69,7 @@ class FacilityInformationModal(ErrorLoggedModal, title="Edit Facility Informatio
                 embed_list.append(invalid_url_embed)
 
         self.view._update_button()
-        embed_list.insert(0, self.facility.embed())
+        embed_list = self.facility.embeds() + embed_list
         try:
             await interaction.response.edit_message(embeds=embed_list, view=self.view)
         except HTTPException as exc:

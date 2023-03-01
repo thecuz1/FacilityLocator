@@ -35,9 +35,9 @@ class Admin(commands.Cog):
         """
 
         view = ModifyFacilityView(facility=facility, original_author=interaction.user)
-        embed = facility.embed()
+        embeds = facility.embeds()
 
-        await view.send(interaction, embed=embed, ephemeral=True)
+        await view.send(interaction, embeds=embeds, ephemeral=True)
 
     admin_remove = app_commands.Group(
         name="admin_remove",

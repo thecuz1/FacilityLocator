@@ -172,9 +172,9 @@ class FacilityCog(commands.Cog):
             view = CreateFacilityView(
                 facility=facility, original_author=interaction.user
             )
-            embed = facility.embed()
+            embeds = facility.embeds()
 
-            await view.send(interaction, embed=embed, ephemeral=True)
+            await view.send(interaction, embeds=embeds, ephemeral=True)
             await view.wait()
 
     @app_commands.command()
@@ -199,9 +199,9 @@ class FacilityCog(commands.Cog):
                     raise MessageError("No permission to modify facility")
 
         view = ModifyFacilityView(facility=facility, original_author=interaction.user)
-        embed = facility.embed()
+        embeds = facility.embeds()
 
-        await view.send(interaction, embed=embed, ephemeral=True)
+        await view.send(interaction, embeds=embeds, ephemeral=True)
 
     remove = app_commands.Group(
         name="remove", description="Remove facilities", guild_only=True
@@ -383,7 +383,7 @@ class FacilityCog(commands.Cog):
             ephemeral (bool, optional): Shows results to only you. Defaults to True.
         """
         await interaction.response.send_message(
-            embed=facility.embed(), ephemeral=ephemeral
+            embeds=facility.embeds(), ephemeral=ephemeral
         )
 
     @app_commands.command()
@@ -406,7 +406,7 @@ class FacilityCog(commands.Cog):
             raise MessageError("No facilities found", ephemeral=ephemeral)
 
         embeds = [
-            facility.embed()
+            facility.embeds()
             for facility in facilities
             if facility.guild_id == interaction.guild_id
         ]
@@ -473,7 +473,7 @@ class FacilityCog(commands.Cog):
         if not facility_list:
             raise MessageError("No facilities found", ephemeral=ephemeral)
 
-        embeds = [facility.embed() for facility in facility_list]
+        embeds = [facility.embeds() for facility in facility_list]
         await Paginator(original_author=interaction.user).start(
             interaction, pages=embeds, ephemeral=ephemeral
         )

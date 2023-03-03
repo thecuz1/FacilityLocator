@@ -132,15 +132,15 @@ class FacilityFlags(metaclass=FlagsMeta):
 class ItemServiceFlags(FacilityFlags):
     __slots__ = ()
 
-    @flag(display_name="Bcons")
+    @flag(display_name="CMats")
     def bcons(self):
         return 1  # 1 << 0
 
-    @flag(display_name="Pcons & Pipes")
+    @flag(display_name="PCons & Pipes")
     def pcons_pipes(self):
         return 2  # 1 << 1
 
-    @flag(display_name="Scons")
+    @flag(display_name="SCons")
     def scons(self):
         return 4  # 1 << 2
 
@@ -164,15 +164,15 @@ class ItemServiceFlags(FacilityFlags):
     def coke(self):
         return 128  # 1 << 7
 
-    @flag(display_name="Cams & Pams")
+    @flag(display_name="Amats 1-2 (Cams & Pams)")
     def cams_pams(self):
         return 256  # 1 << 8
 
-    @flag(display_name="Sams & Hams")
+    @flag(display_name="Amats 3-4 (Sams & Hams)")
     def sams_hams(self):
         return 512  # 1 << 9
 
-    @flag(display_name="Nams")
+    @flag(display_name="Amats 5 (Nams)")
     def nams(self):
         return 1024  # 1 << 10
 
@@ -191,6 +191,10 @@ class ItemServiceFlags(FacilityFlags):
     @flag(display_name="Sandbags")
     def sandbags(self):
         return 16384  # 1 << 14
+
+    @flag(display_name="Tripods & Weapons")
+    def tripods_weapons(self):
+        return 16777216  # 1 << 24
 
     @flag(display_name="Flame Barrel")
     def flame_barrel(self):

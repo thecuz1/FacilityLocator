@@ -153,6 +153,9 @@ class Events(commands.Cog):
                     pass
 
         channel = self.bot.get_channel(channel_id)
+        if channel is None:
+            return
+
         if len(embeds) != len(messages):
             await remove_messages()
 

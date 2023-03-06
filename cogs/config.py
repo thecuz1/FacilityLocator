@@ -33,7 +33,7 @@ class Config(commands.Cog):
         """
         selected_channel = channel or interaction.channel
 
-        if not isinstance(selected_channel, TextChannel):
+        if not hasattr(selected_channel, "send"):
             raise MessageError("Channel is not supported")
 
         search_dict = {" guild_id == ? ": interaction.guild_id}

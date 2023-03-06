@@ -1,18 +1,23 @@
-from typing import Union
+from __future__ import annotations
+
+from typing import Union, TYPE_CHECKING
 
 from discord import Member, Guild, Thread, Interaction
-from discord.abc import GuildChannel
 from discord.ext import commands
 
-from bot import FacilityBot
+
+if TYPE_CHECKING:
+    from discord.abc import GuildChannel
+
+    from bot import FacilityBot
 
 
 class Context(commands.Context):
     bot: FacilityBot
 
 
-class ClientInteraction(Interaction[FacilityBot]):
-    pass
+class ClientInteraction(Interaction):
+    client: FacilityBot
 
 
 class GuildInteraction(ClientInteraction):

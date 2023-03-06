@@ -1,12 +1,19 @@
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 from discord.ext import commands
 import discord
 from discord.app_commands import errors, CommandOnCooldown
 
-from bot import FacilityBot
 from .utils.embeds import FeedbackEmbed, FeedbackType
 from .utils.errors import MessageError
+
+
+if TYPE_CHECKING:
+    from bot import FacilityBot
+
 
 command_error_logger = logging.getLogger("command_error")
 

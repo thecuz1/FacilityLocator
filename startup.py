@@ -1,18 +1,21 @@
 # only essential imports to load logging config to limit overriding loggers
+from __future__ import annotations
+
 import sys
 import logging
-from typing import TypeVar
+from typing import TYPE_CHECKING
 from logging import LogRecord, Handler
 from logging.config import dictConfig
 from pathlib import Path
 from collections import deque
 
 
-GI = TypeVar("GI", bound="GuildInteraction")
+if TYPE_CHECKING:
+    from cogs.utils.context import GuildInteraction
 
 
 class LogRecordContext(LogRecord):
-    ctx: GI
+    ctx: GuildInteraction
 
 
 class ExtraInfoFileHandler(logging.FileHandler):
@@ -170,7 +173,6 @@ if __name__ == "__main__":
     from discord import VoiceClient
 
     from bot import FacilityBot
-    from cogs.utils.context import GuildInteraction
 
     async def run_bot():
         async with FacilityBot() as bot:

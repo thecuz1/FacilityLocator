@@ -1,11 +1,18 @@
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 from discord.ui import View, Item, Modal
 from discord.errors import NotFound
-from discord import Interaction, User, Member, Message
 from discord.ext import commands
 
-from bot import FacilityBot
+
+if TYPE_CHECKING:
+    from discord import Interaction, User, Member, Message
+
+    from bot import FacilityBot
+
 
 view_error_logger = logging.getLogger("view_error")
 modal_error_logger = logging.getLogger("modal_error")

@@ -1,13 +1,20 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from discord import app_commands, Member, Permissions
 from discord.ext import commands
 
-from bot import FacilityBot
-from .utils.context import GuildInteraction
 from .utils.facility import Facility
 from .utils.views import ModifyFacilityView, RemoveFacilitiesView
 from .utils.embeds import FeedbackEmbed, FeedbackType
 from .utils.transformers import FacilityTransformer, IdTransformer
 from .utils.errors import MessageError
+
+
+if TYPE_CHECKING:
+    from bot import FacilityBot
+    from .utils.context import GuildInteraction
 
 
 class Admin(commands.Cog):

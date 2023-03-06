@@ -1,14 +1,20 @@
+from __future__ import annotations
+
 import re
+from typing import TYPE_CHECKING
 
 from discord import app_commands
 
-from .context import GuildInteraction
-from .facility import Facility
 from .errors import MessageError
 
 
+if TYPE_CHECKING:
+    from .context import GuildInteraction
+    from .facility import Facility
+
+
 class FacilityTransformer(app_commands.Transformer):
-    async def transform(self, interaction: GuildInteraction, value: str) -> Facility:
+    async def transform(self, interaction: GuildInteraction, value: str, /) -> Facility:
 
         try:
             facility_id = int(value)
@@ -24,9 +30,7 @@ class FacilityTransformer(app_commands.Transformer):
         return facility
 
     async def autocomplete(
-        self,
-        interaction: GuildInteraction,
-        value: str,
+        self, interaction: GuildInteraction, value: str, /
     ) -> list[app_commands.Choice[str]]:
         prefixed_value = "%" + value + "%"
         query = """SELECT id_, name FROM facilities WHERE guild_id=? AND LOWER(name) LIKE ? LIMIT 12"""
@@ -40,7 +44,7 @@ class FacilityTransformer(app_commands.Transformer):
 
 
 class IdTransformer(app_commands.Transformer):
-    async def transform(self, interaction: GuildInteraction, value: str) -> tuple:
+    async def transform(self, interaction: GuildInteraction, value: str, /) -> tuple:
         delimiters = " ", ".", ","
         regex_pattern = "|".join(map(re.escape, delimiters))
         res = re.split(regex_pattern, value)

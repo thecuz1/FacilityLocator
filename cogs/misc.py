@@ -1,12 +1,18 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 import platform
 
 import discord
 from discord.ext import commands
 from discord import app_commands, Embed, Colour
 
-from bot import FacilityBot
 from .utils.context import GuildInteraction
 from .utils.errors import MessageError
+
+
+if TYPE_CHECKING:
+    from bot import FacilityBot
 
 
 class Misc(commands.Cog):

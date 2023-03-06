@@ -1,11 +1,18 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from discord import app_commands, TextChannel
 from discord.ext import commands
 
-from bot import FacilityBot
-from .utils.context import Context, GuildInteraction, ClientInteraction
 from .utils.embeds import FeedbackEmbed, FeedbackType
 from .utils.views import DynamicListConfirm
 from .utils.errors import MessageError
+
+
+if TYPE_CHECKING:
+    from bot import FacilityBot
+    from .utils.context import Context, GuildInteraction, ClientInteraction
 
 
 class Config(commands.Cog):

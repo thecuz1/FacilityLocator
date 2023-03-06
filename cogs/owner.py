@@ -1,9 +1,16 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import discord
 from discord.ext import commands
 
-from bot import FacilityBot
 from .utils.embeds import FeedbackEmbed, FeedbackType
 from .utils.views import ResetView
+
+
+if TYPE_CHECKING:
+    from bot import FacilityBot
 
 
 class Owner(commands.Cog, command_attrs={"hidden": True}):

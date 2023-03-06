@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from time import time
 from copy import copy
+from typing import TYPE_CHECKING
 
 from discord import (
     ui,
@@ -18,7 +21,10 @@ from .mixins import InteractionCheckedView
 from .embeds import FeedbackEmbed, FeedbackType
 from .flags import ItemServiceFlags, VehicleServiceFlags
 from .embeds import create_list
-from .context import GuildInteraction
+
+
+if TYPE_CHECKING:
+    from .context import GuildInteraction
 
 
 class ButtonMessage(Exception):
@@ -178,9 +184,9 @@ class BaseServicesSelectView(InteractionCheckedView):
             self.finish.style,
             self.finish.disabled,
         )
-        self._update_button()
+        self.update_button()
 
-    def _update_button(self):
+    def update_button(self):
         try:
             self._checks()
         except ButtonMessage as exc:
@@ -209,7 +215,7 @@ class BaseServicesSelectView(InteractionCheckedView):
         self.facility.item_services = item_services
         menu.options = item_services.select_options()
 
-        self._update_button()
+        self.update_button()
         embeds = self.facility.embeds()
         await interaction.response.edit_message(embeds=embeds, view=self)
 
@@ -226,7 +232,7 @@ class BaseServicesSelectView(InteractionCheckedView):
         self.facility.vehicle_services = vehicle_services
         menu.options = vehicle_services.select_options()
 
-        self._update_button()
+        self.update_button()
         embeds = self.facility.embeds()
         await interaction.response.edit_message(embeds=embeds, view=self)
 

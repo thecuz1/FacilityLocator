@@ -1,7 +1,7 @@
 import logging
 import sys
 import os
-from collections import deque
+from typing import TYPE_CHECKING
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -9,6 +9,10 @@ import discord
 from discord.ext import commands
 
 from cogs import EXTENSIONS
+
+
+if TYPE_CHECKING:
+    from collections import deque
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +61,7 @@ class FacilityBot(commands.Bot):
         for extension in EXTENSIONS:
             try:
                 await self.load_extension(extension)
-            except Exception:
+            except commands.ExtensionError:
                 logger.exception("Failed loading exension %r", extension)
             else:
                 logger.info("Loaded extension %r", extension)

@@ -1,13 +1,21 @@
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 from discord import Guild, Message, NotFound, Interaction
-from discord.app_commands import Command, ContextMenu
 from discord.ext import commands
 
-from bot import FacilityBot
-from .utils.context import GuildInteraction
-from .utils.facility import Facility
 from .utils.embeds import create_list
+
+
+if TYPE_CHECKING:
+    from bot import FacilityBot
+    from discord.app_commands import Command, ContextMenu
+
+    from .utils.facility import Facility
+    from .utils.context import GuildInteraction
+
 
 guild_logger = logging.getLogger("guild_event")
 facility_logger = logging.getLogger("facility_event")

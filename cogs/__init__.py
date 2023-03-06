@@ -3,8 +3,6 @@ from pathlib import Path
 COG_DIR = Path("cogs")
 
 EXTENSIONS = [
-    f"{COG_DIR}.{result.stem}"
-    for result in COG_DIR.iterdir()
-    if result.is_file() and result.suffix == ".py" and not result.stem.startswith("_")
+    ".".join(result.with_suffix("").parts) for result in COG_DIR.glob("[!_]*.py")
 ]
 EXTENSIONS.append("jishaku")

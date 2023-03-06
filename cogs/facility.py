@@ -1,13 +1,13 @@
+from __future__ import annotations
+
 import re
 from contextlib import contextmanager
-from typing import NamedTuple
+from typing import NamedTuple, TYPE_CHECKING
 from rapidfuzz.process import extract
 
 from discord.ext import commands
 from discord import app_commands, Member, Attachment
 
-from bot import FacilityBot
-from .utils.context import GuildInteraction
 from .utils.embeds import FeedbackEmbed, FeedbackType, create_list
 from .utils.facility import Facility
 from .utils.views import ModifyFacilityView, RemoveFacilitiesView, CreateFacilityView
@@ -18,8 +18,13 @@ from .utils.transformers import FacilityTransformer, IdTransformer
 from .utils.errors import MessageError
 
 
+if TYPE_CHECKING:
+    from bot import FacilityBot
+    from .utils.context import GuildInteraction
+
+
 class MarkerTransformer(app_commands.Transformer):
-    async def transform(self, interaction: GuildInteraction, value: str) -> str:
+    async def transform(self, interaction: GuildInteraction, value: str, /) -> str:
         for marker in all_markers():
             if value.lower() in marker.lower():
                 return marker
@@ -27,7 +32,7 @@ class MarkerTransformer(app_commands.Transformer):
         raise MessageError("No marker found")
 
     async def autocomplete(
-        self, interaction: GuildInteraction, value: str
+        self, interaction: GuildInteraction, value: str, /
     ) -> list[app_commands.Choice]:
         def generate_options(markers):
             results = extract(value, markers, limit=25)
@@ -41,7 +46,7 @@ class MarkerTransformer(app_commands.Transformer):
             if ns_region is None:
                 pass
             else:
-                raise RuntimeError(f"Unexpected namespace type {type(ns_region)}")
+                raise TypeError(f"Unexpected namespace type {type(ns_region)}")
         elif not ns_region == "":
             for region, markers in REGIONS.items():
                 if region.lower() in ns_region.lower():
@@ -57,14 +62,13 @@ class FacilityLocation(NamedTuple):
 
 class LocationTransformer(app_commands.Transformer):
     async def transform(
-        self, interaction: GuildInteraction, value: str
+        self, interaction: GuildInteraction, value: str, /
     ) -> FacilityLocation:
 
-        try:
-            coordinates = re.search(
-                r"([A-R]\d{1,2}k\d)", value, flags=re.IGNORECASE
-            ).group(1)
-        except AttributeError:
+        match = re.search(r"[A-R]\d{1,2}K\d", value, flags=re.IGNORECASE)
+        if match:
+            coordinates = match.group()
+        else:
             coordinates = ""
 
         for region in REGIONS:
@@ -74,7 +78,7 @@ class LocationTransformer(app_commands.Transformer):
         raise MessageError("Invalid region")
 
     async def autocomplete(
-        self, interaction: GuildInteraction, value: str
+        self, interaction: GuildInteraction, value: str, /
     ) -> list[app_commands.Choice]:
         results = extract(value, tuple(REGIONS), limit=25)
         return [
@@ -83,14 +87,14 @@ class LocationTransformer(app_commands.Transformer):
 
 
 class VehicleTransformer(app_commands.Transformer):
-    async def transform(self, interaction: GuildInteraction, value: str) -> int:
+    async def transform(self, interaction: GuildInteraction, value: str, /) -> int:
         for vehicle, flag in VehicleServiceFlags.all_vehicles():
             if vehicle in value:
                 return flag.flag_value
         raise MessageError("Invalid vehicle")
 
     async def autocomplete(
-        self, _: GuildInteraction, value: str
+        self, _: GuildInteraction, value: str, /
     ) -> list[app_commands.Choice[str]]:
 
         choices = [name for name, _ in VehicleServiceFlags.all_vehicles()]

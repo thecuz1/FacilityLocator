@@ -1,11 +1,16 @@
-from enum import Enum, auto
+from __future__ import annotations
+
 import traceback
-from itertools import groupby
 import re
+from typing import TYPE_CHECKING
+from enum import Enum, auto
+from itertools import groupby
 
 from discord import Embed, Colour, Guild
 
-from .facility import Facility
+
+if TYPE_CHECKING:
+    from .facility import Facility
 
 
 class FeedbackType(Enum):

@@ -1,16 +1,22 @@
+from __future__ import annotations
+
 from enum import Enum, auto
-from typing import List, Dict, Iterable
+from typing import List, Dict, Iterable, TYPE_CHECKING
 from contextlib import asynccontextmanager
 import sqlite3
 import logging
 import aiosqlite
 from aiosqlite import Row
 
-from discord import Guild, TextChannel
-
-from bot import FacilityBot
 from .facility import Facility
 from .flags import ItemServiceFlags, VehicleServiceFlags
+
+
+if TYPE_CHECKING:
+    from discord import Guild, TextChannel
+
+    from bot import FacilityBot
+
 
 logger = logging.getLogger(__name__)
 

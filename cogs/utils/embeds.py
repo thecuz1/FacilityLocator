@@ -53,6 +53,149 @@ class FeedbackEmbed(Embed):
         self.set_footer(text="Source Code: https://github.com/thecuz1/FacilityLocator")
 
 
+class LimitException(Exception):
+    def __init__(self, continued: bool = False) -> None:
+        self.continued: bool = continued
+
+
+class MaximumFields(LimitException):
+    pass
+
+
+class MaximumCharacters(LimitException):
+    pass
+
+
+class EmbedPage(Embed):
+    def __init__(self, *args, **kwargs):
+        super().__init__(colour=Colour.green(), *args, **kwargs)
+
+        self.mapped_index: dict[str, int] = {}
+        self.count: dict[str, int] = {}
+
+    def _new_field_name(self, *, region: str, continued: bool):
+        return f"{region} (1) (cont.)" if continued else f"{region} (1)"
+
+    def add_entry(self, region: str, entry: str, continued: bool = False):
+        try:
+            index = self.mapped_index[region]
+        except KeyError:
+            field_name = self._new_field_name(region=region, continued=continued)
+            self.add_field(region=region, name=field_name, value=entry)
+        else:
+            field = self.fields[index]
+
+            updated_value = f"{field.value or ''}\n{entry}"
+            facility_count = str(len(updated_value.splitlines()))
+
+            number_start, number_end = re.search(r"\d+", field.name or "").span()
+
+            updated_name = (
+                field.name[:number_start] + facility_count + field.name[number_end:]
+            )
+
+            if len(updated_value) > 1024:
+                field_name = self._new_field_name(region=region, continued=True)
+                self.add_field(region=region, name=field_name, value=entry)
+            else:
+                self.set_field_at(
+                    index,
+                    region=region,
+                    name=updated_name,
+                    value=updated_value,
+                )
+
+    def add_field(
+        self,
+        *,
+        region: str,
+        name: str,
+        value: str,
+        inline: bool = True,
+    ):
+        try:
+            if self.fields == 25:
+                raise MaximumFields()
+            if len(self) + len(name) + len(value) > 6000:
+                raise MaximumCharacters()
+        except LimitException as exc:
+            count = self.count.get(region, 0)
+            exc.continued = bool(count)
+            raise exc
+
+        super().add_field(name=name, value=value, inline=inline)
+
+        try:
+            self.count[region] += 1
+        except KeyError:
+            self.count[region] = 1
+
+        index = len(self.fields) - 1
+        self.mapped_index[region] = index
+
+    def set_field_at(
+        self,
+        index: int,
+        *,
+        region: str,
+        name: str,
+        value: str,
+        inline: bool = True,
+    ):
+        field = self.fields[index]
+        embed_length = len(self) - len(field.name) - len(field.value)
+
+        try:
+            if embed_length + len(name) + len(value) > 6000:
+                raise MaximumCharacters()
+        except LimitException as exc:
+            count = self.count.get(region, 0)
+            exc.continued = bool(count)
+            raise exc
+
+        return super().set_field_at(index, name=name, value=value, inline=inline)
+
+    def fix_wrapping(self):
+        for index, field in enumerate(self.fields):
+            value = field.value or ""
+            entries = value.splitlines()
+
+            if any(len(entry) > 30 for entry in entries):
+                super().set_field_at(
+                    index,
+                    name=field.name,
+                    value=field.value,
+                    inline=False,
+                )
+
+
+class Paginator:
+    def __init__(self, guild_name: str, total_facilities: int) -> None:
+        self.embeds: list[EmbedPage] = []
+
+        self._new_embed(
+            title=f"Facility list ({guild_name}) ({total_facilities})",
+            description="Format: `ID | Name | Sub-Region`\nFor more info about a facility use the commmand `/view [ID(s)]`",
+        )
+
+    def _new_embed(self, *args, **kwargs) -> EmbedPage:
+        embed = EmbedPage(*args, **kwargs)
+        self.embeds.append(embed)
+        return embed
+
+    def add_entry(self, region: str, entry: str):
+        embed = self.embeds[-1]
+        try:
+            embed.add_entry(region, entry)
+        except LimitException as exc:
+            new_embed = self._new_embed()
+            new_embed.add_entry(region, entry, exc.continued)
+
+    def fix_wrapping(self):
+        for embed in self.embeds:
+            embed.fix_wrapping()
+
+
 def create_list(facility_list: list[Facility], guild: Guild) -> list[Embed]:
     """Generates embeds to list short form facilities
 
@@ -63,62 +206,19 @@ def create_list(facility_list: list[Facility], guild: Guild) -> list[Embed]:
     Returns:
         list[Embed]: List of embeds
     """
-    embed = Embed(
-        title=f"Facility list ({guild.name}) ({len(facility_list)})",
-        description="Format: `ID | Name | Sub-Region`\nFor more info about a facility use the commmand `/view [ID(s)]`",
-    )
-    embed.colour = Colour.green()
+    paginator = Paginator(guild.name, len(facility_list))
 
     facility_list.sort(key=lambda facility: facility.region)
     facility_regions = groupby(facility_list, key=lambda facility: facility.region)
 
-    finished_embeds = []
-
     for region, facilities in facility_regions:
         formatted_list = (
-            f"{facility.id_} | {facility.name} | {facility.marker}\n"
+            f"{facility.id_} | {facility.name.strip()} | {facility.marker}"
             for facility in facilities
         )
-        if len(name := f"{region} (0)") + len(embed) + 150 > 6000:
-            finished_embeds.append(embed)
-            embed = Embed()
-            embed.colour = Colour.green()
-        embed.add_field(name=name, value="")
-        field_index = len(embed.fields) - 1
-
         for entry in formatted_list:
-            previous_value = embed.fields[field_index].value or ""
-            new_value = previous_value + entry
+            paginator.add_entry(region, entry)
 
-            if len(embed) + len(entry) > 6000 or (
-                len(new_value) > 1024 and len(embed.fields) == 25
-            ):
-                finished_embeds.append(embed)
-                embed = Embed()
-                embed.colour = Colour.green()
-                embed.add_field(name=f"{region} (1) (Cont.)", value=entry)
-                field_index = 0
-            elif len(new_value) > 1024:
-                embed.add_field(name=f"{region} (1) (Cont.)", value=entry)
-                field_index += 1
-            else:
-                facility_count = str(new_value.count("\n"))
-                field_name = (
-                    embed.fields[field_index].name or f"{region} ({facility_count})"
-                )
-                number_span = re.search(r"\d+", field_name).span()
-                updated_name = (
-                    field_name[: number_span[0]]
-                    + facility_count
-                    + field_name[number_span[1] :]
-                )
-                embed.set_field_at(
-                    field_index,
-                    name=updated_name,
-                    value=new_value,
-                )
+    paginator.fix_wrapping()
 
-    if embed not in finished_embeds:
-        finished_embeds.append(embed)
-
-    return finished_embeds
+    return paginator.embeds

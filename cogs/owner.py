@@ -11,6 +11,7 @@ from .utils.views import ResetView
 
 if TYPE_CHECKING:
     from bot import FacilityBot
+    from events import Events
 
 
 class Owner(commands.Cog, command_attrs={"hidden": True}):
@@ -19,6 +20,16 @@ class Owner(commands.Cog, command_attrs={"hidden": True}):
 
     async def cog_check(self, ctx: commands.Context) -> bool:
         return await self.bot.is_owner(ctx.author)
+
+    @commands.command()
+    async def list_update(
+        self, ctx: commands.Context, guild: discord.Guild = commands.CurrentGuild
+    ):
+        events_cog: Events | None = self.bot.get_cog("Events")
+        if events_cog is None:
+            return await ctx.message.add_reaction("❌")
+        await events_cog.update_list(guild)
+        await ctx.message.add_reaction("✅")
 
     @commands.command(aliases=["clean"])
     async def clear(self, ctx: commands.Context, limit: int = 1) -> None:

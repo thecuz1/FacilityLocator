@@ -63,8 +63,14 @@ class Misc(commands.Cog):
 
     @stats.command(name="command")
     @app_commands.checks.cooldown(1, 30, key=lambda i: (i.guild_id, i.user.id))
-    async def command_stats(self, interaction: GuildInteraction):
-        """Command stats about the bot"""
+    async def command_stats(
+        self, interaction: GuildInteraction, ephemeral: bool = True
+    ):
+        """Command stats about the bot
+
+        Args:
+            ephemeral (bool): Show results to only you (defaults to True)
+        """
 
         # fmt: off
         make_table=lambda rows,labels=None,centered=False:"".join(["┌"+"┬".join("─"*(max([*(len(str(o)) for o in c),len(str(labels[i])) if labels else 0])+2) for i,c in enumerate(list(zip(*rows))))+"┐\n",("│"+"│".join(f" {str(e).center(k)} "if centered else f" {str(e).ljust(k, ' ')} "for e,k in zip(labels,(max(len(str(o)) for o in [*c,l]) for c,l in zip(list(zip(*rows)),labels))))+"│\n├"+"┼".join("─"*(max([*(len(str(o)) for o in c),len(str(labels[i]))])+2 if labels else 0) for i,c in enumerate(list(zip(*rows))))+"┤\n"if labels else "")+"\n".join("│"+"│".join(f" {str(e).center(l)} "if centered else f" {str(e).ljust(l, ' ')} "for e,l in zip(r, ((max([*(len(str(o)) for o in c),len(str(labels[i])) if labels else 0])) for i,c in enumerate(list(zip(*rows)))))) + "│"for r in rows)+"\n└"+"┴".join("─"*(max([*(len(str(o)) for o in c),len(str(labels[i])) if labels else 0])+2) for i,c in enumerate(list(zip(*rows))))+"┘"])
@@ -79,7 +85,7 @@ class Misc(commands.Cog):
            ORDER BY name;"""
         rows = await self.bot.db.fetch(query, interaction.guild_id or 0)
         if not rows:
-            raise MessageError("No command stats found")
+            raise MessageError("No command stats found", ephemeral=ephemeral)
 
         start = "Command Run Counts:```\n"
         table = make_table(
@@ -89,7 +95,7 @@ class Misc(commands.Cog):
             description=start + table + "\n```",
             colour=Colour.blue(),
         )
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=ephemeral)
 
 
 async def setup(bot: FacilityBot) -> None:

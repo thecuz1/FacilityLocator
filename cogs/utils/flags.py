@@ -68,6 +68,13 @@ class FlagsMeta(Type):
     def __len__(cls: Type[FF]) -> int:
         return len(cls.MAPPED_FLAGS)
 
+    def __getitem__(cls: Type[FF], index_or_slice):
+        if not isinstance(index_or_slice, slice):
+            raise TypeError("Only supports slices")
+
+        start, stop, step = index_or_slice.indices(len(cls))
+        return list(cls.MAPPED_FLAGS)[start:stop:step]
+
 
 class FacilityFlags(metaclass=FlagsMeta):
     MAPPED_FLAGS: ClassVar[dict[str, flag]]
@@ -192,9 +199,29 @@ class ItemServiceFlags(FacilityFlags):
     def sandbags(self):
         return 16384  # 1 << 14
 
-    @flag(display_name="Tripods & Weapons")
-    def tripods_weapons(self):
+    @flag(display_name="Lamentum")
+    def lamentum(self):
         return 16777216  # 1 << 24
+
+    @flag(display_name="Daucus ISG")
+    def isg(self):
+        return 33554432  #  1 << 25
+
+    @flag(display_name="Fissura")
+    def fissura(self):
+        return 67108864  #  1 << 26
+
+    @flag(display_name="Typhon")
+    def typhon(self):
+        return 134217728  #  1 << 27
+
+    @flag(display_name="Tripod")
+    def tripod(self):
+        return 268435456  #  1 << 28
+
+    @flag(display_name="MSups")
+    def msups(self):
+        return 536870912  #  1 << 29
 
     @flag(display_name="Flame Barrel")
     def flame_barrel(self):
@@ -260,6 +287,7 @@ class VehicleServiceFlags(FacilityFlags):
             'BMS "Mineseeker" (Small Train)',
             'BMS "Railtruck" (Small Container Car)',
             'BMS "Linerunner" (Small Flatbed Car)',
+            'BMS "Tinder Box" (Small Liquid Car)',
         ),
     )
     def light_assembly(self):
@@ -307,7 +335,8 @@ class VehicleServiceFlags(FacilityFlags):
             '40-45 "Smelter" (HV40mm)',
             # "Balfour Rampart 68mm (HV68mm)",
             # 'King Gallant Mk. II (Scout Tank)',
-            "BMS - Scrap Hauler (Harvester)",
+            'BMS "Scrap Hauler" (Harvester)',
+            'BMS "Fabricator" (ACV)',
         ),
     )
     def field_station(self):
@@ -346,7 +375,7 @@ class VehicleServiceFlags(FacilityFlags):
         return 64  # 1 << 6
 
     @vehicle_flag(
-        display_name="Large Assembly (Base Assembly)",
+        display_name="Large Assembly (Base)",
         produces=(
             'BMS "Black Bolt" (Locomotive)',
             'BMS "Rockhold" (Container Car)',

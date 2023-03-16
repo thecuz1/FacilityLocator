@@ -11,7 +11,7 @@ from .utils.views import ResetView
 
 if TYPE_CHECKING:
     from bot import FacilityBot
-    from events import Events
+    from .events import Events
 
 
 class Owner(commands.Cog, command_attrs={"hidden": True}):

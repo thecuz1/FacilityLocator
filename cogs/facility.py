@@ -105,6 +105,30 @@ class VehicleTransformer(app_commands.Transformer):
         ]
 
 
+class ItemTransformer(app_commands.Transformer):
+    async def transform(self, interaction: GuildInteraction, value: str, /) -> int:
+        try:
+            service = ItemServiceFlags.MAPPED_FLAGS[value]
+        except KeyError:
+            raise MessageError("Not a valid service", ephemeral=True)
+
+        return service.flag_value
+
+    async def autocomplete(
+        self, _: GuildInteraction, value: str, /
+    ) -> list[app_commands.Choice[str]]:
+
+        choices = list(ItemServiceFlags.MAPPED_FLAGS.keys())
+        sorted_choices = extract(value, choices, limit=25)
+
+        app_choices = []
+        for name, _, _ in sorted_choices:
+            flag = ItemServiceFlags.MAPPED_FLAGS[name]
+            app_choices.append(app_commands.Choice(name=flag.display_name, value=name))
+
+        return app_choices
+
+
 class FacilityCog(commands.Cog):
     def __init__(self, bot: FacilityBot) -> None:
         self.bot: FacilityBot = bot
@@ -427,10 +451,6 @@ class FacilityCog(commands.Cog):
         vehicle_service="vehicle-service",
     )
     @app_commands.choices(
-        item_service=[
-            app_commands.Choice(name=flag.display_name, value=flag.flag_value)
-            for flag in ItemServiceFlags.MAPPED_FLAGS.values()
-        ],
         vehicle_service=[
             app_commands.Choice(name=flag.display_name, value=flag.flag_value)
             for flag in VehicleServiceFlags.MAPPED_FLAGS.values()
@@ -442,7 +462,7 @@ class FacilityCog(commands.Cog):
         location: app_commands.Transform[
             FacilityLocation | None, LocationTransformer
         ] = None,
-        item_service: int = 0,
+        item_service: app_commands.Transform[int, ItemTransformer] = 0,
         vehicle_service: int = 0,
         creator: Member | None = None,
         vehicle: app_commands.Transform[int, VehicleTransformer] = 0,

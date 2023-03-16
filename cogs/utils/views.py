@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 from discord import (
     ui,
-    Interaction,
     User,
     Member,
     ButtonStyle,
@@ -24,7 +23,8 @@ from .embeds import create_list
 
 
 if TYPE_CHECKING:
-    from .context import GuildInteraction
+    from .context import GuildInteraction, ClientInteraction
+    from ..events import Events
 
 
 class ButtonMessage(Exception):
@@ -32,12 +32,12 @@ class ButtonMessage(Exception):
 
 
 class NoServices(ButtonMessage):
-    def __init__(self, *args: object) -> None:
+    def __init__(self) -> None:
         super().__init__("Select one service")
 
 
 class NoChanges(ButtonMessage):
-    def __init__(self, *args: object) -> None:
+    def __init__(self) -> None:
         super().__init__("No changes")
 
 
@@ -146,7 +146,7 @@ class ResetView(InteractionCheckedView):
     """View used when resetting and removing all facilities"""
 
     @ui.button(label="Confirm", style=ButtonStyle.primary)
-    async def confirm(self, interaction: Interaction, _: ui.Button) -> None:
+    async def confirm(self, interaction: ClientInteraction, _: ui.Button) -> None:
         await self._finish_view(remove=True)
         resopnse = interaction.response
 
@@ -159,7 +159,28 @@ class ResetView(InteractionCheckedView):
             await resopnse.send_message(embed=embed, ephemeral=True)
             raise exc
         else:
-            embed = FeedbackEmbed("Reset DB", FeedbackType.SUCCESS)
+            events_cog: Events | None = interaction.client.get_cog("Events")
+            if events_cog is None:
+                return
+
+            query = """SELECT guild_id FROM list"""
+            rows = await interaction.client.db.fetch(query)
+            for row in rows:
+                guild_id = row and row[0]
+                guild = interaction.client.get_guild(guild_id)
+
+            guilds = [interaction.client.get_guild(row[0]) for row in rows if row]
+            filtered_guilds = list(filter(None, guilds))
+
+            if not filtered_guilds:
+                return
+
+            for guild in filtered_guilds:
+                await events_cog.update_list(guild)
+
+            embed = FeedbackEmbed(
+                f"Reset DB\nUpdated {len(filtered_guilds)} lists", FeedbackType.SUCCESS
+            )
             await resopnse.send_message(embed=embed, delete_after=10)
 
 
@@ -176,7 +197,15 @@ class BaseServicesSelectView(InteractionCheckedView):
         self.initial_facility = copy(facility)
         self.facility = facility
 
-        self.item_select.options = self.facility.item_services.select_options()
+        item_options = self.facility.item_services.select_options()
+
+        self.item_select.options = item_options[:25]
+
+        if len(item_options) > 25:
+            self.excess_item_select.options = item_options[25:50]
+        else:
+            self.remove_item(self.excess_item_select)
+
         self.vehicle_select.options = self.facility.vehicle_services.select_options()
 
         self.original_button = (
@@ -204,18 +233,37 @@ class BaseServicesSelectView(InteractionCheckedView):
         if not self.facility.has_one_service():
             raise NoServices()
 
-    @ui.select(
-        placeholder="Select item services...",
-        max_values=len(ItemServiceFlags),
-        min_values=0,
-    )
-    async def item_select(self, interaction: GuildInteraction, menu: ui.Select) -> None:
-        item_services = ItemServiceFlags.from_menu(*menu.values)
+    def _update_item_services(self):
+        values = self.item_select.values + self.excess_item_select.values
+        item_services = ItemServiceFlags.from_menu(*values)
 
         self.facility.item_services = item_services
-        menu.options = item_services.select_options()
+        self.item_select.options = item_services.select_options()[:25]
+        self.excess_item_select.options = item_services.select_options()[25:50]
 
         self.update_button()
+
+    @ui.select(
+        placeholder="Select item services...",
+        max_values=len(ItemServiceFlags[:25]),
+        min_values=0,
+    )
+    async def item_select(self, interaction: GuildInteraction, _: ui.Select) -> None:
+        self._update_item_services()
+
+        embeds = self.facility.embeds()
+        await interaction.response.edit_message(embeds=embeds, view=self)
+
+    @ui.select(
+        placeholder="(OVERFLOW) Select item services...",
+        max_values=len(ItemServiceFlags[25:50]),
+        min_values=0,
+    )
+    async def excess_item_select(
+        self, interaction: GuildInteraction, _: ui.Select
+    ) -> None:
+        self._update_item_services()
+
         embeds = self.facility.embeds()
         await interaction.response.edit_message(embeds=embeds, view=self)
 

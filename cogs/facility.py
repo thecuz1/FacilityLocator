@@ -8,7 +8,12 @@ from rapidfuzz.process import extract
 from discord.ext import commands
 from discord import app_commands, Member, Attachment
 
-from .utils.embeds import FeedbackEmbed, FeedbackType, create_list
+from .utils.embeds import (
+    FeedbackEmbed,
+    FeedbackType,
+    create_list,
+    ephemeral_info,
+)
 from .utils.facility import Facility
 from .utils.views import ModifyFacilityView, RemoveFacilitiesView, CreateFacilityView
 from .utils.regions import REGIONS, all_markers
@@ -64,7 +69,6 @@ class LocationTransformer(app_commands.Transformer):
     async def transform(
         self, interaction: GuildInteraction, value: str, /
     ) -> FacilityLocation:
-
         match = re.search(r"[A-R]\d{1,2}K\d", value, flags=re.IGNORECASE)
         if match:
             coordinates = match.group()
@@ -96,7 +100,6 @@ class VehicleTransformer(app_commands.Transformer):
     async def autocomplete(
         self, _: GuildInteraction, value: str, /
     ) -> list[app_commands.Choice[str]]:
-
         choices = [name for name, _ in VehicleServiceFlags.all_vehicles()]
         sorted_choices = extract(value, choices, limit=25)
         return [
@@ -117,7 +120,6 @@ class ItemTransformer(app_commands.Transformer):
     async def autocomplete(
         self, _: GuildInteraction, value: str, /
     ) -> list[app_commands.Choice[str]]:
-
         choices = list(ItemServiceFlags.MAPPED_FLAGS.keys())
         sorted_choices = extract(value, choices, limit=25)
 
@@ -361,7 +363,6 @@ class FacilityCog(commands.Cog):
         )
 
     @remove.command(name="facility")
-    @app_commands.checks.has_permissions(administrator=True)
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def remove_facility(
         self,
@@ -402,17 +403,25 @@ class FacilityCog(commands.Cog):
         self,
         interaction: GuildInteraction,
         facility: app_commands.Transform[Facility, FacilityTransformer],
-        ephemeral: bool = True,
+        ephemeral: bool = False,
     ):
         """Gets and displays info about a facility
 
         Args:
             facility (app_commands.Transform[Facility, FacilityTransformer]): Facility to display, also accepts ID
-            ephemeral (bool, optional): Shows results to only you. Defaults to True.
+            ephemeral (bool, optional): Shows results to only you. Defaults to False.
         """
-        await interaction.response.send_message(
-            embeds=facility.embeds(), ephemeral=ephemeral
-        )
+        embeds = facility.embeds()
+        if interaction.namespace.ephemeral is not None:
+            pass
+        else:
+            preference = await self.bot.db.ephemeral_preference(interaction.user.id)
+            if preference is None:
+                embeds.append(await ephemeral_info(self.bot))
+
+            ephemeral = preference or False
+
+        await interaction.response.send_message(embeds=embeds, ephemeral=ephemeral)
 
     @app_commands.command()
     @app_commands.guild_only()
@@ -421,25 +430,39 @@ class FacilityCog(commands.Cog):
         self,
         interaction: GuildInteraction,
         ids: app_commands.Transform[tuple[int], IdTransformer],
-        ephemeral: bool = True,
+        ephemeral: bool = False,
     ):
         """View facilities based on their ID's
 
         Args:
             ids (app_commands.Transform[tuple[int], IdTransformer]): List of facility ID's to view with a delimiter of ',' or a space ' ' Ex. 1,3 4 8
-            ephemeral (bool): Show results to only you (defaults to True)
+            ephemeral (bool): Show results to only you. Defaults to False
         """
         facilities = await self.bot.db.get_facility_ids(ids)
         if not facilities:
-            raise MessageError("No facilities found", ephemeral=ephemeral)
+            raise MessageError("No facilities found", ephemeral=True)
 
         embeds = [
             facility.embeds()
             for facility in facilities
             if facility.guild_id == interaction.guild_id
         ]
+
+        ephemeral_info_embed = None
+        if interaction.namespace.ephemeral is not None:
+            pass
+        else:
+            preference = await self.bot.db.ephemeral_preference(interaction.user.id)
+            if preference is None:
+                ephemeral_info_embed = await ephemeral_info(self.bot)
+
+            ephemeral = preference or False
+
         await Paginator(original_author=interaction.user).start(
-            interaction, pages=embeds, ephemeral=ephemeral
+            interaction,
+            pages=embeds,
+            ephemeral=ephemeral,
+            one_time_message=ephemeral_info_embed,
         )
 
     @app_commands.command()
@@ -466,7 +489,7 @@ class FacilityCog(commands.Cog):
         vehicle_service: int = 0,
         creator: Member | None = None,
         vehicle: app_commands.Transform[int, VehicleTransformer] = 0,
-        ephemeral: bool = True,
+        ephemeral: bool = False,
     ) -> None:
         """Find a facility with optional search parameters
 
@@ -476,7 +499,7 @@ class FacilityCog(commands.Cog):
             vehicle_service (int, optional): Vehicle service to look for
             creator (Member, optional): Filter by facility creator
             vehicle (int, optional): Vehicle upgrade/build facility to look for
-            ephemeral (bool): Show results to only you. Defaults to True.
+            ephemeral (bool): Show results to only you. Defaults to False.
         """
         vehicle_service = vehicle or vehicle_service
 
@@ -495,30 +518,58 @@ class FacilityCog(commands.Cog):
         facility_list = await self.bot.db.get_facilities(search_dict)
 
         if not facility_list:
-            raise MessageError("No facilities found", ephemeral=ephemeral)
+            raise MessageError("No facilities found", ephemeral=True)
 
         embeds = [facility.embeds() for facility in facility_list]
+
+        ephemeral_info_embed = None
+        if interaction.namespace.ephemeral is not None:
+            pass
+        else:
+            preference = await self.bot.db.ephemeral_preference(interaction.user.id)
+            if preference is None:
+                ephemeral_info_embed = await ephemeral_info(self.bot)
+
+            ephemeral = preference or False
+
         await Paginator(original_author=interaction.user).start(
-            interaction, pages=embeds, ephemeral=ephemeral
+            interaction,
+            pages=embeds,
+            ephemeral=ephemeral,
+            one_time_message=ephemeral_info_embed,
         )
 
     @app_commands.command()
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
-    async def list(self, interaction: GuildInteraction, ephemeral: bool = True):
+    async def list(self, interaction: GuildInteraction, ephemeral: bool = False):
         """Shows a list of all facilities for the current guild
 
         Args:
-            ephemeral (bool): Show results to only you (defaults to True)
+            ephemeral (bool): Show results to only you. Defaults to False.
         """
+
         search_dict = {" guild_id == ? ": interaction.guild_id}
 
         facility_list = await self.bot.db.get_facilities(search_dict)
 
         if not facility_list:
-            raise MessageError("No facilities found", ephemeral=ephemeral)
+            raise MessageError("No facilities found", ephemeral=True)
 
         finished_embeds = create_list(facility_list, interaction.guild)
+
+        ephemeral_info_embed = None
+        if interaction.namespace.ephemeral is not None:
+            pass
+        else:
+            preference = await self.bot.db.ephemeral_preference(interaction.user.id)
+            if preference is None:
+                ephemeral_info_embed = await ephemeral_info(self.bot)
+
+            ephemeral = preference or False
+
+        if ephemeral_info_embed:
+            finished_embeds.append(ephemeral_info_embed)
 
         await interaction.response.send_message(
             embed=finished_embeds.pop(0), ephemeral=ephemeral

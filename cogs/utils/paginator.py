@@ -12,7 +12,12 @@ from .mixins import InteractionCheckedView
 
 
 class Paginator(InteractionCheckedView):
-    def __init__(self, *, timeout: float = 120, original_author: User | Member) -> None:
+    def __init__(
+        self,
+        *,
+        timeout: float = 120,
+        original_author: User | Member,
+    ) -> None:
         super().__init__(timeout=timeout, original_author=original_author)
 
         self.ephemeral = None
@@ -34,6 +39,7 @@ class Paginator(InteractionCheckedView):
         interaction: Interaction,
         pages: list[list[Embed]],
         ephemeral: bool = False,
+        one_time_message: Embed | None = None,
     ) -> None:
         """Start paginator
 
@@ -49,8 +55,12 @@ class Paginator(InteractionCheckedView):
 
         self._update_labels(self.current_page)
 
+        page = pages[self.current_page][:]
+        if one_time_message:
+            page.append(one_time_message)
+
         await interaction.response.send_message(
-            embeds=pages[self.current_page], view=self, ephemeral=ephemeral
+            embeds=page, view=self, ephemeral=ephemeral
         )
         self.original_message = await interaction.original_response()
 

@@ -10,6 +10,7 @@ from discord import Embed, Colour, Guild
 
 
 if TYPE_CHECKING:
+    from bot import FacilityBot
     from .facility import Facility
 
 
@@ -222,3 +223,11 @@ def create_list(facility_list: list[Facility], guild: Guild) -> list[Embed]:
     paginator.fix_wrapping()
 
     return paginator.embeds
+
+
+async def ephemeral_info(bot: FacilityBot) -> Embed:
+    command = await bot.tree.get_or_fetch_app_command("toggle_ephemeral")
+    return Embed(
+        description=f"Not expecting this message to be viewable by everyone? You can change your prefrence with the command {command and command.mention}. This message will not be shown again.",
+        colour=Colour.blue(),
+    )

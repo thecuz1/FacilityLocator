@@ -27,7 +27,7 @@ class FetchMethod(Enum):
     ALL = auto()
 
 
-class Messages(list):
+class AdaptableList(list):
     @staticmethod
     def adapt(messages: list[int]):
         return ";".join(str(message) for message in messages)
@@ -37,18 +37,30 @@ class Messages(list):
         return cls(map(int, messages.split(b";")))
 
 
+def adapt_bool(b: bool):
+    return int(b)
+
+
+def convert_int(i: bytes):
+    return bool(int(i))
+
+
 class Database:
     def __init__(self, bot: FacilityBot, db_file) -> None:
         self.bot: FacilityBot = bot
         self.db_file = db_file
-        aiosqlite.register_adapter(Messages, Messages.adapt)
-        aiosqlite.register_converter("messages", Messages.convert)
+        aiosqlite.register_adapter(AdaptableList, AdaptableList.adapt)
+        aiosqlite.register_converter("messages", AdaptableList.convert)
+        aiosqlite.register_adapter(AdaptableList, AdaptableList.adapt)
+        aiosqlite.register_converter("CHANNEL_IDS", AdaptableList.convert)
         aiosqlite.register_adapter(ItemServiceFlags, ItemServiceFlags.adapt)
         aiosqlite.register_converter("ITEM_SERVICES", ItemServiceFlags._from_value)
         aiosqlite.register_adapter(VehicleServiceFlags, VehicleServiceFlags.adapt)
         aiosqlite.register_converter(
             "VEHICLE_SERVICES", VehicleServiceFlags._from_value
         )
+        aiosqlite.register_adapter(bool, adapt_bool)
+        aiosqlite.register_converter("BOOL", convert_int)
 
     @asynccontextmanager
     async def _connect(self):
@@ -209,9 +221,30 @@ class Database:
 	                "name",
 	                "guild_id"
                 );
+                CREATE TABLE "response" (
+	                "guild_id"	INTEGER UNIQUE,
+	                "channel_ids"	CHANNEL_IDS,
+	                PRIMARY KEY("guild_id")
+                );
+                CREATE TABLE "user_options" (
+	                "user_id"	INTEGER,
+	                "ephemeral"	BOOL,
+	                PRIMARY KEY("user_id")
+                );
             """
         await self.executemultiple(sql)
         logger.info("Created database %r", str(self.db_file))
+
+    async def ephemeral_preference(self, user_id: int) -> bool | None:
+        query = """SELECT ephemeral FROM user_options WHERE user_id = ?"""
+        current_choice_row = await self.fetch_one(query, user_id)
+        if current_choice_row:
+            return current_choice_row[0]
+
+        query = """INSERT OR REPLACE INTO user_options VALUES (?,?)"""
+        current_choice_row = await self.bot.db.execute(query, user_id, False)
+
+        return None
 
     async def get_all_facilities(self) -> List[Facility]:
         async with aiosqlite.connect(self.db_file) as db:
@@ -337,7 +370,7 @@ class Database:
     ) -> None:
         await self._execute_query(
             """INSERT OR REPLACE INTO list (guild_id, channel_id, messages) VALUES (?, ?, ?)""",
-            (guild.id, channel.id, Messages(messages)),
+            (guild.id, channel.id, AdaptableList(messages)),
         )
 
     async def remove_list(

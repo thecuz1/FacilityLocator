@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING
+from rapidfuzz import process
 
-from discord import Guild, Message, NotFound, Interaction
+from discord import Guild, Message, NotFound, Interaction, Embed, Colour
 from discord.ext import commands
 
 from .utils.embeds import create_list
+from .utils.cost import Building, Cost, building_data
 
 
 if TYPE_CHECKING:
@@ -19,6 +21,32 @@ if TYPE_CHECKING:
 
 guild_logger = logging.getLogger("guild_event")
 facility_logger = logging.getLogger("facility_event")
+
+
+def generate_message(building: Building):
+    def format_cost(cost: Cost):
+        item_texts = []
+        for key, value in cost.items():
+            item_texts.append(f"**{value}x {key}**")
+        return ", ".join(item_texts)
+
+    embed = Embed(title=building.name, colour=Colour.blue())
+
+    final_description = format_cost(building.cost)
+    if building.parent:
+        final_description += f"\n\nParent (**{building.parent.name}**) cost: {format_cost(building.parent.cost)}"
+        final_description += f"\n\nTotal cost: {format_cost(building.total_cost())}"
+
+    embed.description = final_description
+    return embed
+
+
+def process_response(user_input: str):
+    choice = process.extractOne(user_input, building_data.keys(), score_cutoff=80)
+    if choice:
+        building = building_data[choice[0]]
+        return generate_message(building)
+    return None
 
 
 class Events(commands.Cog):
@@ -77,6 +105,23 @@ class Events(commands.Cog):
                 await info_command(ctx)
             except Exception:
                 pass
+        elif message.content.lower().startswith("how much does"):
+            if not message.guild:
+                return
+
+            query = """SELECT channel_ids from response WHERE guild_id = ?"""
+            channel_row = await self.bot.db.fetch_one(query, message.guild.id)
+            if not channel_row:
+                return
+
+            channel_ids: list[int] = channel_row[0]
+            if message.channel.id not in channel_ids:
+                return
+
+            user_input = message.content[13:].strip()
+            output = process_response(user_input)
+            if output:
+                await message.channel.send(embed=output, reference=message)
 
     @commands.Cog.listener()
     async def on_facility_create(

@@ -9,6 +9,7 @@ from discord import app_commands, Embed, Colour
 
 from .utils.context import GuildInteraction
 from .utils.errors import MessageError
+from .utils.embeds import ephemeral_info
 
 
 if TYPE_CHECKING:
@@ -38,22 +39,40 @@ class Misc(commands.Cog):
     @app_commands.command()
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
-    async def logs(self, interaction: GuildInteraction, ephemeral: bool = True) -> None:
+    async def logs(
+        self, interaction: GuildInteraction, ephemeral: bool = False
+    ) -> None:
         """View logs for the current guild
 
         Args:
-            ephemeral (bool): Show results to only you (defaults to True)
+            ephemeral (bool): Show results to only you. Defaults to False.
         """
         logs = self.bot.guild_logs.get(interaction.guild_id, None)
         if not logs:
-            raise MessageError("No logs found")
+            raise MessageError("No logs found", ephemeral=True)
 
         embed = Embed(title=f"Logs for {interaction.guild.name}", colour=Colour.blue())
 
         formatted_logs = "> "
         formatted_logs += "\n> ".join(logs)
         embed.description = formatted_logs
-        await interaction.response.send_message(embed=embed, ephemeral=ephemeral)
+
+        embeds = [embed]
+
+        ephemeral_info_embed = None
+        if interaction.namespace.ephemeral is not None:
+            pass
+        else:
+            preference = await self.bot.db.ephemeral_preference(interaction.user.id)
+            if preference is None:
+                ephemeral_info_embed = await ephemeral_info(self.bot)
+
+            ephemeral = preference or False
+
+        if ephemeral_info_embed:
+            embeds.append(ephemeral_info_embed)
+
+        await interaction.response.send_message(embeds=embeds, ephemeral=ephemeral)
 
     stats = app_commands.Group(
         name="stats",
@@ -64,12 +83,12 @@ class Misc(commands.Cog):
     @stats.command(name="command")
     @app_commands.checks.cooldown(1, 30, key=lambda i: (i.guild_id, i.user.id))
     async def command_stats(
-        self, interaction: GuildInteraction, ephemeral: bool = True
+        self, interaction: GuildInteraction, ephemeral: bool = False
     ):
         """Command stats about the bot
 
         Args:
-            ephemeral (bool): Show results to only you (defaults to True)
+            ephemeral (bool): Show results to only you. Defaults to False.
         """
 
         # fmt: off
@@ -85,7 +104,7 @@ class Misc(commands.Cog):
            ORDER BY name;"""
         rows = await self.bot.db.fetch(query, interaction.guild_id or 0)
         if not rows:
-            raise MessageError("No command stats found", ephemeral=ephemeral)
+            raise MessageError("No command stats found", ephemeral=True)
 
         start = "Command Run Counts:```\n"
         table = make_table(
@@ -95,7 +114,23 @@ class Misc(commands.Cog):
             description=start + table + "\n```",
             colour=Colour.blue(),
         )
-        await interaction.response.send_message(embed=embed, ephemeral=ephemeral)
+
+        embeds = [embed]
+
+        ephemeral_info_embed = None
+        if interaction.namespace.ephemeral is not None:
+            pass
+        else:
+            preference = await self.bot.db.ephemeral_preference(interaction.user.id)
+            if preference is None:
+                ephemeral_info_embed = await ephemeral_info(self.bot)
+
+            ephemeral = preference or False
+
+        if ephemeral_info_embed:
+            embeds.append(ephemeral_info_embed)
+
+        await interaction.response.send_message(embeds=embeds, ephemeral=ephemeral)
 
 
 async def setup(bot: FacilityBot) -> None:

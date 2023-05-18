@@ -1,8 +1,10 @@
 from typing import Optional
+from functools import reduce
 
 import discord
 
 from .flags import ItemServiceFlags, VehicleServiceFlags
+from .ansi import Colour, ANSIColour
 
 
 class Facility:
@@ -97,7 +99,12 @@ class Facility:
         """
         return self.initial_hash != self.__current_hash()
 
-    def embeds(self) -> list[discord.Embed]:
+    def embeds(
+        self,
+        item_service_highlight: ItemServiceFlags = ItemServiceFlags(),
+        vehicle_service_highlight: VehicleServiceFlags = VehicleServiceFlags(),
+        vehicle_highlight: str = "",
+    ) -> list[discord.Embed]:
         """Generates a list of embeds for viewing the facility
 
         Returns:
@@ -129,23 +136,91 @@ class Facility:
 
         embed.set_footer(text="Source Code: https://github.com/thecuz1/FacilityLocator")
 
-        start = "```ansi\n\u001b[0;32m"
+        start = "```ansi\n"
         end = "\n```"
 
         if self.item_services:
-            services = "\n".join(
-                (name for name, enabled in self.item_services if enabled)
-            )
+            service_list: list[str] = []
+
+            for name, flag in self.item_services.MAPPED_FLAGS.items():
+                if getattr(self.item_services, name) is False:
+                    continue
+
+                if getattr(item_service_highlight, name) is True:
+                    service_list.append(
+                        f"\u001b[0;34m> {flag.display_name}\u001b[0;32m"
+                    )
+                else:
+                    service_list.append(flag.display_name)
+
+            services = "\n".join(service_list)
             embed.add_field(
                 name="Item Services:",
-                value=f"{start}{services}{end}",
+                value=f"{start}{ANSIColour(text_colour=Colour.GREEN)}{services}{end}",
             )
 
         if self.vehicle_services:
-            services = "\n".join(
-                (name for name, enabled in self.vehicle_services if enabled)
+            service_list: list[str] = []
+            vehicles: list[list[str]] = [[]]
+
+            for name, flag in self.vehicle_services.MAPPED_FLAGS.items():
+                if getattr(self.vehicle_services, name) is False:
+                    continue
+
+                if getattr(vehicle_service_highlight, name) is True:
+                    service_list.append(
+                        f"{ANSIColour(bold=True, text_colour=Colour.BLUE)}> {flag.ansi}{flag.display_name}"
+                    )
+                else:
+                    service_list.append(f"{flag.ansi}{flag.display_name}")
+
+                if flag.produces:
+                    vehicle_list = list(flag.produces)
+                    vehicle_list[0] = f"{flag.ansi}{vehicle_list[0]}"
+
+                    if vehicle_highlight:
+                        for i, k in enumerate(vehicle_list):
+                            if vehicle_highlight in k:
+                                vehicle_list[
+                                    i
+                                ] = f"{ANSIColour(bold=True, text_colour=Colour.BLUE)}> {flag.ansi}{k}"
+                                break
+
+                    length_vehicle_list = 0
+                    for k in vehicle_list:
+                        length_vehicle_list += len(k)
+                    length_vehicle_list += len(vehicle_list) - 1
+
+                    length_vehicles = 0
+                    for k in vehicles[-1]:
+                        length_vehicles += len(k)
+                    length_vehicles += len(vehicles[-1]) - 1
+
+                    if length_vehicle_list + length_vehicles > 860:
+                        vehicles.append(vehicle_list)
+                    else:
+                        vehicles[-1].extend(vehicle_list)
+
+            services = "\n".join(service_list)
+
+            embed.add_field(
+                name="Vehicle Services:",
+                value=f"{start}{services}{end}",
             )
-            embed.add_field(name="Vehicle Services:", value=f"{start}{services}{end}")
+
+            if vehicles[0]:
+                vehicles[0].insert(
+                    0,
+                    f"{ANSIColour(bold=True, underline=True)}List generated from vehicle services and doesn't take into account resources to build listed vehicles.",
+                )
+                for index, vehicle_list in enumerate(vehicles):
+                    joined_vehicles = "\n".join(vehicle_list)
+                    name = "Vehicles:" if index == 0 else "Vehicles (Cont.):"
+                    embed.add_field(
+                        name=name,
+                        value=f"{start}{joined_vehicles}{end}",
+                        inline=False,
+                    )
 
         embeds.append(embed)
         return embeds

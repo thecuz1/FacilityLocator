@@ -6,7 +6,7 @@ from typing import NamedTuple, TYPE_CHECKING
 from rapidfuzz.process import extract
 
 from discord.ext import commands
-from discord import app_commands, Member, Attachment
+from discord import app_commands, Member, Attachment, Embed
 
 from .utils.embeds import (
     FeedbackEmbed,
@@ -91,10 +91,12 @@ class LocationTransformer(app_commands.Transformer):
 
 
 class VehicleTransformer(app_commands.Transformer):
-    async def transform(self, interaction: GuildInteraction, value: str, /) -> int:
+    async def transform(
+        self, interaction: GuildInteraction, value: str, /
+    ) -> tuple[str, int]:
         for vehicle, flag in VehicleServiceFlags.all_vehicles():
             if vehicle in value:
-                return flag.flag_value
+                return vehicle, flag.flag_value
         raise MessageError("Invalid vehicle")
 
     async def autocomplete(
@@ -488,7 +490,7 @@ class FacilityCog(commands.Cog):
         item_service: app_commands.Transform[int, ItemTransformer] = 0,
         vehicle_service: int = 0,
         creator: Member | None = None,
-        vehicle: app_commands.Transform[int, VehicleTransformer] = 0,
+        vehicle: app_commands.Transform[tuple[str, int], VehicleTransformer] = ("", 0),
         ephemeral: bool = False,
     ) -> None:
         """Find a facility with optional search parameters
@@ -498,10 +500,10 @@ class FacilityCog(commands.Cog):
             item_service (int, optional): Item service to look for
             vehicle_service (int, optional): Vehicle service to look for
             creator (Member, optional): Filter by facility creator
-            vehicle (int, optional): Vehicle upgrade/build facility to look for
+            vehicle (tuple[str, int], optional): Vehicle upgrade/build facility to look for
             ephemeral (bool): Show results to only you. Defaults to False.
         """
-        vehicle_service = vehicle or vehicle_service
+        vehicle_service = vehicle[1] or vehicle_service
 
         search_dict = {
             name: value
@@ -520,7 +522,13 @@ class FacilityCog(commands.Cog):
         if not facility_list:
             raise MessageError("No facilities found", ephemeral=True)
 
-        embeds = [facility.embeds() for facility in facility_list]
+        item_highlight = ItemServiceFlags(item_service)
+        vehicle_highlight = VehicleServiceFlags(vehicle_service)
+
+        embeds = [
+            facility.embeds(item_highlight, vehicle_highlight, vehicle[0])
+            for facility in facility_list
+        ]
 
         ephemeral_info_embed = None
         if interaction.namespace.ephemeral is not None:

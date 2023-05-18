@@ -10,6 +10,8 @@ from typing import (
 )
 from discord import SelectOption
 
+from .ansi import Colour, ANSIColour
+
 FF = TypeVar("FF", bound="FacilityFlags")
 
 
@@ -47,10 +49,15 @@ class flag:
 
 class vehicle_flag(flag):
     def __init__(
-        self, *, display_name: str = "", produces: tuple[str, ...] = tuple()
+        self,
+        *,
+        display_name: str = "",
+        produces: tuple[str, ...] = tuple(),
+        ansi: ANSIColour = ANSIColour(),
     ) -> None:
         super().__init__(display_name=display_name)
         self.produces: tuple[str, ...] = produces
+        self.ansi: ANSIColour = ansi
 
 
 class FlagsMeta(Type):
@@ -289,6 +296,7 @@ class VehicleServiceFlags(FacilityFlags):
             'BMS "Linerunner" (Small Flatbed Car)',
             'BMS "Tinder Box" (Small Liquid Car)',
         ),
+        ansi=ANSIColour(text_colour=Colour.YELLOW),
     )
     def light_assembly(self):
         return 2  # 1 << 1
@@ -308,6 +316,7 @@ class VehicleServiceFlags(FacilityFlags):
             # "O'Brien V.101 "Freeman" (AC)",
             # "Drummond 100a (LUV)",
         ),
+        ansi=ANSIColour(text_colour=Colour.CYAN),
     )
     def motor_pool(self):
         return 4  # 1 << 2
@@ -323,6 +332,7 @@ class VehicleServiceFlags(FacilityFlags):
             # 'Niska-Rycker Mk. IX "Skycaller"'
             # 'Niska Mk. II "Blinder"',
         ),
+        ansi=ANSIColour(text_colour=Colour.PINK),
     )
     def rocket_factory(self):
         return 8  # 1 << 3
@@ -330,7 +340,7 @@ class VehicleServiceFlags(FacilityFlags):
     @vehicle_flag(
         display_name="Field Station (Light Assembly)",
         produces=(
-            'HC-2 "Scorpion" (Light Infantry Tank)',
+            'HC-2 "Scorpion" (Infantry Support Tank)',
             'AB-11 "Doru" (APC)',
             '40-45 "Smelter" (HV40mm)',
             # "Balfour Rampart 68mm (HV68mm)",
@@ -338,6 +348,7 @@ class VehicleServiceFlags(FacilityFlags):
             'BMS "Scrap Hauler" (Harvester)',
             'BMS "Fabricator" (ACV)',
         ),
+        ansi=ANSIColour(text_colour=Colour.GREY),
     )
     def field_station(self):
         return 16  # 1 << 4
@@ -349,7 +360,7 @@ class VehicleServiceFlags(FacilityFlags):
             'H-10 "Pelekys" (Light Tank)',
             'H-5 "Kranesca" (Light Tank)',
             '85K-a "Spatha" (Assault Tank)',
-            '86K-c "Ranseur" (Assult Tank)',
+            '86K-c "Ranseur" (Assault Tank)',
             'DAE 2a-1 "Raptura" (HV75mm Cannon)',
             # "Silverhand Chieftain - Mk. VI (Assault Tank)",
             # "Gallagher Highwayman Mk. III (Cruiser Tank)",
@@ -358,6 +369,7 @@ class VehicleServiceFlags(FacilityFlags):
             # "Devitt-Caine Mk. IV MMR (Light Tank)",
             # "Huber Starbreaker 94.5mm (HV94.5 EAT)",
         ),
+        ansi=ANSIColour(text_colour=Colour.RED),
     )
     def tank_factory(self):
         return 32  # 1 << 5
@@ -370,6 +382,7 @@ class VehicleServiceFlags(FacilityFlags):
             # "Gallagher Thornfall Mk. VI (Cruiser Tank)",
             # "Balfour Stockade 75mm (Field Gun)",
         ),
+        ansi=ANSIColour(text_colour=Colour.WHITE),
     )
     def weapons_platform(self):
         return 64  # 1 << 6
@@ -383,6 +396,10 @@ class VehicleServiceFlags(FacilityFlags):
             'BMS "Longrider" (Flatbed Car)',
             'BMS "Roadhouse" (Caboose)',
         ),
+        ansi=ANSIColour(
+            background_colour=Colour.BACKGROUND_FIREFLY_DARK_BLUE,
+            text_colour=Colour.RED,
+        ),
     )
     def large_assembly(self):
         return 128  # 1 << 7
@@ -392,6 +409,10 @@ class VehicleServiceFlags(FacilityFlags):
         produces=(
             "Aegis Steelbreaker K5a (Combat Car)",
             "Tempest Cannon RA-2 (Artillery Car)",
+        ),
+        ansi=ANSIColour(
+            background_colour=Colour.BACKGROUND_FIREFLY_DARK_BLUE,
+            text_colour=Colour.YELLOW,
         ),
     )
     def train(self):
@@ -404,6 +425,10 @@ class VehicleServiceFlags(FacilityFlags):
             "Lance-36 (Battle Tank)",
             # "Flood Mk. I (Battle Tank)",
             # "Cullen Predator Mk. III (Super Tank)",
+        ),
+        ansi=ANSIColour(
+            background_colour=Colour.BACKGROUND_FIREFLY_DARK_BLUE,
+            text_colour=Colour.PINK,
         ),
     )
     def heavy_tank(self):

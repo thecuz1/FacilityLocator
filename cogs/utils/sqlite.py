@@ -247,11 +247,10 @@ class Database:
         return None
 
     async def get_all_facilities(self) -> List[Facility]:
-        async with aiosqlite.connect(self.db_file) as db:
-            db.row_factory = aiosqlite.Row
-            results = await db.execute("SELECT * FROM facilities")
-            rows = await results.fetchall()
-            return [Facility(**row) for row in rows]
+        async with self._connect() as db:
+            db.row_factory = Row
+            results = await db.execute_fetchall("SELECT * FROM facilities")
+            return [Facility(**row) for row in results]
 
     async def add_facility(self, facility: Facility) -> int:
         values = (
@@ -274,7 +273,7 @@ class Database:
         )
         return lastrowid
 
-    async def get_facilities(self, search_dict: Dict[str, str | int]) -> List[Facility]:
+    async def get_facilities(self, search_dict: Dict[str, str | int] = None) -> List[Facility]:
         if not search_dict:
             return await self.get_all_facilities()
         sql = "SELECT * FROM facilities WHERE "

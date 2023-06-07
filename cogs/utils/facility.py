@@ -24,6 +24,7 @@ class Facility:
         creation_time (int, optional): Creation time of facility
         guild_id (int): Guild facility was created in
         image_url (str): Image url to use in embed
+        thread_id (int): Thread ID where this facility is publicly shown
     """
 
     def __init__(
@@ -68,6 +69,7 @@ class Facility:
         self.image_url: str = options.pop("image_url", "")
         self.guild_id: int = guild_id
         self.initial_hash: int = self.__current_hash()
+        self.thread_id: Optional[int] = options.pop("thread_id", None)
 
     def __current_hash(self) -> int:
         return hash(
@@ -116,11 +118,15 @@ class Facility:
         if self.coordinates:
             facility_location += f"> Coordinates : {self.coordinates}\n"
 
-        creation_info = f"> Author : <@{self.author}>\n> Guild ID : {self.guild_id}\n"
+        creation_info = (
+            f"> Maintainer : {self.maintainer}\n> Author : <@{self.author}>\n"
+        )
         if self.creation_time:
             creation_info += f"> Created : <t:{self.creation_time}:R>\n"
         if self.id_:
             creation_info += f"> ID : {self.id_}\n"
+        if self.thread_id:
+            creation_info += f"> Thread : <#{self.thread_id}>\n"
 
         embed = discord.Embed(
             title=self.name, description=self.description, color=0x54A24A
@@ -131,8 +137,8 @@ class Facility:
             ).set_image(url=self.image_url)
             embeds.append(image_embed)
         embed.add_field(name="Location:", value=facility_location)
-        embed.add_field(name="Maintainer:", value=self.maintainer)
-        embed.add_field(name="Creation Info:", value=creation_info)
+        # embed.add_field(name="Maintainer:", value=self.maintainer)
+        embed.add_field(name="Info:", value=creation_info, inline=False)
 
         embed.set_footer(text="Source Code: https://github.com/thecuz1/FacilityLocator")
 
@@ -206,6 +212,7 @@ class Facility:
             embed.add_field(
                 name="Vehicle Services:",
                 value=f"{start}{services}{end}",
+                inline=True,
             )
 
             if vehicles[0]:

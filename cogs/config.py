@@ -1,8 +1,16 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
-from discord import app_commands, TextChannel, Permissions, Embed, Colour
+from discord import (
+    app_commands,
+    TextChannel,
+    Permissions,
+    Embed,
+    Colour,
+    PermissionOverwrite,
+    Forbidden,
+)
 from discord.ext import commands
 
 from .utils.embeds import FeedbackEmbed, FeedbackType
@@ -14,11 +22,116 @@ from .utils.sqlite import AdaptableList
 if TYPE_CHECKING:
     from bot import FacilityBot
     from .utils.context import Context, GuildInteraction, ClientInteraction
+    from .events import Events
 
 
 class Config(commands.Cog):
     def __init__(self, bot: FacilityBot):
         self.bot: FacilityBot = bot
+
+    @app_commands.command()
+    @app_commands.guild_only()
+    @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
+    @app_commands.default_permissions(administrator=True)
+    async def create_fourm(self, interaction: GuildInteraction):
+        """Creates fourm channel to list facilities"""
+        guild = interaction.guild
+        overwrites = {
+            guild.default_role: PermissionOverwrite(
+                send_messages=False, read_messages=False, send_messages_in_threads=True
+            ),
+            guild.me: PermissionOverwrite(
+                send_messages=True,
+                read_messages=True,
+                manage_channels=True,
+            ),
+        }
+        try:
+            forum = await guild.create_forum(
+                "facility list",
+                overwrites=overwrites,
+            )
+        except Forbidden:
+            await interaction.response.send_message(
+                embed=FeedbackEmbed(
+                    "Lack permissions to create forum", FeedbackType.ERROR
+                ),
+                ephemeral=True,
+            )
+            return
+
+        await interaction.response.defer(ephemeral=True)
+
+        query = (
+            """INSERT OR REPLACE INTO guild_options (guild_id, forum_id) VALUES(?,?)"""
+        )
+        await self.bot.db.execute(query, guild.id, forum.id)
+
+        tree = self.bot.tree
+
+        toggle_ephemeral_cmd = await tree.get_or_fetch_app_command("toggle_ephemeral")
+        create_cmd = await tree.get_or_fetch_app_command("create")
+        modify_cmd = await tree.get_or_fetch_app_command("modify")
+        view_cmd = await tree.get_or_fetch_app_command("view")
+        facility_cmd = await tree.get_or_fetch_app_command("facility")
+        locate_cmd = await tree.get_or_fetch_app_command("locate")
+        list_cmd = await tree.get_or_fetch_app_command("list")
+        remove_ids_cmd = await tree.get_or_fetch_app_command("remove ids")
+        remove_ids_cmd = await tree.get_or_fetch_app_command("remove ids")
+        remove_facility_cmd = await tree.get_or_fetch_app_command("remove facility")
+
+        embed = Embed(
+            title="Commands:",
+            description=f"Some of these commands will be visable by default, you can change this behaviour with the command {toggle_ephemeral_cmd and toggle_ephemeral_cmd.mention}",
+            colour=Colour.green(),
+        )
+        embed.add_field(
+            name="Create/Modify",
+            value=f"""{create_cmd and create_cmd.mention} (Creates a facility and associated thread)
+                      {modify_cmd and modify_cmd.mention} (Modifies a facility)""",
+            inline=False,
+        )
+        embed.add_field(
+            name="View",
+            value=f"""{view_cmd and view_cmd.mention} (Allows multiple IDs)
+                      {facility_cmd and facility_cmd.mention} (Displays one facility)
+                      {locate_cmd and locate_cmd.mention} (Finds a facility based on search parameters)
+                      {list_cmd and list_cmd.mention} (Shows a list of all facilities by region)""",
+            inline=False,
+        )
+        embed.add_field(
+            name="Remove",
+            value=f"""{remove_ids_cmd and remove_ids_cmd.mention} (Removes a list of facility IDs)
+                      {remove_facility_cmd and remove_facility_cmd.mention} (Removes a single facility)""",
+            inline=False,
+        )
+
+        try:
+            help_thread, _ = await forum.create_thread(
+                name="How to Use",
+                embed=embed,
+            )
+            await help_thread.edit(pinned=True)
+        except Forbidden:
+            await interaction.followup.send(
+                embed=FeedbackEmbed(
+                    "Lack permissions to create threads in forum",
+                    FeedbackType.ERROR,
+                ),
+                ephemeral=True,
+            )
+            return
+
+        facilities = await self.bot.db.get_facilities({"guild_id = ?": guild.id})
+        events: Optional[Events] = self.bot.get_cog("Events")
+        if events:
+            for facility in facilities:
+                await events.handle_forum(facility, guild.id)
+
+        await interaction.followup.send(
+            embed=FeedbackEmbed(f"Created forum {forum.mention}", FeedbackType.SUCCESS),
+            ephemeral=True,
+        )
 
     @app_commands.command()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))

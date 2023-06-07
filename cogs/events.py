@@ -4,7 +4,16 @@ import logging
 from typing import TYPE_CHECKING
 from rapidfuzz import process
 
-from discord import Guild, Message, NotFound, Interaction, Embed, Colour
+from discord import (
+    Guild,
+    Message,
+    NotFound,
+    Embed,
+    Colour,
+    ForumChannel,
+    Forbidden,
+    Object,
+)
 from discord.ext import commands
 
 from .utils.embeds import create_list
@@ -16,7 +25,7 @@ if TYPE_CHECKING:
     from discord.app_commands import Command, ContextMenu
 
     from .utils.facility import Facility
-    from .utils.context import GuildInteraction
+    from .utils.context import GuildInteraction, ClientInteraction
 
 
 guild_logger = logging.getLogger("guild_event")
@@ -55,7 +64,7 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_app_command_completion(
-        self, interaction: Interaction, command: Command | ContextMenu
+        self, interaction: ClientInteraction, command: Command | ContextMenu
     ) -> None:
         insert_query = """INSERT INTO command_stats VALUES (?, ?, ?) ON CONFLICT(name, guild_id) DO UPDATE SET run_count = run_count + 1"""
         await self.bot.db.execute(
@@ -139,6 +148,7 @@ class Events(commands.Cog):
             facility.id_,
             extra={"ctx": ctx},
         )
+        await self.handle_forum(facility, ctx.guild_id)
         await self.update_list(ctx.guild)
 
     @commands.Cog.listener()
@@ -158,6 +168,7 @@ class Events(commands.Cog):
             ctx.user.mention,
             extra={"ctx": ctx},
         )
+        await self.handle_forum(after, ctx.guild_id)
         await self.update_list(ctx.guild)
 
     @commands.Cog.listener()
@@ -176,6 +187,8 @@ class Events(commands.Cog):
             ctx.user.mention,
             extra={"ctx": ctx},
         )
+        for facility in facilities:
+            await self.handle_forum(facility, ctx.guild_id, True)
         await self.update_list(ctx.guild)
 
     async def update_list(self, guild: Guild) -> None:
@@ -187,7 +200,7 @@ class Events(commands.Cog):
         facilities: list[Facility] = await self.bot.db.get_facilities(search_dict)
 
         channel_id, messages = list_location
-        embeds = create_list(facilities, guild)
+        embeds = await create_list(facilities, guild, self.bot)
 
         async def remove_messages():
             for message in messages:
@@ -212,6 +225,8 @@ class Events(commands.Cog):
                 except NotFound:
                     await remove_messages()
                     break
+                except Forbidden:
+                    break
             else:
                 return
 
@@ -221,6 +236,47 @@ class Events(commands.Cog):
             new_messages.append(message.id)
 
         await self.bot.db.set_list(guild, channel, new_messages)
+
+    async def handle_forum(
+        self, facility: Facility, guild_id: int, delete: bool = False
+    ) -> None:
+        query = """SELECT forum_id FROM guild_options WHERE guild_id == ?"""
+        forum_tuple = await self.bot.db.fetch_one(query, guild_id)
+        if not len(forum_tuple) > 0:
+            return
+        forum_id = forum_tuple[0]
+        forum = self.bot.get_channel(forum_id)
+        if not isinstance(forum, ForumChannel):
+            return
+
+        thread = forum.get_thread(facility.thread_id or 0)
+        if delete:
+            facility.thread_id = None
+            if thread is None:
+                return
+            return await thread.delete()
+        if thread is None:
+            thread, _ = await forum.create_thread(
+                name=f"{facility.name} - {facility.marker}, {facility.region}",
+                embeds=facility.embeds(),
+            )
+            try:
+                await thread.add_user(Object(facility.author))
+            except Forbidden:
+                pass
+            facility.thread_id = thread.id
+            await self.bot.db.update_facility(facility)
+        else:
+            updated_name = f"{facility.name} - {facility.marker}, {facility.region}"
+            if thread.name != updated_name:
+                await thread.edit(name=updated_name)
+
+            message = thread.starter_message
+            if not message:
+                message = await thread.fetch_message(thread.id)
+            await message.edit(
+                embeds=facility.embeds(),
+            )
 
 
 async def setup(bot: FacilityBot) -> None:

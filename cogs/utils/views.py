@@ -61,7 +61,9 @@ class DynamicListConfirm(InteractionCheckedView):
         await self._finish_view(interaction)
         followup = interaction.followup
 
-        facility_list = create_list(self.facilities, interaction.guild)
+        facility_list = await create_list(
+            self.facilities, interaction.guild, interaction.client
+        )
         messages = []
         for embed in facility_list:
             try:

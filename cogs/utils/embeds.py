@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import traceback
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 from enum import Enum, auto
 from itertools import groupby
 
@@ -112,7 +112,7 @@ class EmbedPage(Embed):
         region: str,
         name: str,
         value: str,
-        inline: bool = True,
+        inline: bool = False,
     ):
         try:
             if self.fields == 25:
@@ -171,12 +171,15 @@ class EmbedPage(Embed):
 
 
 class Paginator:
-    def __init__(self, guild_name: str, total_facilities: int) -> None:
+    def __init__(
+        self,
+        guild_name: str,
+        total_facilities: int,
+    ) -> None:
         self.embeds: list[EmbedPage] = []
 
         self._new_embed(
             title=f"Facility list ({guild_name}) ({total_facilities})",
-            description="Format: `ID | Name | Sub-Region`\nFor more info about a facility use the commmand `/view [ID(s)]`",
         )
 
     def _new_embed(self, *args, **kwargs) -> EmbedPage:
@@ -192,12 +195,10 @@ class Paginator:
             new_embed = self._new_embed()
             new_embed.add_entry(region, entry, exc.continued)
 
-    def fix_wrapping(self):
-        for embed in self.embeds:
-            embed.fix_wrapping()
 
-
-def create_list(facility_list: list[Facility], guild: Guild) -> list[Embed]:
+async def create_list(
+    facility_list: list[Facility], guild: Guild, _: FacilityBot
+) -> list[Embed]:
     """Generates embeds to list short form facilities
 
     Args:
@@ -213,14 +214,16 @@ def create_list(facility_list: list[Facility], guild: Guild) -> list[Embed]:
     facility_regions = groupby(facility_list, key=lambda facility: facility.region)
 
     for region, facilities in facility_regions:
-        formatted_list = (
-            f"{facility.id_} | {facility.name.strip()} | {facility.marker}"
-            for facility in facilities
-        )
+        formatted_list = []
+        for facility in facilities:
+            if facility.thread_id:
+                formatted_list.append(f"{facility.id_} | <#{facility.thread_id}>")
+            else:
+                formatted_list.append(
+                    f"{facility.id_} | {facility.name.strip()} | {facility.marker}"
+                )
         for entry in formatted_list:
             paginator.add_entry(region, entry)
-
-    paginator.fix_wrapping()
 
     return paginator.embeds
 

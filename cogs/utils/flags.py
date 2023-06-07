@@ -283,7 +283,7 @@ class VehicleServiceFlags(FacilityFlags):
         return 1  # 1 << 0
 
     @vehicle_flag(
-        display_name="Light Assembly (Base)",
+        display_name="Small Assembly (Base)",
         produces=(
             '00MS "Stinger" (Motorcycle)',
             'R-9 "Speartip" Escort',
@@ -302,7 +302,7 @@ class VehicleServiceFlags(FacilityFlags):
         return 2  # 1 << 1
 
     @vehicle_flag(
-        display_name="Motor Pool (Light Assembly)",
+        display_name="Motor Pool (Small Assembly)",
         produces=(
             'T5 "Percutio" (AT-AC)',
             'T8 "Gemini" (RPG-AC)',
@@ -322,7 +322,7 @@ class VehicleServiceFlags(FacilityFlags):
         return 4  # 1 << 2
 
     @vehicle_flag(
-        display_name="Rocket Factory (Light Assembly)",
+        display_name="Rocket Factory (Small Assembly)",
         produces=(
             'R-17 "Retiarius" (Rocket Artillery Truck)',
             'DAE 3b-2 "Hades Net" (Emplaced Rocket Artillery)',
@@ -338,7 +338,7 @@ class VehicleServiceFlags(FacilityFlags):
         return 8  # 1 << 3
 
     @vehicle_flag(
-        display_name="Field Station (Light Assembly)",
+        display_name="Field Station (Small Assembly)",
         produces=(
             'HC-2 "Scorpion" (Infantry Support Tank)',
             'AB-11 "Doru" (APC)',
@@ -354,7 +354,7 @@ class VehicleServiceFlags(FacilityFlags):
         return 16  # 1 << 4
 
     @vehicle_flag(
-        display_name="Tank Factory (Light Assembly)",
+        display_name="Tank Factory (Small Assembly)",
         produces=(
             'H-19 "Vulcan" (Light Tank)',
             'H-10 "Pelekys" (Light Tank)',
@@ -375,7 +375,7 @@ class VehicleServiceFlags(FacilityFlags):
         return 32  # 1 << 5
 
     @vehicle_flag(
-        display_name="Weapons Platform (Light Assembly)",
+        display_name="Weapons Platform (Small Assembly)",
         produces=(
             '945g "Stygian Bolt" (94.5mm FAT)',
             '85V-g "Talos" (Assault Tank)',

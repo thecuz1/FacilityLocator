@@ -199,7 +199,8 @@ class Database:
                     "vehicle_services"	VEHICLE_SERVICES,
                     "creation_time"	INTEGER,
                     "guild_id"	INTEGER,
-                    "image_url"	TEXT
+                    "image_url"	TEXT,
+                    "thread_id"	INTEGER,
                 );
                 CREATE TABLE "blacklist" (
 	                "object_id"	INTEGER UNIQUE,
@@ -230,6 +231,11 @@ class Database:
 	                "user_id"	INTEGER,
 	                "ephemeral"	BOOL,
 	                PRIMARY KEY("user_id")
+                );
+                CREATE TABLE "guild_options" (
+	                "guild_id"	INTEGER,
+	                "forum_id"	INTEGER,
+	                PRIMARY KEY("guild_id")
                 );
             """
         await self.executemultiple(sql)
@@ -273,7 +279,9 @@ class Database:
         )
         return lastrowid
 
-    async def get_facilities(self, search_dict: Dict[str, str | int] = None) -> List[Facility]:
+    async def get_facilities(
+        self, search_dict: Dict[str, str | int] = None
+    ) -> List[Facility]:
         if not search_dict:
             return await self.get_all_facilities()
         sql = "SELECT * FROM facilities WHERE "
@@ -326,10 +334,11 @@ class Database:
             facility.item_services,
             facility.vehicle_services,
             facility.image_url,
+            facility.thread_id,
             facility.id_,
         )
         await self._execute_query(
-            """UPDATE facilities SET name = ?, description = ?, maintainer = ?, item_services = ?, vehicle_services = ?, image_url = ? WHERE id_ == ?""",
+            """UPDATE facilities SET name = ?, description = ?, maintainer = ?, item_services = ?, vehicle_services = ?, image_url = ?, thread_id = ? WHERE id_ == ?""",
             values,
         )
 

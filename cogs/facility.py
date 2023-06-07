@@ -564,7 +564,9 @@ class FacilityCog(commands.Cog):
         if not facility_list:
             raise MessageError("No facilities found", ephemeral=True)
 
-        finished_embeds = create_list(facility_list, interaction.guild)
+        finished_embeds = await create_list(
+            facility_list, interaction.guild, interaction.client
+        )
 
         ephemeral_info_embed = None
         if interaction.namespace.ephemeral is not None:

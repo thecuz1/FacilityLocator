@@ -4,15 +4,8 @@ from time import time
 from copy import copy
 from typing import TYPE_CHECKING
 
-from discord import (
-    ui,
-    User,
-    Member,
-    ButtonStyle,
-    TextChannel,
-    Button,
-)
-from discord.errors import Forbidden
+from discord import ui, User, Member, ButtonStyle, Button, ChannelType, utils
+from discord.errors import Forbidden, NotFound
 
 from .modals import FacilityInformationModal
 from .facility import Facility
@@ -41,7 +34,81 @@ class NoChanges(ButtonMessage):
         super().__init__("No changes")
 
 
-class DynamicListConfirm(InteractionCheckedView):
+class ChannelSelectDropdown(ui.ChannelSelect):
+    view: ChannelSelectView
+
+    async def callback(self, interaction: GuildInteraction):
+        res = await interaction.client.db.fetch_one(
+            """SELECT channel_id, messages FROM list WHERE guild_id = ?""",
+            interaction.guild_id,
+        )
+        selected_channel = self.values[0]
+        if res:
+            cid, messages = res
+            if cid == selected_channel.id:
+                return await interaction.response.edit_message(
+                    embed=FeedbackEmbed(
+                        "Channel already contains facility list", FeedbackType.ERROR
+                    )
+                )
+            channel = interaction.guild.get_channel_or_thread(cid)
+            if channel:
+                for mid in messages:
+                    message = channel.get_partial_message(mid)
+                    try:
+                        await message.delete()
+                    except NotFound:
+                        pass
+
+        facility_list = await create_list(
+            self.view.parent_view.facilities, interaction.guild, interaction.client
+        )
+        messages = []
+        channel = selected_channel.resolve()
+        for embed in facility_list:
+            try:
+                message = await channel.send(embed=embed)
+            except Forbidden:
+                embed = FeedbackEmbed(
+                    "No permission to send messages in selected channel",
+                    FeedbackType.ERROR,
+                )
+                return await interaction.response.edit_message(embed=embed)
+            messages.append(message.id)
+
+        try:
+            await interaction.client.db.set_list(interaction.guild, channel, messages)
+        except Exception as exc:
+            embed = FeedbackEmbed(
+                f"Failed to set list channel\n```py\n{exc}\n```", FeedbackType.ERROR
+            )
+            await interaction.response.edit_message(embed=embed)
+            raise exc
+        else:
+            embed = FeedbackEmbed("Set list channel", FeedbackType.SUCCESS)
+            await interaction.response.edit_message(embed=embed)
+
+
+class ChannelSelectView(InteractionCheckedView):
+    def __init__(
+        self,
+        *,
+        timeout: float = 180,
+        parent_view: SetDynamicList,
+    ) -> None:
+        super().__init__(timeout=timeout, original_author=parent_view.original_author)
+        self.parent_view = parent_view
+        self.add_item(
+            ChannelSelectDropdown(
+                placeholder="Channel to display facilities...",
+                min_values=1,
+                max_values=1,
+                channel_types=[ChannelType.text],
+            )
+        )
+
+
+class SetDynamicList(InteractionCheckedView):
     """View used when setting a dynamic list"""
 
     def __init__(
@@ -49,46 +116,82 @@ class DynamicListConfirm(InteractionCheckedView):
         *,
         timeout: float = 180,
         original_author: User | Member,
-        selected_channel: TextChannel,
         facilities: list[Facility],
+        forum_id: int | None,
     ) -> None:
         super().__init__(timeout=timeout, original_author=original_author)
-        self.selected_channel: TextChannel = selected_channel
         self.facilities: list[Facility] = facilities
+        self.forum_id: int | None = forum_id
+        if not forum_id:
+            self.set_forum.disabled = True
 
-    @ui.button(label="Set", style=ButtonStyle.green)
-    async def confirm(self, interaction: GuildInteraction, _: ui.Button) -> None:
-        await self._finish_view(interaction)
-        followup = interaction.followup
+    @ui.button(label="Set Channel", style=ButtonStyle.green)
+    async def set_channel(self, interaction: GuildInteraction, _: ui.Button) -> None:
+        await interaction.response.send_message(
+            view=ChannelSelectView(parent_view=self), ephemeral=True
+        )
+
+    @ui.button(label="Set Forum", style=ButtonStyle.green)
+    async def set_forum(self, interaction: GuildInteraction, _: ui.Button):
+        embeds = interaction.message.embeds
+
+        forum = interaction.guild.get_channel(self.forum_id)
+        pinned_thread = utils.get(forum.threads, flags__pinned=True)
+        if pinned_thread:
+            try:
+                await pinned_thread.delete()
+            except Forbidden:
+                embed = FeedbackEmbed(
+                    "No permission to manage forum, must have `Manage Posts`",
+                    FeedbackType.ERROR,
+                )
+                try:
+                    embeds[1] = embed
+                except IndexError:
+                    embeds.append(embed)
+                return await interaction.response.edit_message(embeds=embeds)
 
         facility_list = await create_list(
             self.facilities, interaction.guild, interaction.client
         )
-        messages = []
-        for embed in facility_list:
+        initial_embed = facility_list.pop(0)
+        try:
+            thread, message = await forum.create_thread(
+                name="Index", embed=initial_embed
+            )
+        except Forbidden:
+            embed = FeedbackEmbed(
+                "No permission to manage forum, must have `Manage Posts`",
+                FeedbackType.ERROR,
+            )
             try:
-                message = await self.selected_channel.send(embed=embed)
-            except Forbidden:
-                embed = FeedbackEmbed(
-                    "No permission to send messages in selected channel",
-                    FeedbackType.ERROR,
-                )
-                return await followup.send(embed=embed, ephemeral=True)
+                embeds[1] = embed
+            except IndexError:
+                embeds.append(embed)
+            return await interaction.response.edit_message(embeds=embeds)
+
+        messages = [message.id]
+
+        await thread.edit(locked=True, pinned=True)
+        for embed in facility_list:
+            message = await thread.send(embed=embed)
             messages.append(message.id)
 
         try:
-            await interaction.client.db.set_list(
-                interaction.guild, self.selected_channel, messages
-            )
+            await interaction.client.db.set_list(interaction.guild, thread, messages)
         except Exception as exc:
             embed = FeedbackEmbed(
                 f"Failed to set list channel\n```py\n{exc}\n```", FeedbackType.ERROR
             )
-            await followup.send(embed=embed, ephemeral=True)
+            try:
+                embeds[1] = embed
+            except IndexError:
+                embeds.append(embed)
+            await interaction.response.edit_message(embeds=embeds)
             raise exc
         else:
             embed = FeedbackEmbed("Set list channel", FeedbackType.SUCCESS)
-            await followup.send(embed=embed, ephemeral=True)
+            await interaction.response.edit_message(embed=embed, view=None)
 
     @ui.button(label="Disable list", style=ButtonStyle.danger)
     async def disable(self, interaction: GuildInteraction, _: ui.Button):

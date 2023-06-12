@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from discord import app_commands, Member, Permissions
 from discord.ext import commands
@@ -15,6 +15,7 @@ from .utils.errors import MessageError
 if TYPE_CHECKING:
     from bot import FacilityBot
     from .utils.context import GuildInteraction
+    from .events import Events
 
 
 class Admin(commands.Cog):
@@ -176,6 +177,34 @@ class Admin(commands.Cog):
                 facility_list,
                 interaction,
             )
+
+    # TODO: Finish this command
+    # @app_commands.guild_only()
+    # @app_commands.default_permissions(administrator=True)
+    # @app_commands.checks.cooldown(1, 10, key=lambda i: (i.guild_id, i.user.id))
+    # async def force_update(self, interaction: GuildInteraction):
+    #     """Forces a list and forum update"""
+    #     search_dict = {"guild_id == ?": interaction.guild_id}
+    #     facilities = await self.bot.db.get_facilities(search_dict)
+
+    #     events: Optional[Events] = self.bot.get_cog("Events")
+    #     if not events:
+    #         return
+
+    #     if not facilities:
+    #         await events.update_list(interaction.guild)
+    #         raise MessageError("No facilities found", ephemeral=True)
+
+    #     valid_threads = []
+
+    #     for facility in facilities:
+    #         thread = interaction.guild.get_channel_or_thread(facility.thread_id)
+
+    #         if not thread:
+    #             await events.handle_forum(facility, interaction.guild.id)
+    #             thread = interaction.guild.get_channel_or_thread(facility.thread_id)
+
+    #         valid_threads.append(thread.id)
 
 
 async def setup(bot: FacilityBot) -> None:

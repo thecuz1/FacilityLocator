@@ -173,7 +173,11 @@ class FacilityBot(commands.Bot):
         logger.info("Python version: %r", sys.version)
 
     async def setup_hook(self) -> None:
-        self.owner_id = self.application and self.application.owner.id
+        app = self.application
+        if app.team:
+            self.owner_ids = {m.id for m in app.team.members}
+        else:
+            self.owner_id = app.owner.id
 
         for extension in EXTENSIONS:
             try:

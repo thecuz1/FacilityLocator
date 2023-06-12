@@ -14,7 +14,7 @@ from discord import (
 from discord.ext import commands
 
 from .utils.embeds import FeedbackEmbed, FeedbackType
-from .utils.views import DynamicListConfirm
+from .utils.views import SetDynamicList, create_list
 from .utils.errors import MessageError
 from .utils.sqlite import AdaptableList
 
@@ -36,6 +36,7 @@ class Config(commands.Cog):
     async def create_fourm(self, interaction: GuildInteraction):
         """Creates fourm channel to list facilities"""
         guild = interaction.guild
+
         overwrites = {
             guild.default_role: PermissionOverwrite(
                 send_messages=False, read_messages=False, send_messages_in_threads=True
@@ -43,7 +44,9 @@ class Config(commands.Cog):
             guild.me: PermissionOverwrite(
                 send_messages=True,
                 read_messages=True,
+                send_messages_in_threads=True,
                 manage_channels=True,
+                read_message_history=True,
             ),
         }
         try:
@@ -52,13 +55,12 @@ class Config(commands.Cog):
                 overwrites=overwrites,
             )
         except Forbidden:
-            await interaction.response.send_message(
+            return await interaction.response.send_message(
                 embed=FeedbackEmbed(
                     "Lack permissions to create forum", FeedbackType.ERROR
                 ),
                 ephemeral=True,
             )
-            return
 
         await interaction.response.defer(ephemeral=True)
 
@@ -67,66 +69,43 @@ class Config(commands.Cog):
         )
         await self.bot.db.execute(query, guild.id, forum.id)
 
-        tree = self.bot.tree
-
-        toggle_ephemeral_cmd = await tree.get_or_fetch_app_command("toggle_ephemeral")
-        create_cmd = await tree.get_or_fetch_app_command("create")
-        modify_cmd = await tree.get_or_fetch_app_command("modify")
-        view_cmd = await tree.get_or_fetch_app_command("view")
-        facility_cmd = await tree.get_or_fetch_app_command("facility")
-        locate_cmd = await tree.get_or_fetch_app_command("locate")
-        list_cmd = await tree.get_or_fetch_app_command("list")
-        remove_ids_cmd = await tree.get_or_fetch_app_command("remove ids")
-        remove_ids_cmd = await tree.get_or_fetch_app_command("remove ids")
-        remove_facility_cmd = await tree.get_or_fetch_app_command("remove facility")
-
-        embed = Embed(
-            title="Commands:",
-            description=f"Some of these commands will be visable by default, you can change this behaviour with the command {toggle_ephemeral_cmd and toggle_ephemeral_cmd.mention}",
-            colour=Colour.green(),
-        )
-        embed.add_field(
-            name="Create/Modify",
-            value=f"""{create_cmd and create_cmd.mention} (Creates a facility and associated thread)
-                      {modify_cmd and modify_cmd.mention} (Modifies a facility)""",
-            inline=False,
-        )
-        embed.add_field(
-            name="View",
-            value=f"""{view_cmd and view_cmd.mention} (Allows multiple IDs)
-                      {facility_cmd and facility_cmd.mention} (Displays one facility)
-                      {locate_cmd and locate_cmd.mention} (Finds a facility based on search parameters)
-                      {list_cmd and list_cmd.mention} (Shows a list of all facilities by region)""",
-            inline=False,
-        )
-        embed.add_field(
-            name="Remove",
-            value=f"""{remove_ids_cmd and remove_ids_cmd.mention} (Removes a list of facility IDs)
-                      {remove_facility_cmd and remove_facility_cmd.mention} (Removes a single facility)""",
-            inline=False,
-        )
-
-        try:
-            help_thread, _ = await forum.create_thread(
-                name="How to Use",
-                embed=embed,
-            )
-            await help_thread.edit(pinned=True)
-        except Forbidden:
-            await interaction.followup.send(
-                embed=FeedbackEmbed(
-                    "Lack permissions to create threads in forum",
-                    FeedbackType.ERROR,
-                ),
-                ephemeral=True,
-            )
-            return
-
         facilities = await self.bot.db.get_facilities({"guild_id = ?": guild.id})
+
         events: Optional[Events] = self.bot.get_cog("Events")
         if events:
             for facility in facilities:
                 await events.handle_forum(facility, guild.id)
+
+        facility_list = await create_list(
+            facilities, interaction.guild, interaction.client
+        )
+        initial_embed = facility_list.pop(0)
+        try:
+            thread, message = await forum.create_thread(
+                name="Index", embed=initial_embed
+            )
+        except Forbidden:
+            embed = FeedbackEmbed(
+                "No permission to manage forum, must have `Manage Posts`",
+                FeedbackType.ERROR,
+            )
+            return await interaction.followup.send(embed=embed)
+
+        messages = [message.id]
+
+        await thread.edit(locked=True, pinned=True)
+        for embed in facility_list:
+            message = await thread.send(embed=embed)
+            messages.append(message.id)
+
+        try:
+            await interaction.client.db.set_list(interaction.guild, thread, messages)
+        except Exception as exc:
+            embed = FeedbackEmbed(
+                f"Failed to set list channel\n```py\n{exc}\n```", FeedbackType.ERROR
+            )
+            await interaction.followup.send(embed=embed)
+            raise exc
 
         await interaction.followup.send(
             embed=FeedbackEmbed(f"Created forum {forum.mention}", FeedbackType.SUCCESS),
@@ -165,31 +144,26 @@ class Config(commands.Cog):
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     @app_commands.default_permissions(administrator=True)
-    async def set_list_channel(
-        self, interaction: GuildInteraction, channel: TextChannel | None
-    ):
+    async def set_list_channel(self, interaction: GuildInteraction):
         """Sets list channel to post updates of facilities
 
         Args:
             channel (TextChannel): Channel to set, defaults to current channel
         """
-        selected_channel = channel or interaction.channel
-
-        if not hasattr(selected_channel, "send"):
-            raise MessageError("Channel is not supported")
-
         search_dict = {" guild_id == ? ": interaction.guild_id}
-
         facility_list = await self.bot.db.get_facilities(search_dict)
+        forum_row = await self.bot.db.fetch_one(
+            """SELECT forum_id FROM guild_options WHERE guild_id = ?""",
+            interaction.guild_id,
+        )
+        forum = forum_row[0] if forum_row else None
 
         embed = FeedbackEmbed(
-            f"Confirm setting {selected_channel.mention} as facility update channel",
+            "Choose to display list in the forum (button will disable if not setup) or in a normal channel",
             FeedbackType.INFO,
         )
-        view = DynamicListConfirm(
-            original_author=interaction.user,
-            selected_channel=selected_channel,
-            facilities=facility_list,
+        view = SetDynamicList(
+            original_author=interaction.user, facilities=facility_list, forum_id=forum
         )
         await view.send(interaction, embed=embed, ephemeral=True)
 

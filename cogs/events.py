@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import itertools
 from typing import TYPE_CHECKING
 from rapidfuzz import process
 
@@ -11,6 +12,8 @@ from discord import (
     Embed,
     Colour,
     ForumChannel,
+    Thread,
+    HTTPException,
     Forbidden,
     Object,
 )
@@ -214,28 +217,51 @@ class Events(commands.Cog):
         if channel is None:
             return
 
-        if len(embeds) != len(messages):
-            await remove_messages()
+        # TODO: Rework this
+        if not isinstance(channel, Thread):
+            if len(embeds) != len(messages):
+                await remove_messages()
 
+            else:
+                for message_id, embed in zip(messages, embeds):
+                    message = channel.get_partial_message(message_id)
+                    try:
+                        await message.edit(embed=embed)
+                    except NotFound:
+                        await remove_messages()
+                        break
+                    except Forbidden:
+                        break
+                else:
+                    return
+
+            new_messages = []
+            for embed in embeds:
+                message = await channel.send(embed=embed)
+                new_messages.append(message.id)
+
+            return await self.bot.db.set_list(guild, channel, new_messages)
         else:
-            for message_id, embed in zip(messages, embeds):
+            new_messages = []
+            for embed, message_id in itertools.zip_longest(
+                embeds, messages, fillvalue=None
+            ):
+                if message_id is None:
+                    new_message = await channel.send(embed=embed)
+                    new_messages.append(new_message)
+                    continue
+
                 message = channel.get_partial_message(message_id)
+                if embed is None:
+                    await message.delete()
+                    continue
                 try:
                     await message.edit(embed=embed)
-                except NotFound:
-                    await remove_messages()
-                    break
-                except Forbidden:
-                    break
-            else:
-                return
+                    new_messages.append(message.id)
+                except (NotFound, Forbidden):
+                    return
 
-        new_messages = []
-        for embed in embeds:
-            message = await channel.send(embed=embed)
-            new_messages.append(message.id)
-
-        await self.bot.db.set_list(guild, channel, new_messages)
+            return await self.bot.db.set_list(guild, channel, new_messages)
 
     async def handle_forum(
         self, facility: Facility, guild_id: int, delete: bool = False

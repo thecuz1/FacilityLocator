@@ -324,13 +324,15 @@ class VehicleServiceFlags(FacilityFlags):
     @vehicle_flag(
         display_name="Rocket Factory (Small Assembly)",
         produces=(
-            'R-17 "Retiarius" (Rocket Artillery Truck)',
+            'R-17 "Retiarius" (Rocket Truck)',
+            'T13 "Deioneus" (Rocket Tankette)',
             'DAE 3b-2 "Hades Net" (Emplaced Rocket Artillery)',
             'HH-b "Hoplite" (Half-Track)',
             'HH-d "Peltast" (Mortar Half-Track)',
             # 'Rycker 4/3-F "Wasp Nest"',
             # 'Niska-Rycker Mk. IX "Skycaller"'
             # 'Niska Mk. II "Blinder"',
+            # 'King Jester - Mk. I-1'
         ),
         ansi=ANSIColour(text_colour=Colour.PINK),
     )

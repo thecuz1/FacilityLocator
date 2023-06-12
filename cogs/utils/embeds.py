@@ -1,12 +1,15 @@
 from __future__ import annotations
+import datetime
 
 import traceback
 import re
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Any, Optional, Self, Union
 from enum import Enum, auto
 from itertools import groupby
 
 from discord import Embed, Colour, Guild
+from discord.colour import Colour
+from discord.types.embed import EmbedType
 
 
 if TYPE_CHECKING:
@@ -171,16 +174,19 @@ class EmbedPage(Embed):
 
 
 class Paginator:
-    def __init__(
-        self,
-        guild_name: str,
-        total_facilities: int,
-    ) -> None:
+    def __init__(self) -> None:
         self.embeds: list[EmbedPage] = []
 
-        self._new_embed(
+    @classmethod
+    async def create(cls, guild_name: str, total_facilities: int, bot: FacilityBot):
+        pnr = cls()
+        help_cmd = await bot.tree.get_or_fetch_app_command("help")
+
+        pnr._new_embed(
             title=f"Facility list ({guild_name}) ({total_facilities})",
+            description=f"Run the command {help_cmd and help_cmd.mention} for a list of commands to add or locate a facility by service.",
         )
+        return pnr
 
     def _new_embed(self, *args, **kwargs) -> EmbedPage:
         embed = EmbedPage(*args, **kwargs)
@@ -197,7 +203,7 @@ class Paginator:
 
 
 async def create_list(
-    facility_list: list[Facility], guild: Guild, _: FacilityBot
+    facility_list: list[Facility], guild: Guild, bot: FacilityBot
 ) -> list[Embed]:
     """Generates embeds to list short form facilities
 
@@ -208,7 +214,7 @@ async def create_list(
     Returns:
         list[Embed]: List of embeds
     """
-    paginator = Paginator(guild.name, len(facility_list))
+    paginator = await Paginator.create(guild.name, len(facility_list), bot)
 
     facility_list.sort(key=lambda facility: facility.region)
     facility_regions = groupby(facility_list, key=lambda facility: facility.region)
@@ -234,3 +240,47 @@ async def ephemeral_info(bot: FacilityBot) -> Embed:
         description=f"Not expecting this message to be viewable by everyone? You can change your prefrence with the command {command and command.mention}. This message will not be shown again.",
         colour=Colour.blue(),
     )
+
+
+class HelpEmbed(Embed):
+    @classmethod
+    async def create(cls, bot: FacilityBot):
+        tree = bot.tree
+
+        toggle_ephemeral_cmd = await tree.get_or_fetch_app_command("toggle_ephemeral")
+        create_cmd = await tree.get_or_fetch_app_command("create")
+        modify_cmd = await tree.get_or_fetch_app_command("modify")
+        view_cmd = await tree.get_or_fetch_app_command("view")
+        facility_cmd = await tree.get_or_fetch_app_command("facility")
+        locate_cmd = await tree.get_or_fetch_app_command("locate")
+        list_cmd = await tree.get_or_fetch_app_command("list")
+        remove_ids_cmd = await tree.get_or_fetch_app_command("remove ids")
+        remove_ids_cmd = await tree.get_or_fetch_app_command("remove ids")
+        remove_facility_cmd = await tree.get_or_fetch_app_command("remove facility")
+
+        embed = cls(
+            title="Commands:",
+            description=f"Some of these commands will be visable by default, you can change this behaviour with the command {toggle_ephemeral_cmd and toggle_ephemeral_cmd.mention}",
+            colour=Colour.green(),
+        )
+        embed.add_field(
+            name="Create/Modify",
+            value=f"""{create_cmd and create_cmd.mention} (Creates a facility and associated thread)
+                      {modify_cmd and modify_cmd.mention} (Modifies a facility)""",
+            inline=False,
+        )
+        embed.add_field(
+            name="View",
+            value=f"""{view_cmd and view_cmd.mention} (Allows multiple IDs)
+                      {facility_cmd and facility_cmd.mention} (Displays one facility)
+                      {locate_cmd and locate_cmd.mention} (Finds a facility based on search parameters)
+                      {list_cmd and list_cmd.mention} (Shows a list of all facilities by region)""",
+            inline=False,
+        )
+        embed.add_field(
+            name="Remove",
+            value=f"""{remove_ids_cmd and remove_ids_cmd.mention} (Removes a list of facility IDs)
+                      {remove_facility_cmd and remove_facility_cmd.mention} (Removes a single facility)""",
+            inline=False,
+        )
+        return embed

@@ -9,7 +9,7 @@ from discord import app_commands, Embed, Colour
 
 from .utils.context import GuildInteraction
 from .utils.errors import MessageError
-from .utils.embeds import ephemeral_info
+from .utils.embeds import ephemeral_info, HelpEmbed
 
 
 if TYPE_CHECKING:
@@ -19,6 +19,14 @@ if TYPE_CHECKING:
 class Misc(commands.Cog):
     def __init__(self, bot: FacilityBot):
         self.bot: FacilityBot = bot
+
+    @app_commands.command()
+    @app_commands.guild_only()
+    @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
+    async def help(self, interaction: GuildInteraction):
+        """Returns a list of commands for creating or finding facilities"""
+        help_embed = await HelpEmbed.create(self.bot)
+        await interaction.response.send_message(embed=help_embed, ephemeral=True)
 
     @commands.command()
     @commands.guild_only()

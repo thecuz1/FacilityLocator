@@ -93,7 +93,7 @@ logging_dict = {
             "class": "logging.FileHandler",
             "filename": LOG_DIR / "bot.log",
             "encoding": "utf-8",
-            "mode": "w",
+            "mode": "a",
             "formatter": "default",
         },
         "guild_event_log": {

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import sys
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -167,10 +167,8 @@ class FacilityBot(commands.Bot):
 
         self.db = Database(self, DB_FILE)
 
-    async def on_ready(self) -> None:
-        logger.info("Logged in as %r (ID: %r)", self.user.name, self.user.id)
-        logger.info("Discordpy version: %r", discord.__version__)
-        logger.info("Python version: %r", sys.version)
+    async def start(self) -> None:
+        await super().start(TOKEN)
 
     async def setup_hook(self) -> None:
         app = self.application
@@ -190,5 +188,147 @@ class FacilityBot(commands.Bot):
         if not DB_FILE.exists():
             await self.db.create()
 
-    async def start(self) -> None:
-        await super().start(TOKEN)
+    async def on_ready(self) -> None:
+        logger.info("Logged in as %r (ID: %r)", self.user.name, self.user.id)
+        logger.info("Discordpy version: %r", discord.__version__)
+        logger.info("Python version: %r", sys.version)
+
+    async def lazy_fetch_channel(
+        self, channel_id: int, raise_for_fail: bool = True
+    ) -> Optional[
+        discord.abc.GuildChannel | discord.abc.PrivateChannel | discord.Thread
+    ]:
+        """Retrieve channel or thread object from cache, or by API call if needed.
+
+        Args:
+            channel_id (int): ID number of the channel.
+            raise_for_fail (bool): Raise if fetch failed.
+
+        Raises:
+            InvalidData: An unknown channel type was received from Discord.
+            HTTPException: Retrieving the channel failed.
+            Forbidden: No permission to fetch this channel.
+
+        Returns:
+            Optional[GuildChannel | PrivateChannel | Thread]: Channel or thread object.
+        """
+        if channel_id is None:
+            return None
+        channel_id = int(channel_id)
+        channel = self.get_channel(channel_id)
+        if channel is not None:
+            return channel
+
+        try:
+            channel = await self.fetch_channel(channel_id)
+        except discord.NotFound:
+            return None
+        except discord.HTTPException as exc:
+            if raise_for_fail:
+                raise exc
+            return None
+        else:
+            return channel
+
+    async def lazy_fetch_user(
+        self, user_id: int, raise_for_fail: bool = True
+    ) -> Optional[discord.User]:
+        """Retrieve user object from cache, or by API call if needed.
+
+        Args:
+            user_id (int): ID number of the user.
+            raise_for_fail (bool): Raise if fetch failed.
+
+        Raises:
+            HTTPException: Fetching the user failed.
+
+        Returns:
+            Optional[discord.User]: User object.
+        """
+        if user_id is None:
+            return None
+        user_id = int(user_id)
+        user = self.get_user(user_id)
+        if user is not None:
+            return user
+
+        try:
+            user = await self.fetch_user(user_id)
+        except discord.NotFound:
+            return None
+        except discord.HTTPException as exc:
+            if raise_for_fail:
+                raise exc
+            return None
+        else:
+            return user
+
+    async def lazy_fetch_member(
+        self, guild: discord.Guild, member_id: int, raise_for_fail: bool = True
+    ) -> Optional[discord.Member]:
+        """Retrieve member object from cache, or by API call if needed.
+
+        Args:
+            guild (discord.Guild): Discord guild object.
+            member_id (int): ID number of the guild member.
+            raise_for_fail (bool): Raise if fetch failed.
+
+        Raises:
+            HTTPException: Fetching the member failed.
+            Forbidden: You do not have access to the guild.
+
+        Returns:
+            Optional[discord.Member]: Member object.
+        """
+        if member_id is None:
+            return None
+        member_id = int(member_id)
+        member = guild.get_member(member_id)
+        if member is not None:
+            return member
+
+        try:
+            member = await guild.fetch_member(member_id)
+        except discord.NotFound:
+            return None
+        except discord.HTTPException as exc:
+            if raise_for_fail:
+                raise exc
+            return None
+        else:
+            return member
+
+    async def lazy_fetch_guild(
+        self, guild_id: int, raise_for_fail: bool = True
+    ) -> Optional[discord.Guild]:
+        """Retrieve guild object from cache, or by API call if needed.
+
+        Args:
+            guild (discord.Guild): Discord guild object.
+            role_id (int): ID number of the guild role.
+            raise_for_fail (bool): Raise if fetch failed.
+
+        Raises:
+            HTTPException: Getting the guild failed.
+            Forbidden: You do not have access to the guild.
+
+        Returns:
+            Optional[discord.Guild]: Guild object.
+        """
+        if guild_id is None:
+            return None
+        guild_id = int(guild_id)
+        guild = self.get_guild(guild_id)
+        if guild is not None:
+            return guild
+
+        try:
+            guild = await self.fetch_guild(guild_id)
+        except discord.NotFound:
+            return None
+        except discord.HTTPException as exc:
+            if raise_for_fail:
+                raise exc
+            return None
+        else:
+            return guild

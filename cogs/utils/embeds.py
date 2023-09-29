@@ -237,7 +237,7 @@ async def create_list(
 async def ephemeral_info(bot: FacilityBot) -> Embed:
     command = await bot.tree.get_or_fetch_app_command("toggle_ephemeral")
     return Embed(
-        description=f"Not expecting this message to be viewable by everyone? You can change your prefrence with the command {command and command.mention}. This message will not be shown again.",
+        description=f"Not expecting this message to be viewable by everyone? You can change your preference with the command {command and command.mention}. This message will not be shown again.",
         colour=Colour.blue(),
     )
 

@@ -212,23 +212,23 @@ class ItemServiceFlags(FacilityFlags):
 
     @flag(display_name="Daucus ISG")
     def isg(self):
-        return 33554432  #  1 << 25
+        return 33554432  # 1 << 25
 
     @flag(display_name="Fissura")
     def fissura(self):
-        return 67108864  #  1 << 26
+        return 67108864  # 1 << 26
 
     @flag(display_name="Typhon")
     def typhon(self):
-        return 134217728  #  1 << 27
+        return 134217728  # 1 << 27
 
     @flag(display_name="Tripod")
     def tripod(self):
-        return 268435456  #  1 << 28
+        return 268435456  # 1 << 28
 
     @flag(display_name="MSups")
     def msups(self):
-        return 536870912  #  1 << 29
+        return 536870912  # 1 << 29
 
     @flag(display_name="Flame Barrel")
     def flame_barrel(self):
@@ -265,6 +265,26 @@ class ItemServiceFlags(FacilityFlags):
     @flag(display_name="75mm")
     def mm75(self):
         return 8388608  # 1 << 23
+
+    @flag(display_name="Mine")
+    def mine(self):
+        return 1073741824  # 1 << 30
+
+    @flag(display_name="Depth Charge")
+    def depth_charge(self):
+        return 2147483648  # 1 << 31
+
+    @flag(display_name="Thermal Shielding")
+    def thermal_shielding(self):
+        return 4294967296  # 1 << 32
+
+    @flag(display_name="Unstable Substances")
+    def unstable_substances(self):
+        return 8589934592  # 1 << 33
+
+    @flag(display_name="Rare Metals")
+    def rare_metals(self):
+        return 17179869184  # 1 << 34
 
 
 class VehicleServiceFlags(FacilityFlags):
@@ -345,8 +365,12 @@ class VehicleServiceFlags(FacilityFlags):
             'HC-2 "Scorpion" (Infantry Support Tank)',
             'AB-11 "Doru" (APC)',
             '40-45 "Smelter" (HV40mm)',
+            "AU-A150 Taurine Rigger (Heavy Truck)",
             # "Balfour Rampart 68mm (HV68mm)",
             # 'King Gallant Mk. II (Scout Tank)',
+            "Rooster - Lamploader (Fuel Trailer)",
+            "Rooster - Tumblebox (Material Trailer)",
+            "Rooster - Junkwagon (Resource Trailer)",
             'BMS "Scrap Hauler" (Harvester)',
             'BMS "Fabricator" (ACV)',
         ),
@@ -425,6 +449,7 @@ class VehicleServiceFlags(FacilityFlags):
         produces=(
             '0-75b "Ares" (Super Tank)',
             "Lance-36 (Battle Tank)",
+            "Lance-46 “Sarissa” (Artillery Tank)",
             # "Flood Mk. I (Battle Tank)",
             # "Cullen Predator Mk. III (Super Tank)",
         ),
@@ -435,3 +460,19 @@ class VehicleServiceFlags(FacilityFlags):
     )
     def heavy_tank(self):
         return 512  # 1 << 9
+
+    @vehicle_flag(
+        display_name="Dry Dock",
+        produces=(
+            "Titan (Battleship)",
+            "Conqueror (Destroyer)",
+            'BMS - "Longhook" (Base Ship)',
+            'BMS - "Bluefin" (Logi Ship)',
+        ),
+        ansi=ANSIColour(
+            background_colour=Colour.BACKGROUND_FIREFLY_DARK_BLUE,
+            text_colour=Colour.GREEN,
+        ),
+    )
+    def dry_dock(self):
+        return 1024  # 1 << 10

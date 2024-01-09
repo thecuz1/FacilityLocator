@@ -161,17 +161,21 @@ class FacilityBot(commands.Bot):
             help_command=EmbedHelp(),
             tree_cls=CommandTree,
         )
-        self.guild_logs: dict[str, deque] = {}
+        self.guild_logs: dict[int, deque[str]] = {}
 
         from cogs.utils.sqlite import Database
 
         self.db = Database(self, DB_FILE)
 
     async def start(self) -> None:
+        if TOKEN is None:
+            raise SystemExit("No token found")
         await super().start(TOKEN)
 
     async def setup_hook(self) -> None:
         app = self.application
+        if app is None:
+            raise SystemExit("self.application set to None somehow")
         if app.team:
             self.owner_ids = {m.id for m in app.team.members}
         else:
@@ -189,7 +193,11 @@ class FacilityBot(commands.Bot):
             await self.db.create()
 
     async def on_ready(self) -> None:
-        logger.info("Logged in as %r (ID: %r)", self.user.name, self.user.id)
+        logger.info(
+            "Logged in as %r (ID: %r)",
+            self.user and self.user.name,
+            self.user and self.user.id,
+        )
         logger.info("Discordpy version: %r", discord.__version__)
         logger.info("Python version: %r", sys.version)
 

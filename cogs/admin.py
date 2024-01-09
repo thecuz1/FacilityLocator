@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from discord import app_commands, Member, Permissions
 from discord.ext import commands
@@ -15,7 +15,6 @@ from .utils.errors import MessageError
 if TYPE_CHECKING:
     from bot import FacilityBot
     from .utils.context import GuildInteraction
-    from .events import Events
 
 
 class Admin(commands.Cog):
@@ -29,7 +28,7 @@ class Admin(commands.Cog):
         default_permissions=Permissions(administrator=True),
     )
 
-    @admin_modify.command(name="facility")
+    @admin_modify.command(name="facility")  # type: ignore[arg-type]
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def modify_facility(
         self,
@@ -54,7 +53,7 @@ class Admin(commands.Cog):
         default_permissions=Permissions(administrator=True),
     )
 
-    @admin_remove.command()
+    @admin_remove.command()  # type: ignore[arg-type]
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def user(self, interaction: GuildInteraction, user: Member):
         """Removes all of the users facilities for the current guild
@@ -82,7 +81,7 @@ class Admin(commands.Cog):
 
         await view.send(interaction, embed=embed, ephemeral=True)
 
-    @admin_remove.command()
+    @admin_remove.command()  # type: ignore[arg-type]
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def ids(
         self,
@@ -122,7 +121,7 @@ class Admin(commands.Cog):
             ephemeral=True,
         )
 
-    @admin_remove.command()
+    @admin_remove.command()  # type: ignore[arg-type]
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def all(self, interaction: GuildInteraction):
         """Removes all facilities for the current guild"""
@@ -148,7 +147,7 @@ class Admin(commands.Cog):
             ephemeral=True,
         )
 
-    @admin_remove.command(name="facility")
+    @admin_remove.command(name="facility")  # type: ignore[arg-type]
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def remove_facility(
         self,

@@ -20,7 +20,7 @@ class Misc(commands.Cog):
     def __init__(self, bot: FacilityBot):
         self.bot: FacilityBot = bot
 
-    @app_commands.command()
+    @app_commands.command()  # type: ignore[arg-type]
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def help(self, interaction: GuildInteraction):
@@ -44,7 +44,7 @@ class Misc(commands.Cog):
         )
         await ctx.send(embed=embed)
 
-    @app_commands.command()
+    @app_commands.command()  # type: ignore[arg-type]
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def logs(
@@ -88,7 +88,7 @@ class Misc(commands.Cog):
         guild_only=True,
     )
 
-    @stats.command(name="command")
+    @stats.command(name="command")  # type: ignore[arg-type]
     @app_commands.checks.cooldown(1, 30, key=lambda i: (i.guild_id, i.user.id))
     async def command_stats(
         self, interaction: GuildInteraction, ephemeral: bool = False

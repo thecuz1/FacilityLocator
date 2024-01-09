@@ -178,13 +178,21 @@ class ItemServiceFlags(FacilityFlags):
     def coke(self):
         return 128  # 1 << 7
 
-    @flag(display_name="Amats 1-2 (Cams & Pams)")
-    def cams_pams(self):
+    @flag(display_name="Amats 1 (Cams)")
+    def cams(self):
         return 256  # 1 << 8
 
-    @flag(display_name="Amats 3-4 (Sams & Hams)")
-    def sams_hams(self):
+    @flag(display_name="Amats 2 (Pams)")
+    def pams(self):
+        return 34359738368  # 1 << 35
+
+    @flag(display_name="Amats 3 (Sams)")
+    def sams(self):
         return 512  # 1 << 9
+
+    @flag(display_name="Amats 4 (Hams)")
+    def hams(self):
+        return 68719476736  # 1 << 36
 
     @flag(display_name="Amats 5 (Nams)")
     def nams(self):

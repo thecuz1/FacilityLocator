@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from discord import Interaction, User, Member, Message
 
     from bot import FacilityBot
+    from .context import ClientInteraction
 
 
 view_error_logger = logging.getLogger("view_error")
@@ -50,7 +51,8 @@ class BaseView(View):
         self.stop()
         if remove:
             try:
-                await self.message.delete()
+                if self.message:
+                    await self.message.delete()
             except NotFound:
                 pass
             return
@@ -103,7 +105,7 @@ class InteractionCheckedView(BaseView):
         super().__init__(timeout=timeout)
         self.original_author = original_author
 
-    async def interaction_check(self, interaction: Interaction, /) -> bool:
+    async def interaction_check(self, interaction: ClientInteraction, /) -> bool:
         """Only allow bot owner and author to control the menu
 
         Args:

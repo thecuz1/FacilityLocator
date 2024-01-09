@@ -1,15 +1,12 @@
 from __future__ import annotations
-import datetime
 
 import traceback
 import re
-from typing import TYPE_CHECKING, Any, Optional, Self, Union
+from typing import TYPE_CHECKING
 from enum import Enum, auto
 from itertools import groupby
 
 from discord import Embed, Colour, Guild
-from discord.colour import Colour
-from discord.types.embed import EmbedType
 
 
 if TYPE_CHECKING:
@@ -27,7 +24,10 @@ class FeedbackType(Enum):
 
 class FeedbackEmbed(Embed):
     def __init__(
-        self, message: str, feedback_type: FeedbackType, exception: Exception = None
+        self,
+        message: str,
+        feedback_type: FeedbackType,
+        exception: Exception | None = None,
     ):
         match feedback_type:
             case FeedbackType.SUCCESS:

@@ -13,7 +13,6 @@ from discord import (
     Colour,
     ForumChannel,
     Thread,
-    HTTPException,
     Forbidden,
     Object,
 )

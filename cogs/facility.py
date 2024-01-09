@@ -6,7 +6,7 @@ from typing import NamedTuple, TYPE_CHECKING
 from rapidfuzz.process import extract
 
 from discord.ext import commands
-from discord import app_commands, Member, Attachment, Embed
+from discord import app_commands, Member, Attachment
 
 from .utils.embeds import (
     FeedbackEmbed,
@@ -120,7 +120,7 @@ class ItemTransformer(app_commands.Transformer):
         return service.flag_value
 
     async def autocomplete(
-        self, _: GuildInteraction, value: str, /
+        self, _interaction: GuildInteraction, value: str, /
     ) -> list[app_commands.Choice[str]]:
         choices = list(ItemServiceFlags.MAPPED_FLAGS.keys())
         sorted_choices = extract(value, choices, limit=25)
@@ -148,7 +148,7 @@ class FacilityCog(commands.Cog):
         finally:
             self._users_creating_facility.remove(user_id)
 
-    @app_commands.command()
+    @app_commands.command()  # type: ignore[arg-type]
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 20, key=lambda i: (i.guild_id, i.user.id))
     @app_commands.rename(name="facility-name", location="region")
@@ -182,7 +182,7 @@ class FacilityCog(commands.Cog):
             facility_count: int = facility_count_row[0]
 
             if (
-                facility_count >= 10
+                facility_count >= 20
                 and not interaction.user.guild_permissions.administrator
             ):
                 raise MessageError(
@@ -209,7 +209,7 @@ class FacilityCog(commands.Cog):
             await view.send(interaction, embeds=embeds, ephemeral=True)
             await view.wait()
 
-    @app_commands.command()
+    @app_commands.command()  # type: ignore[arg-type]
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def modify(
@@ -239,7 +239,7 @@ class FacilityCog(commands.Cog):
         name="remove", description="Remove facilities", guild_only=True
     )
 
-    @remove.command()
+    @remove.command()  # type: ignore[arg-type]
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def user(self, interaction: GuildInteraction, user: Member):
         """Removes all of the users facilities for the current guild
@@ -277,7 +277,7 @@ class FacilityCog(commands.Cog):
 
         await view.send(interaction, embed=embed, ephemeral=True)
 
-    @remove.command()
+    @remove.command()  # type: ignore[arg-type]
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def ids(
         self,
@@ -337,7 +337,7 @@ class FacilityCog(commands.Cog):
             ephemeral=True,
         )
 
-    @remove.command()
+    @remove.command()  # type: ignore[arg-type]
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def all(self, interaction: GuildInteraction):
@@ -364,7 +364,7 @@ class FacilityCog(commands.Cog):
             ephemeral=True,
         )
 
-    @remove.command(name="facility")
+    @remove.command(name="facility")  # type: ignore[arg-type]
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def remove_facility(
         self,
@@ -398,7 +398,7 @@ class FacilityCog(commands.Cog):
                 interaction,
             )
 
-    @app_commands.command(name="facility")
+    @app_commands.command(name="facility")  # type: ignore[arg-type]
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def display_facility(
@@ -425,7 +425,7 @@ class FacilityCog(commands.Cog):
 
         await interaction.response.send_message(embeds=embeds, ephemeral=ephemeral)
 
-    @app_commands.command()
+    @app_commands.command()  # type: ignore[arg-type]
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def view(
@@ -467,7 +467,7 @@ class FacilityCog(commands.Cog):
             one_time_message=ephemeral_info_embed,
         )
 
-    @app_commands.command()
+    @app_commands.command()  # type: ignore[arg-type]
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     @app_commands.rename(
@@ -547,7 +547,7 @@ class FacilityCog(commands.Cog):
             one_time_message=ephemeral_info_embed,
         )
 
-    @app_commands.command()
+    @app_commands.command()  # type: ignore[arg-type]
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def list(self, interaction: GuildInteraction, ephemeral: bool = False):

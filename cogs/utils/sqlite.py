@@ -280,7 +280,7 @@ class Database:
         return lastrowid
 
     async def get_facilities(
-        self, search_dict: Dict[str, str | int] = None
+        self, search_dict: Dict[str, str | int] | None = None
     ) -> List[Facility]:
         if not search_dict:
             return await self.get_all_facilities()

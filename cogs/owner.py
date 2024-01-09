@@ -7,11 +7,11 @@ from discord.ext import commands
 
 from .utils.embeds import FeedbackEmbed, FeedbackType
 from .utils.views import ResetView
+from .events import Events
 
 
 if TYPE_CHECKING:
     from bot import FacilityBot
-    from .events import Events
 
 
 class Owner(commands.Cog, command_attrs={"hidden": True}):
@@ -25,8 +25,8 @@ class Owner(commands.Cog, command_attrs={"hidden": True}):
     async def list_update(
         self, ctx: commands.Context, guild: discord.Guild = commands.CurrentGuild
     ):
-        events_cog: Events | None = self.bot.get_cog("Events")
-        if events_cog is None:
+        events_cog = self.bot.get_cog("Events")
+        if events_cog is None or not isinstance(events_cog, Events):
             return await ctx.message.add_reaction("❌")
         await events_cog.update_list(guild)
         await ctx.message.add_reaction("✅")

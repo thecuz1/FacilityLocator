@@ -30,7 +30,8 @@ class Paginator(InteractionCheckedView):
     async def on_timeout(self) -> None:
         """Remove view on timeout"""
         try:
-            return await self.original_message.edit(view=None)
+            if self.original_message:
+                await self.original_message.edit(view=None)
         except NotFound:
             pass
 

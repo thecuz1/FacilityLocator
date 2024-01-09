@@ -17,19 +17,19 @@ from .utils.embeds import FeedbackEmbed, FeedbackType
 from .utils.views import SetDynamicList, create_list
 from .utils.errors import MessageError
 from .utils.sqlite import AdaptableList
+from .events import Events
 
 
 if TYPE_CHECKING:
     from bot import FacilityBot
     from .utils.context import Context, GuildInteraction, ClientInteraction
-    from .events import Events
 
 
 class Config(commands.Cog):
     def __init__(self, bot: FacilityBot):
         self.bot: FacilityBot = bot
 
-    @app_commands.command()
+    @app_commands.command()  # type: ignore[arg-type]
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     @app_commands.default_permissions(administrator=True)
@@ -71,8 +71,8 @@ class Config(commands.Cog):
 
         facilities = await self.bot.db.get_facilities({"guild_id = ?": guild.id})
 
-        events: Optional[Events] = self.bot.get_cog("Events")
-        if events:
+        events = self.bot.get_cog("Events")
+        if events is not None and isinstance(events, Events):
             for facility in facilities:
                 await events.handle_forum(facility, guild.id)
 
@@ -112,7 +112,7 @@ class Config(commands.Cog):
             ephemeral=True,
         )
 
-    @app_commands.command()
+    @app_commands.command()  # type: ignore[arg-type]
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def toggle_ephemeral(self, interaction: ClientInteraction):
         """Toggles user preference for ephemeral messages"""
@@ -140,7 +140,7 @@ class Config(commands.Cog):
                 ephemeral=True,
             )
 
-    @app_commands.command()
+    @app_commands.command()  # type: ignore[arg-type]
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     @app_commands.default_permissions(administrator=True)
@@ -174,7 +174,7 @@ class Config(commands.Cog):
         default_permissions=Permissions(administrator=True),
     )
 
-    @response.command()
+    @response.command()  # type: ignore[arg-type]
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def add(self, interaction: GuildInteraction, channel: TextChannel):
         """Adds channel to respond to questions
@@ -197,7 +197,7 @@ class Config(commands.Cog):
         )
         await interaction.response.send_message(":white_check_mark:")
 
-    @response.command()
+    @response.command()  # type: ignore[arg-type]
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def remove(self, interaction: GuildInteraction, channel: TextChannel):
         """removes channel from responding to questions
@@ -225,7 +225,7 @@ class Config(commands.Cog):
                 await self.bot.db.execute(query, interaction.guild_id)
         await interaction.response.send_message(":white_check_mark:")
 
-    @response.command()
+    @response.command()  # type: ignore[arg-type]
     @app_commands.checks.cooldown(1, 4, key=lambda i: (i.guild_id, i.user.id))
     async def list(self, interaction: GuildInteraction):
         """lists channels responding to questions"""
@@ -250,14 +250,14 @@ class Config(commands.Cog):
         rows = await self.bot.db.fetch(query, object_id)
         await ctx.send(rows)
 
-    @blacklist.command(name="add")
+    @blacklist.command(name="add")  # type: ignore[arg-type]
     @commands.is_owner()
     async def blacklist_add(self, ctx: Context, object_id: int, reason: str = ""):
         query = """INSERT OR IGNORE INTO blacklist (object_id, reason) VALUES (?, ?)"""
         await self.bot.db.execute(query, object_id, reason)
         await ctx.send(content=":white_check_mark:")
 
-    @blacklist.command(name="remove")
+    @blacklist.command(name="remove")  # type: ignore[arg-type]
     @commands.is_owner()
     async def blacklist_remove(self, ctx: Context, object_id: int):
         query = """DELETE FROM blacklist WHERE object_id = ?"""

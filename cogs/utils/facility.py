@@ -1,5 +1,4 @@
 from typing import Optional
-from functools import reduce
 
 import discord
 
@@ -244,4 +243,4 @@ class Facility:
         return self.author == interaction.user.id
 
     def has_one_service(self) -> bool:
-        return self.item_services or self.vehicle_services
+        return bool(self.item_services) or bool(self.vehicle_services)

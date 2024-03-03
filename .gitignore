@@ -1,6 +1,8 @@
 *.log
 __pycache__
 *.sqlite*
-*.vscode
+.vscode/*
+!.vscode/settings.default.json
+!.vscode/extensions.json
 .venv
 .env

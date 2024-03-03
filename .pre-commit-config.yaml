@@ -1,0 +1,13 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-ast
+      - id: check-toml
+      - id: check-yaml
+      - id: fix-byte-order-marker
+      - id: end-of-file-fixer
+        types: [file, python]
+      - id: trailing-whitespace
+        types: [file, python]

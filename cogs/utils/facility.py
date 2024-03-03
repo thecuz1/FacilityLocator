@@ -186,9 +186,9 @@ class Facility:
                     if vehicle_highlight:
                         for i, k in enumerate(vehicle_list):
                             if vehicle_highlight in k:
-                                vehicle_list[
-                                    i
-                                ] = f"{ANSIColour(bold=True, text_colour=Colour.BLUE)}> {flag.ansi}{k}"
+                                vehicle_list[i] = (
+                                    f"{ANSIColour(bold=True, text_colour=Colour.BLUE)}> {flag.ansi}{k}"
+                                )
                                 break
 
                     length_vehicle_list = 0

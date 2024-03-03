@@ -1,4 +1,5 @@
 """Script to generate region names and locations for use with the bot."""
+
 import string
 import asyncio
 
@@ -38,18 +39,14 @@ async def main() -> None:
                 for index, char in enumerate(region_name[1:]):
                     index += 1
                     if char in string.ascii_uppercase:
-                        region_name = (
-                            region_name[:index] + " " + region_name[index:]
-                        )  # noqa: E501
+                        region_name = region_name[:index] + " " + region_name[index:]  # noqa: E501
 
             async with session.get(
                 f"https://war-service-live.foxholeservices.com/api/worldconquest/maps/{region}/static"  # noqa: E501
             ) as response:
                 result = await response.json()
                 for item in result["mapTextItems"]:
-                    region_names.setdefault(region_name, []).append(
-                        item["text"]
-                    )  # noqa: E501
+                    region_names.setdefault(region_name, []).append(item["text"])  # noqa: E501
 
     with open("region_output.txt", "w", encoding="utf-8") as f:
         f.write("REGIONS: dict[str, tuple[str, ...]] = {\n")

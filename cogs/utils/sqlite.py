@@ -203,39 +203,39 @@ class Database:
                     "thread_id"	INTEGER,
                 );
                 CREATE TABLE "blacklist" (
-	                "object_id"	INTEGER UNIQUE,
-	                "reason"	TEXT,
-	                PRIMARY KEY("object_id")
+                    "object_id"	INTEGER UNIQUE,
+                    "reason"	TEXT,
+                    PRIMARY KEY("object_id")
                 );
                 CREATE TABLE "list" (
-	                "guild_id"	INTEGER UNIQUE,
-	                "channel_id"	INTEGER,
-	                "messages"	messages,
-	                PRIMARY KEY("guild_id")
+                    "guild_id"	INTEGER UNIQUE,
+                    "channel_id"	INTEGER,
+                    "messages"	messages,
+                    PRIMARY KEY("guild_id")
                 );
                 CREATE TABLE "command_stats" (
-	                "name"	TEXT NOT NULL,
-	                "run_count"	INTEGER NOT NULL,
-	                "guild_id"	INTEGER NOT NULL
+                    "name"	TEXT NOT NULL,
+                    "run_count"	INTEGER NOT NULL,
+                    "guild_id"	INTEGER NOT NULL
                 );
                 CREATE UNIQUE INDEX "command_index" ON "command_stats" (
-	                "name",
-	                "guild_id"
+                    "name",
+                    "guild_id"
                 );
                 CREATE TABLE "response" (
-	                "guild_id"	INTEGER UNIQUE,
-	                "channel_ids"	CHANNEL_IDS,
-	                PRIMARY KEY("guild_id")
+                    "guild_id"	INTEGER UNIQUE,
+                    "channel_ids"	CHANNEL_IDS,
+                    PRIMARY KEY("guild_id")
                 );
                 CREATE TABLE "user_options" (
-	                "user_id"	INTEGER,
-	                "ephemeral"	BOOL,
-	                PRIMARY KEY("user_id")
+                    "user_id"	INTEGER,
+                    "ephemeral"	BOOL,
+                    PRIMARY KEY("user_id")
                 );
                 CREATE TABLE "guild_options" (
-	                "guild_id"	INTEGER,
-	                "forum_id"	INTEGER,
-	                PRIMARY KEY("guild_id")
+                    "guild_id"	INTEGER,
+                    "forum_id"	INTEGER,
+                    PRIMARY KEY("guild_id")
                 );
             """
         await self.executemultiple(sql)

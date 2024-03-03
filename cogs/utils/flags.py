@@ -28,12 +28,10 @@ class flag:
         return self
 
     @overload
-    def __get__(self, instance: None, owner: Type[FF]) -> Self:
-        ...
+    def __get__(self, instance: None, owner: Type[FF]) -> Self: ...
 
     @overload
-    def __get__(self, instance: FF, owner: Type[FF]) -> bool:
-        ...
+    def __get__(self, instance: FF, owner: Type[FF]) -> bool: ...
 
     def __get__(self, instance: FF | None, owner: Type[FF]) -> Any:
         if instance is None:

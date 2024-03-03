@@ -1,0 +1,22 @@
+[tool.pylint.'MESSAGES CONTROL']
+disable = [
+    'C0413', # E402: Module level import not at top of file
+    'C0301', # E501: Line too long
+    'E0402', # relative beyond top level
+    'C0116', # missing function docstring
+    'C0115', # missing class docstring
+    'W0107', # unnecessary pass
+    'W0718', # broad exception caught
+    'R0912', # too many branches
+    'R0914', # too many locals
+    'C0302', # too many lines
+    'W0719', # broad exception raised
+    'C0114', # Missing module docstring
+]
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = ["E501"]

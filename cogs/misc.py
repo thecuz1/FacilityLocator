@@ -100,11 +100,11 @@ class Misc(commands.Cog):
         """
 
         # fmt: off
-        make_table=lambda rows,labels=None,centered=False:"".join(["┌"+"┬".join("─"*(max([*(len(str(o)) for o in c),len(str(labels[i])) if labels else 0])+2) for i,c in enumerate(list(zip(*rows))))+"┐\n",("│"+"│".join(f" {str(e).center(k)} "if centered else f" {str(e).ljust(k, ' ')} "for e,k in zip(labels,(max(len(str(o)) for o in [*c,l]) for c,l in zip(list(zip(*rows)),labels))))+"│\n├"+"┼".join("─"*(max([*(len(str(o)) for o in c),len(str(labels[i]))])+2 if labels else 0) for i,c in enumerate(list(zip(*rows))))+"┤\n"if labels else "")+"\n".join("│"+"│".join(f" {str(e).center(l)} "if centered else f" {str(e).ljust(l, ' ')} "for e,l in zip(r, ((max([*(len(str(o)) for o in c),len(str(labels[i])) if labels else 0])) for i,c in enumerate(list(zip(*rows)))))) + "│"for r in rows)+"\n└"+"┴".join("─"*(max([*(len(str(o)) for o in c),len(str(labels[i])) if labels else 0])+2) for i,c in enumerate(list(zip(*rows))))+"┘"])
+        make_table=lambda rows,labels=None,centered=False:"".join(["┌"+"┬".join("─"*(max([*(len(str(o)) for o in c),len(str(labels[i])) if labels else 0])+2) for i,c in enumerate(list(zip(*rows))))+"┐\n",("│"+"│".join(f" {str(e).center(k)} "if centered else f" {str(e).ljust(k, ' ')} "for e,k in zip(labels,(max(len(str(o)) for o in [*c,l]) for c,l in zip(list(zip(*rows)),labels))))+"│\n├"+"┼".join("─"*(max([*(len(str(o)) for o in c),len(str(labels[i]))])+2 if labels else 0) for i,c in enumerate(list(zip(*rows))))+"┤\n"if labels else "")+"\n".join("│"+"│".join(f" {str(e).center(l)} "if centered else f" {str(e).ljust(l, ' ')} "for e,l in zip(r, ((max([*(len(str(o)) for o in c),len(str(labels[i])) if labels else 0])) for i,c in enumerate(list(zip(*rows)))))) + "│"for r in rows)+"\n└"+"┴".join("─"*(max([*(len(str(o)) for o in c),len(str(labels[i])) if labels else 0])+2) for i,c in enumerate(list(zip(*rows))))+"┘"])  # noqa
         # fmt: on
 
         query = """
-            SELECT name, 
+            SELECT name,
                   SUM(CASE WHEN guild_id = ? THEN run_count ELSE 0 END) AS guild_count,
                   SUM(run_count) AS global_count
            FROM command_stats

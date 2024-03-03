@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 
 class FacilityTransformer(app_commands.Transformer):
     async def transform(self, interaction: GuildInteraction, value: str, /) -> Facility:
-
         try:
             facility_id = int(value)
         except ValueError as exc:

@@ -1,0 +1,20 @@
+{
+    "editor.formatOnSave": false,
+    "python.analysis.typeCheckingMode": "basic",
+    "[python][json][jsonc][yaml][toml]": {
+        "editor.formatOnSave": true
+    },
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "[json][jsonc]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "[yaml]": {
+        "editor.defaultFormatter": "redhat.vscode-yaml"
+    },
+    "[toml]": {
+        "editor.defaultFormatter": "tamasfe.even-better-toml"
+    },
+    "files.eol": "\n"
+}
